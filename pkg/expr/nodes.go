@@ -367,23 +367,12 @@ func makeResultsIdentifiableByLabels(r mathexp.Results) {
 		return
 	}
 
-	hasDupeLabels := false
-	hashes := make(map[uint64]struct{}, len(r.Values))
+	// proceed only if all values have no labels
 	for _, value := range r.Values {
 		lbls := value.GetLabels()
-		// if at least one of values has name label, skip fixing it
-		if _, ok := lbls[nameLabelName]; ok {
+		if len(lbls) > 0 {
 			return
 		}
-		h := hashLabels(lbls)
-		if _, ok := hashes[h]; ok {
-			hasDupeLabels = true
-			break
-		}
-		hashes[h] = struct{}{}
-	}
-	if !hasDupeLabels {
-		return
 	}
 
 	fixWithName := func(getName func(field mathexp.Value) string) bool {
