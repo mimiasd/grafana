@@ -106,8 +106,8 @@ func (s Scalar) GetFloat64Value() *float64 {
 // Number hold a labelled single number values.
 type Number struct{ Frame *data.Frame }
 
-func (s Number) GetValueField() *data.Field {
-	return s.Frame.Fields[0]
+func (n Number) GetValueField() *data.Field {
+	return n.Frame.Fields[0]
 }
 
 // Type returns the Value type and allows it to fulfill the Value interface.
