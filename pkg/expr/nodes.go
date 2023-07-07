@@ -380,6 +380,7 @@ func makeResultsIdentifiableByLabels(r mathexp.Results) {
 			hasDupeLabels = true
 			break
 		}
+		hashes[h] = struct{}{}
 	}
 	if !hasDupeLabels {
 		return
