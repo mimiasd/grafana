@@ -36,12 +36,17 @@ type Value interface {
 	SetMeta(interface{})
 	AsDataFrame() *data.Frame
 	AddNotice(notice data.Notice)
+	GetValueField() *data.Field
 }
 
 // Scalar is the type that holds a single number constant.
 // Before returning from an expression it will be wrapped in a
 // data frame.
 type Scalar struct{ Frame *data.Frame }
+
+func (s Scalar) GetValueField() *data.Field {
+	return s.Frame.Fields[0]
+}
 
 // Type returns the Value type and allows it to fulfill the Value interface.
 func (s Scalar) Type() parse.ReturnType { return parse.TypeScalar }
@@ -100,6 +105,10 @@ func (s Scalar) GetFloat64Value() *float64 {
 
 // Number hold a labelled single number values.
 type Number struct{ Frame *data.Frame }
+
+func (s Number) GetValueField() *data.Field {
+	return s.Frame.Fields[0]
+}
 
 // Type returns the Value type and allows it to fulfill the Value interface.
 func (n Number) Type() parse.ReturnType { return parse.TypeNumberSet }
@@ -198,6 +207,10 @@ func (ff *Float64Field) Len() int {
 
 // NoData is an untyped no data response.
 type NoData struct{ Frame *data.Frame }
+
+func (s NoData) GetValueField() *data.Field {
+	return nil
+}
 
 // Type returns the Value type and allows it to fulfill the Value interface.
 func (s NoData) Type() parse.ReturnType { return parse.TypeNoData }

@@ -180,6 +180,10 @@ func NewSeriesFromRef(refID string, s timeseries.MetricRef) (Series, error) {
 // Type returns the Value type and allows it to fulfill the Value interface.
 func (s Series) Type() parse.ReturnType { return parse.TypeSeriesSet }
 
+func (s Series) GetValueField() *data.Field {
+	return s.Frame.Fields[seriesTypeValIdx]
+}
+
 // Value returns the actual value allows it to fulfill the Value interface.
 func (s Series) Value() interface{} { return &s }
 
