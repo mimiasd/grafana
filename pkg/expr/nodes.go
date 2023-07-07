@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
+	"sort"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -14,6 +17,7 @@ import (
 
 	"github.com/grafana/grafana/pkg/expr/classic"
 	"github.com/grafana/grafana/pkg/expr/mathexp"
+	"github.com/grafana/grafana/pkg/expr/mathexp/parse"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/services/datasources"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
@@ -247,6 +251,7 @@ func (dn *DSNode) Execute(ctx context.Context, now time.Time, _ mathexp.Vars, s 
 
 	var result mathexp.Results
 	responseType, result, err = queryDataResponseToResults(ctx, resp, dn.refID, dn.datasource.Type, s)
+	makeResultsIdentifiableByLabels(result)
 	return result, err
 }
 
@@ -327,6 +332,120 @@ func queryDataResponseToResults(ctx context.Context, resp *backend.QueryDataResp
 	return "series set", mathexp.Results{
 		Values: vals, // TODO vals can be empty. Should we replace with no-data?
 	}, nil
+}
+
+// TODO remove after sdk release
+func hashLabels(l data.Labels) uint64 {
+	h := fnv.New64()
+	if len(l) == 0 {
+		return h.Sum64()
+	}
+	// maps do not guarantee predictable sequence of keys.
+	// Therefore, to make hash stable, we need to sort keys
+	keys := make([]string, 0, len(l))
+	for labelName := range l {
+		keys = append(keys, labelName)
+	}
+	sort.Strings(keys)
+	for _, name := range keys {
+		// avoid an extra allocation of a slice of bytes using unsafe conversions.
+		// The internal structure of the string is almost like a slice (except capacity).
+		_, _ = h.Write(unsafe.Slice(unsafe.StringData(name), len(name)))
+		// ignore errors returned by Write method because fnv never returns them.
+		_, _ = h.Write([]byte{255}) // use an invalid utf-8 sequence as separator
+		value := l[name]
+		_, _ = h.Write(unsafe.Slice(unsafe.StringData(value), len(value)))
+		_, _ = h.Write([]byte{255})
+	}
+	return h.Sum64()
+}
+
+func makeResultsIdentifiableByLabels(r mathexp.Results) {
+	const nameLabelName = "__name__"
+
+	if len(r.Values) == 0 || len(r.Values) == 1 && r.Values[0].Type() == parse.TypeNoData {
+		return
+	}
+
+	hasDupeLabels := false
+	hashes := make(map[uint64]struct{}, len(r.Values))
+	for _, value := range r.Values {
+		lbls := value.GetLabels()
+		// if at least one of values has name label, skip fixing it
+		if _, ok := lbls[nameLabelName]; ok {
+			return
+		}
+		h := hashLabels(lbls)
+		if _, ok := hashes[h]; ok {
+			hasDupeLabels = true
+			break
+		}
+	}
+	if !hasDupeLabels {
+		return
+	}
+
+	fixWithName := func(getName func(field mathexp.Value) string) bool {
+		names := make(map[string]mathexp.Value, len(r.Values))
+		for _, value := range r.Values {
+			n := getName(value)
+			if n == "" {
+				return false
+			}
+			if _, ok := names[n]; ok {
+				return false
+			}
+			names[n] = value
+		}
+
+		for name, value := range names {
+			lbls := value.GetLabels()
+			if lbls == nil {
+				lbls = make(data.Labels, 1)
+			}
+			lbls[nameLabelName] = name
+			value.SetLabels(lbls)
+		}
+		return true
+	}
+
+	// now pick name that will make the values identifiable
+	if fixWithName(func(v mathexp.Value) string {
+		f := v.GetValueField()
+		if f == nil || f.Config == nil {
+			return ""
+		}
+		return f.Config.DisplayNameFromDS
+	}) {
+		return
+	}
+	if fixWithName(func(v mathexp.Value) string {
+		f := v.GetValueField()
+		if f == nil || f.Config == nil {
+			return ""
+		}
+		return f.Config.DisplayNameFromDS
+	}) {
+		return
+	}
+	if fixWithName(func(v mathexp.Value) string {
+		f := v.GetValueField()
+		if f == nil {
+			return ""
+		}
+		return f.Name
+	}) {
+		return
+	}
+	if fixWithName(func(v mathexp.Value) string {
+		f := v.AsDataFrame()
+		if f == nil {
+			return ""
+		}
+		return f.Name
+	}) {
+		return
+	}
 }
 
 func isAllFrameVectors(datasourceType string, frames data.Frames) bool {
