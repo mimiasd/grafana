@@ -4,11 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
-	"sort"
 	"strings"
 	"time"
-	"unsafe"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -332,32 +329,6 @@ func queryDataResponseToResults(ctx context.Context, resp *backend.QueryDataResp
 	return "series set", mathexp.Results{
 		Values: vals, // TODO vals can be empty. Should we replace with no-data?
 	}, nil
-}
-
-// TODO remove after sdk release
-func hashLabels(l data.Labels) uint64 {
-	h := fnv.New64()
-	if len(l) == 0 {
-		return h.Sum64()
-	}
-	// maps do not guarantee predictable sequence of keys.
-	// Therefore, to make hash stable, we need to sort keys
-	keys := make([]string, 0, len(l))
-	for labelName := range l {
-		keys = append(keys, labelName)
-	}
-	sort.Strings(keys)
-	for _, name := range keys {
-		// avoid an extra allocation of a slice of bytes using unsafe conversions.
-		// The internal structure of the string is almost like a slice (except capacity).
-		_, _ = h.Write(unsafe.Slice(unsafe.StringData(name), len(name)))
-		// ignore errors returned by Write method because fnv never returns them.
-		_, _ = h.Write([]byte{255}) // use an invalid utf-8 sequence as separator
-		value := l[name]
-		_, _ = h.Write(unsafe.Slice(unsafe.StringData(value), len(value)))
-		_, _ = h.Write([]byte{255})
-	}
-	return h.Sum64()
 }
 
 func makeResultsIdentifiableByLabels(r mathexp.Results) {
