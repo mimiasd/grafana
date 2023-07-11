@@ -414,7 +414,7 @@ func makeResultsIdentifiableByLabels(r mathexp.Results) {
 		if f == nil || f.Config == nil {
 			return ""
 		}
-		return f.Config.DisplayNameFromDS
+		return f.Config.DisplayName
 	}) {
 		return
 	}
