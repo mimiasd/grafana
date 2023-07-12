@@ -1,8 +1,11 @@
 import { css } from '@emotion/css';
-import React, { useCallback, useId, useMemo } from 'react';
+import React, { useCallback, useId, useMemo, useRef } from 'react';
+import Skeleton from 'react-loading-skeleton';
 import { FixedSizeList as List } from 'react-window';
+import InfiniteLoader from 'react-window-infinite-loader';
 
 import { GrafanaTheme2 } from '@grafana/data';
+import { Stack } from '@grafana/experimental';
 import { IconButton, useStyles2 } from '@grafana/ui';
 import { getSvgSize } from '@grafana/ui/src/components/Icon/utils';
 import { Text } from '@grafana/ui/src/components/Text/Text';
@@ -21,6 +24,9 @@ interface NestedFolderListProps {
   selectedFolder: FolderUID | undefined;
   onFolderClick: (uid: string, newOpenState: boolean) => void;
   onSelectionChange: (event: React.FormEvent<HTMLInputElement>, item: DashboardViewItem) => void;
+
+  isItemLoaded: (itemIndex: number) => boolean;
+  requestLoadMore: (folderUid: string | undefined) => void;
 }
 
 export function NestedFolderList({
@@ -29,7 +35,10 @@ export function NestedFolderList({
   selectedFolder,
   onFolderClick,
   onSelectionChange,
+  isItemLoaded,
+  requestLoadMore,
 }: NestedFolderListProps) {
+  const infiniteLoaderRef = useRef<InfiniteLoader>(null);
   const styles = useStyles2(getStyles);
 
   const virtualData = useMemo(
@@ -37,22 +46,48 @@ export function NestedFolderList({
     [items, foldersAreOpenable, selectedFolder, onFolderClick, onSelectionChange]
   );
 
+  const handleIsItemLoaded = useCallback(
+    (itemIndex: number) => {
+      return isItemLoaded(itemIndex);
+    },
+    [isItemLoaded]
+  );
+
+  const handleLoadMore = useCallback(
+    (startIndex: number, endIndex: number) => {
+      const { parentUID } = items[startIndex];
+      requestLoadMore(parentUID);
+    },
+    [requestLoadMore, items]
+  );
+
   return (
     <div className={styles.table}>
-      <List
-        height={ROW_HEIGHT * Math.min(6.5, items.length)}
-        width="100%"
-        itemData={virtualData}
-        itemSize={ROW_HEIGHT}
+      <InfiniteLoader
+        ref={infiniteLoaderRef}
         itemCount={items.length}
+        isItemLoaded={handleIsItemLoaded}
+        loadMoreItems={handleLoadMore}
       >
-        {Row}
-      </List>
+        {({ onItemsRendered, ref }) => (
+          <List
+            ref={ref}
+            height={ROW_HEIGHT * Math.min(6.5, items.length)}
+            width="100%"
+            itemData={virtualData}
+            itemSize={ROW_HEIGHT}
+            itemCount={items.length}
+            onItemsRendered={onItemsRendered}
+          >
+            {Row}
+          </List>
+        )}
+      </InfiniteLoader>
     </div>
   );
 }
 
-interface VirtualData extends NestedFolderListProps {}
+interface VirtualData extends Omit<NestedFolderListProps, 'isItemLoaded' | 'requestLoadMore'> {}
 
 interface RowProps {
   index: number;
@@ -95,10 +130,19 @@ function Row({ index, style: virtualStyles, data }: RowProps) {
     [item.uid, foldersAreOpenable, onFolderClick]
   );
 
+  if (item.kind === 'ui' && item.uiKind === 'pagination-placeholder') {
+    return (
+      <span style={virtualStyles} className={styles.row}>
+        <Indent level={level} />
+        <SkeletonGroup index={index} />
+      </span>
+    );
+  }
+
   if (item.kind !== 'folder') {
     return process.env.NODE_ENV !== 'production' ? (
       <span style={virtualStyles} className={styles.row}>
-        Non-folder item {item.uid}
+        Non-folder {item.kind} {item.uid}
       </span>
     ) : null;
   }
@@ -214,3 +258,29 @@ const getStyles = (theme: GrafanaTheme2) => {
     }),
   };
 };
+
+// TODO: If we like this, move this out... somewhere
+const SKELETON_COUNTS = [
+  // Each array is a set of percentages that the width is divided into for each 'word'
+  [1],
+  [0.3, 0.7],
+  [0.5, 0.5],
+  [0.7, 0.3],
+  [0.3, 0.2, 0.5],
+];
+
+const SKELETON_WIDTHS = [100, 150, 200];
+
+function SkeletonGroup({ index }: { index: number }) {
+  const count = SKELETON_COUNTS[index % SKELETON_COUNTS.length];
+  const size = SKELETON_WIDTHS[index % SKELETON_WIDTHS.length];
+
+  return (
+    <Stack gap={1}>
+      {count.map((percent, index) => {
+        const width = size * percent;
+        return <Skeleton key={index} width={width} />;
+      })}
+    </Stack>
+  );
+}
