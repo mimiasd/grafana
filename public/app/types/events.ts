@@ -30,7 +30,7 @@ export interface ShowModalReactPayload {
 
 export interface ExportPanelPayload {
   panel: PanelModel;
-  htmlElement: HTMLElement;
+  htmlElement: HTMLCanvasElement; // from HTMLElement
 }
 
 export interface ShowConfirmModalPayload {

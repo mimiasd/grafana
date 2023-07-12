@@ -58,12 +58,25 @@ export function getPanelMenu(
     sharePanel(dashboard, panel);
   };
 
-  const onExportPanel = (event: React.MouseEvent<any>) => {
+  const onExportPanel = (event: React.MouseEvent<HTMLElement> & { target: HTMLElement }) => {
+    console.log('e', event);
     event.preventDefault();
-    //todo avoid as
-    const exportHtmlElement: HTMLElement = event.target as HTMLElement;
-    exportPanel(exportHtmlElement.closest('.panel-container')?.querySelector('canvas')! , panel);
-  }
+    //todo avoid as   DONE? (or maybe causes problems elsewhere)
+    const exportHtmlElement: HTMLElement = event.target;
+    console.log('html', exportHtmlElement);
+    exportPanel(exportHtmlElement.closest('.panel-container')?.querySelector('canvas')!, panel);
+  };
+
+  /*const onExportPanel = (tab?: ExportTab) => {
+    locationService.partial({
+      inspect: panel.id,
+      inspectTab: tab,
+    });
+
+    reportInteraction('grafana_panel_menu_export', {
+      tab: tab ?? ExportTab.Data,
+    });
+  }; */
 
   const onAddLibraryPanel = (event: React.MouseEvent<any>) => {
     event.preventDefault();
@@ -160,11 +173,90 @@ export function getPanelMenu(
     shortcut: 'p s',
   });
 
+  const subMenuEnable = false;
+
+  const exportMenu: PanelMenuItem[] = [];
+  let exportImageMenu = exportMenu;
+  let exportDataMenu = exportMenu;
+
+  if (subMenuEnable) {
+    exportImageMenu = [];
+
+    exportDataMenu = [];
+  }
+
+  console.log(exportImageMenu);
+
+  exportImageMenu.push({
+    text: t('panel.header-menu.inspect-data', `PNG`),
+    iconClassName: 'camera',
+    onClick: (e) => onInspectPanel(InspectTab.Data), // plhold
+  });
+
+  exportImageMenu.push({
+    text: t('panel.header-menu.inspect-data', `JPG`),
+    iconClassName: 'camera',
+    onClick: (e) => onInspectPanel(InspectTab.Data), // plhold
+  });
+
+  exportImageMenu.push({
+    text: t('panel.header-menu.inspect-data', `BMP`),
+    iconClassName: 'camera',
+    onClick: (e) => onInspectPanel(InspectTab.Data), // plhold
+  });
+
+  exportImageMenu.push({
+    type: 'divider',
+    text: '',
+  });
+
+  exportDataMenu.push({
+    text: t('panel.header-menu.inspect-data', `CSV`),
+    iconClassName: 'book',
+    onClick: (e) => onInspectPanel(InspectTab.Data), // plhold
+  });
+
+  exportDataMenu.push({
+    text: t('panel.header-menu.inspect-data', `Excel`),
+    iconClassName: 'book',
+    onClick: (e) => onInspectPanel(InspectTab.Data), // plhold
+  });
+
+  exportDataMenu.push({
+    text: t('panel.header-menu.inspect-data', `Numbers`),
+    iconClassName: 'book',
+    onClick: (e) => onInspectPanel(InspectTab.Data), // plhold
+  });
+
+  exportDataMenu.push({
+    text: t('panel.header-menu.inspect-data', `JSON`),
+    iconClassName: 'book',
+    onClick: (e) => onInspectPanel(InspectTab.Data), // plhold
+  });
+
+  console.log('2', exportImageMenu);
+
+  if (subMenuEnable) {
+    exportMenu.push({
+      type: 'submenu',
+      text: t('panel.header-menu.export', `Image`),
+      subMenu: exportImageMenu,
+    });
+
+    exportMenu.push({
+      type: 'submenu',
+      text: t('panel.header-menu.export', `Data`),
+      subMenu: exportDataMenu,
+    });
+  }
+
   menu.push({
+    type: 'submenu',
     text: t('panel.header-menu.export', `Export`),
     iconClassName: 'download-alt',
     onClick: onExportPanel,
-    shortcut: 'p e',
+    shortcut: 't', // if multiple letters, overlaps with > symbol
+    subMenu: exportMenu,
   });
 
   if (contextSrv.hasAccessToExplore() && !(panel.plugin && panel.plugin.meta.skipDataQuery)) {

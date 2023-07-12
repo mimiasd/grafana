@@ -163,7 +163,7 @@ export interface PanelMenuItem {
   type?: 'submenu' | 'divider';
   text: string;
   iconClassName?: IconName;
-  onClick?: (event: React.MouseEvent<any>) => void;
+  onClick?: (event: React.MouseEvent<any> & { target: HTMLElement }) => void;
   shortcut?: string;
   href?: string;
   subMenu?: PanelMenuItem[];

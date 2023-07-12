@@ -21,6 +21,8 @@ export const PanelHeaderMenuItem: FC<Props & PanelMenuItem> = (props) => {
     <li className="divider" />
   ) : (
     <li className={isSubMenu ? `dropdown-submenu ${getDropdownLocationCssClass(ref)}` : undefined} ref={setRef}>
+      {' '}
+      {/*OVER HERE */}
       <a onClick={props.onClick} href={props.href}>
         {icon && <Icon name={icon} className={styles.menuIconClassName} />}
 
