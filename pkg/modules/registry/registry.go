@@ -6,6 +6,7 @@ import (
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/modules"
 	"github.com/grafana/grafana/pkg/server/backgroundsvcs"
+	"github.com/grafana/grafana/pkg/services/provisioning"
 )
 
 type Registry interface{}
@@ -18,11 +19,13 @@ type registry struct {
 func ProvideRegistry(
 	moduleManager modules.Manager,
 	backgroundServiceRunner *backgroundsvcs.BackgroundServiceRunner,
+	provisioningService *provisioning.ProvisioningServiceImpl,
 ) *registry {
 	return newRegistry(
 		log.New("modules.registry"),
 		moduleManager,
 		backgroundServiceRunner,
+		provisioningService,
 	)
 }
 
