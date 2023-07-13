@@ -64,7 +64,7 @@ export function getPanelMenu(
     //todo avoid as   DONE? (or maybe causes problems elsewhere)
     const exportHtmlElement: HTMLElement = event.target;
     console.log('html', exportHtmlElement);
-    exportPanel(exportHtmlElement.closest('.panel-container')?.querySelector('canvas')!, panel);
+    exportPanel(exportHtmlElement.closest('.panel-container')?.querySelector('canvas')!, panel, 'PNG');
   };
 
   /*const onExportPanel = (tab?: ExportTab) => {
@@ -190,19 +190,19 @@ export function getPanelMenu(
   exportImageMenu.push({
     text: t('panel.header-menu.inspect-data', `PNG`),
     iconClassName: 'camera',
-    onClick: (e) => onInspectPanel(InspectTab.Data), // plhold
+    onClick: onExportPanel,
   });
 
   exportImageMenu.push({
     text: t('panel.header-menu.inspect-data', `JPG`),
     iconClassName: 'camera',
-    onClick: (e) => onInspectPanel(InspectTab.Data), // plhold
+    onClick: onExportPanel,
   });
 
   exportImageMenu.push({
     text: t('panel.header-menu.inspect-data', `BMP`),
     iconClassName: 'camera',
-    onClick: (e) => onInspectPanel(InspectTab.Data), // plhold
+    onClick: onExportPanel,
   });
 
   exportImageMenu.push({
@@ -231,7 +231,7 @@ export function getPanelMenu(
   exportDataMenu.push({
     text: t('panel.header-menu.inspect-data', `JSON`),
     iconClassName: 'book',
-    onClick: (e) => onInspectPanel(InspectTab.Data), // plhold
+    onClick: (e) => onInspectPanel(InspectTab.JSON), // plhold
   });
 
   console.log('2', exportImageMenu);

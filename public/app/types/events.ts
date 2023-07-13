@@ -31,6 +31,7 @@ export interface ShowModalReactPayload {
 export interface ExportPanelPayload {
   panel: PanelModel;
   htmlElement: HTMLCanvasElement; // from HTMLElement
+  exportType: String; // todo: change from String;
 }
 
 export interface ShowConfirmModalPayload {

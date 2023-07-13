@@ -69,14 +69,20 @@ export const sharePanel = (dashboard: DashboardModel, panel: PanelModel) => {
   );
 };
 
-export const exportPanel = (htmlElement: HTMLElement | null, panel: PanelModel) => {
+export const exportPanel = (htmlElement: HTMLCanvasElement | null, panel: PanelModel, exportType: String) => {
+  // add exportType?
   if (!htmlElement) {
+    console.log('AAAAAAAA, no HTML element');
     //TODO: throw error
     return;
   }
 
+  console.log('panel', panel);
+  console.log('htmlEl', htmlElement);
+  console.log('htmlEl', exportType);
+
   appEvents.publish(
-    new PanelExportEvent({ panel, htmlElement })
+    new PanelExportEvent({ panel, htmlElement, exportType }) // exportType not in ExportPanelPayload
   );
 };
 

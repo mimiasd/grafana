@@ -30,7 +30,7 @@ export interface MenuItemProps<T = any> {
   /** Url of the menu item */
   url?: string;
   /** Handler for the click behaviour */
-  onClick?: (event: React.MouseEvent<HTMLElement>, payload?: T) => void;
+  onClick?: (event: React.MouseEvent<HTMLElement> & { target: HTMLElement }, payload?: T) => void;
   /** Custom MenuItem styles*/
   className?: string;
   /** Active */
@@ -143,7 +143,7 @@ export const MenuItem = React.memo(
         className={itemStyle}
         rel={target === '_blank' ? 'noopener noreferrer' : undefined}
         href={url}
-        onClick={onClick}
+        onClick={onClick} // this breaks the { target: HTMLElement } thing
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         onKeyDown={handleKeys}

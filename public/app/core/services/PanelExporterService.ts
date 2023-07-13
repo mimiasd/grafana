@@ -1,10 +1,52 @@
+import {
+  // CoreApp,
+  CSVConfig,
+  DataFrame,
+  DataTransformerID,
+  //  PanelModel,
+  //  TimeZone,
+} from '@grafana/data';
 import appEvents from 'app/core/app_events';
+import { downloadDataFrameAsCsv } from 'app/features/inspector/utils/download';
+//import { GetDataOptions } from 'app/features/query/state/PanelQueryRunner';
+//import { PureComponent } from 'react';
 
 import { ExportPanelPayload, PanelExportEvent } from '../../types/events';
 
+/*interface Props {
+  isLoading: boolean;
+  options: GetDataOptions;
+  timeZone: TimeZone;
+  app?: CoreApp;
+  data?: DataFrame[];
+  panel?: PanelModel;
+  onOptionsChange?: (options: GetDataOptions) => void;
+}
+
+interface State {
+  selectedDataFrame: number | DataTransformerID;
+  transformId: DataTransformerID;
+  dataFrameIndex: number;
+//  transformationOptions: Array<SelectableValue<DataTransformerID>>;
+  transformedData: DataFrame[];
+  downloadForExcel: boolean;
+} */
+
 export class PanelExporterService {
   init() {
-    appEvents.subscribe(PanelExportEvent, (e) => this.exportPNG(e.payload)); // Binds PanelExportEvent to exportPNG method
+    // right now holding no type
+    appEvents.subscribe(PanelExportEvent, (e) => {
+      console.log('the e', e);
+      this.exportPNG(e.payload);
+    }); // Binds PanelExportEvent to exportPNG method
+  }
+
+  exportSelector(e: ExportPanelPayload) {
+    switch (
+      e.exportType
+      //...
+    ) {
+    }
   }
 
   exportPNG(e: ExportPanelPayload) {
@@ -22,9 +64,13 @@ export class PanelExporterService {
     }, 'image/png');
   }
 
-  exportCSV(e: ExportPanelPayload) {
-    console.log('exportCSV', e);
-  }
+  exportCsv = (dataFrame: DataFrame, csvConfig: CSVConfig = {}) => {
+    // const { panel } = this.props;
+    const transformId = DataTransformerID.noop;
+
+    downloadDataFrameAsCsv(dataFrame, 'OHNO', csvConfig, transformId);
+  }; // FROM InspectDataTab.tsx
+  // [ download.ts ALSO HAS DownloadAsJson() ]
 
   /*
   onClick={() => {
