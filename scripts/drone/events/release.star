@@ -269,7 +269,7 @@ def publish_artifacts_step():
             "PRERELEASE_BUCKET": from_secret("prerelease_bucket"),
         },
         "commands": [
-            "./bin/build artifacts packages --tag $${{DRONE_TAG}} --src-bucket $${{PRERELEASE_BUCKET}}",
+            "./bin/build artifacts packages --tag $${{DRONE_TAG}} --src-bucket $${{PRERELEASE_BUCKET}} --artifacts-editions=oss",
         ],
         "depends_on": ["compile-build-cmd"],
     }
