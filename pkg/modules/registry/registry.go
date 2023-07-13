@@ -3,6 +3,7 @@ package registry
 import (
 	"github.com/grafana/dskit/services"
 
+	"github.com/grafana/grafana/pkg/api"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/modules"
 	"github.com/grafana/grafana/pkg/server/backgroundsvcs"
@@ -18,11 +19,13 @@ type registry struct {
 func ProvideRegistry(
 	moduleManager modules.Manager,
 	backgroundServiceRunner *backgroundsvcs.BackgroundServiceRunner,
+	httpServer *api.HTTPServer,
 ) *registry {
 	return newRegistry(
 		log.New("modules.registry"),
 		moduleManager,
 		backgroundServiceRunner,
+		httpServer,
 	)
 }
 

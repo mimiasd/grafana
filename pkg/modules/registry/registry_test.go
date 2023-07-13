@@ -3,10 +3,10 @@ package registry
 import (
 	"testing"
 
+	"github.com/grafana/dskit/services"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grafana/dskit/services"
-
+	"github.com/grafana/grafana/pkg/api"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/modules"
 	"github.com/grafana/grafana/pkg/server/backgroundsvcs"
@@ -27,10 +27,13 @@ func TestProvideRegistry(t *testing.T) {
 
 	svcRegistry := backgroundsvcs.NewBackgroundServiceRegistry()
 	svcRunner := backgroundsvcs.ProvideBackgroundServiceRunner(svcRegistry)
+	// the bare minimum apiServer for this test
+	apiServer := &api.HTTPServer{}
+	apiServer.NamedService = services.NewBasicService(nil, nil, nil).WithName(modules.HTTPServer)
 
-	r := ProvideRegistry(moduleManager, svcRunner)
+	r := ProvideRegistry(moduleManager, svcRunner, apiServer)
 	require.NotNil(t, r)
-	require.Equal(t, []string{modules.BackgroundServices}, registeredInvisibleModules)
+	require.Equal(t, []string{modules.BackgroundServices, modules.HTTPServer}, registeredInvisibleModules)
 	require.Equal(t, []string{modules.All}, registeredModules)
 }
 
