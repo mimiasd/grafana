@@ -11,7 +11,7 @@ import {
   HistoryItem,
   LanguageProvider,
 } from '@grafana/data';
-import { BackendSrvRequest, config } from '@grafana/runtime';
+import { BackendSrvRequest } from '@grafana/runtime';
 import { CompletionItem, CompletionItemGroup, SearchFunctionType, TypeaheadInput, TypeaheadOutput } from '@grafana/ui';
 
 import { Label } from './components/monaco-query-field/monaco-completion-provider/situation';
@@ -27,7 +27,7 @@ import {
   toPromLikeQuery,
 } from './language_utils';
 import PromqlSyntax, { FUNCTIONS, RATE_RANGES } from './promql';
-import { PrometheusCacheLevel, PromMetricsMetadata, PromQuery } from './types';
+import { PromMetricsMetadata, PromQuery } from './types';
 
 const DEFAULT_KEYS = ['job', 'instance'];
 const EMPTY_SELECTOR = '{}';
@@ -41,14 +41,6 @@ const wrapLabel = (label: string): CompletionItem => ({ label });
 const setFunctionKind = (suggestion: CompletionItem): CompletionItem => {
   suggestion.kind = 'function';
   return suggestion;
-};
-
-const buildCacheHeaders = (durationInSeconds: number) => {
-  return {
-    headers: {
-      'X-Grafana-Cache': `private, max-age=${durationInSeconds}`,
-    },
-  };
 };
 
 export function addHistoryMetadata(item: CompletionItem, history: any[]): CompletionItem {
@@ -85,28 +77,12 @@ export function getMetadataString(metric: string, metadata: PromMetricsMetadata)
   return `${type.toUpperCase()}: ${help}`;
 }
 
-export function getMetadataHelp(metric: string, metadata: PromMetricsMetadata): string | undefined {
-  if (!metadata[metric]) {
-    return undefined;
-  }
-  return metadata[metric].help;
-}
-
-export function getMetadataType(metric: string, metadata: PromMetricsMetadata): string | undefined {
-  if (!metadata[metric]) {
-    return undefined;
-  }
-  return metadata[metric].type;
-}
-
 const PREFIX_DELIMITER_REGEX =
   /(="|!="|=~"|!~"|\{|\[|\(|\+|-|\/|\*|%|\^|\band\b|\bor\b|\bunless\b|==|>=|!=|<=|>|<|=|~|,)/;
 
 interface AutocompleteContext {
   history?: Array<HistoryItem<PromQuery>>;
 }
-
-const secondsInDay = 86400;
 export default class PromQlLanguageProvider extends LanguageProvider {
   histogramMetrics: string[];
   timeRange?: { start: number; end: number };
@@ -116,6 +92,7 @@ export default class PromQlLanguageProvider extends LanguageProvider {
   datasource: PrometheusDatasource;
   labelKeys: string[] = [];
   declare labelFetchTs: number;
+
   /**
    *  Cache for labels of series. This is bit simplistic in the sense that it just counts responses each as a 1 and does
    *  not account for different size of a response. If that is needed a `length` function can be added in the options.
@@ -123,6 +100,7 @@ export default class PromQlLanguageProvider extends LanguageProvider {
    */
   private labelsCache = new LRU<string, Record<string, string[]>>({ max: 10 });
   private labelValuesCache = new LRU<string, string[]>({ max: 10 });
+
   constructor(datasource: PrometheusDatasource, initialValues?: Partial<PromQlLanguageProvider>) {
     super();
 
@@ -132,16 +110,6 @@ export default class PromQlLanguageProvider extends LanguageProvider {
     this.metrics = [];
 
     Object.assign(this, initialValues);
-  }
-
-  getDefaultCacheHeaders() {
-    // @todo clean up prometheusResourceBrowserCache feature flag
-    if (config.featureToggles.prometheusResourceBrowserCache) {
-      if (this.datasource.cacheLevel !== PrometheusCacheLevel.None) {
-        return buildCacheHeaders(this.datasource.getCacheDurationInMinutes() * 60);
-      }
-    }
-    return;
   }
 
   // Strip syntax chars so that typeahead suggestions can work on clean inputs
@@ -171,26 +139,17 @@ export default class PromQlLanguageProvider extends LanguageProvider {
       return [];
     }
 
+    // TODO #33976: make those requests parallel
+    await this.fetchLabels();
     this.metrics = (await this.fetchLabelValues('__name__')) || [];
+    await this.loadMetricsMetadata();
     this.histogramMetrics = processHistogramMetrics(this.metrics).sort();
-    return Promise.all([this.loadMetricsMetadata(), this.fetchLabels()]);
+    return [];
   };
 
   async loadMetricsMetadata() {
-    // @todo clean up prometheusResourceBrowserCache feature flag
-    const headers = config.featureToggles.prometheusResourceBrowserCache
-      ? buildCacheHeaders(this.datasource.getDaysToCacheMetadata() * secondsInDay)
-      : {};
     this.metricsMetadata = fixSummariesMetadata(
-      await this.request(
-        '/api/v1/metadata',
-        {},
-        {},
-        {
-          showErrorAlert: false,
-          ...headers,
-        }
-      )
+      await this.request('/api/v1/metadata', {}, {}, { showErrorAlert: false })
     );
   }
 
@@ -515,14 +474,13 @@ export default class PromQlLanguageProvider extends LanguageProvider {
   }
 
   /**
+   * @todo cache
    * @param key
    */
   fetchLabelValues = async (key: string): Promise<string[]> => {
-    const params = this.datasource.getAdjustedInterval();
-    const interpolatedName = this.datasource.interpolateString(key);
-    const url = `/api/v1/label/${interpolatedName}/values`;
-    const value = await this.request(url, [], params, this.getDefaultCacheHeaders());
-    return value ?? [];
+    const params = this.datasource.getTimeRangeParams();
+    const url = `/api/v1/label/${this.datasource.interpolateString(key)}/values`;
+    return await this.request(url, [], params);
   };
 
   async getLabelValues(key: string): Promise<string[]> {
@@ -534,10 +492,10 @@ export default class PromQlLanguageProvider extends LanguageProvider {
    */
   async fetchLabels(): Promise<string[]> {
     const url = '/api/v1/labels';
-    const params = this.datasource.getAdjustedInterval();
+    const params = this.datasource.getTimeRangeParams();
     this.labelFetchTs = Date.now().valueOf();
 
-    const res = await this.request(url, [], params, this.getDefaultCacheHeaders());
+    const res = await this.request(url, [], params);
     if (Array.isArray(res)) {
       this.labelKeys = res.slice().sort();
     }
@@ -567,41 +525,12 @@ export default class PromQlLanguageProvider extends LanguageProvider {
    */
   fetchSeriesValuesWithMatch = async (name: string, match?: string): Promise<string[]> => {
     const interpolatedName = name ? this.datasource.interpolateString(name) : null;
-    const range = this.datasource.getAdjustedInterval();
+    const range = this.datasource.getTimeRangeParams();
     const urlParams = {
       ...range,
       ...(match && { 'match[]': match }),
     };
 
-    // @todo clean up prometheusResourceBrowserCache feature flag
-    if (!config.featureToggles.prometheusResourceBrowserCache) {
-      return await this.fetchSeriesValuesLRUCache(interpolatedName, range, name, urlParams);
-    }
-
-    const value = await this.request(
-      `/api/v1/label/${interpolatedName}/values`,
-      [],
-      urlParams,
-      this.getDefaultCacheHeaders()
-    );
-    return value ?? [];
-  };
-
-  /**
-   * @deprecated
-   * @todo clean up prometheusResourceBrowserCache feature flag
-   * @param interpolatedName
-   * @param range
-   * @param name
-   * @param urlParams
-   * @private
-   */
-  private async fetchSeriesValuesLRUCache(
-    interpolatedName: string | null,
-    range: { start: string; end: string },
-    name: string,
-    urlParams: { start: string; end: string }
-  ) {
     const cacheParams = new URLSearchParams({
       'match[]': interpolatedName ?? '',
       start: roundSecToMin(parseInt(range.start, 10)).toString(),
@@ -618,7 +547,7 @@ export default class PromQlLanguageProvider extends LanguageProvider {
       }
     }
     return value ?? [];
-  }
+  };
 
   /**
    * Gets series labels
@@ -654,38 +583,12 @@ export default class PromQlLanguageProvider extends LanguageProvider {
    */
   fetchSeriesLabels = async (name: string, withName?: boolean): Promise<Record<string, string[]>> => {
     const interpolatedName = this.datasource.interpolateString(name);
-    const range = this.datasource.getAdjustedInterval();
+    const range = this.datasource.getTimeRangeParams();
     const urlParams = {
       ...range,
       'match[]': interpolatedName,
     };
     const url = `/api/v1/series`;
-
-    if (!config.featureToggles.prometheusResourceBrowserCache) {
-      return await this.fetchSeriesLabelsLRUCache(interpolatedName, range, withName, url, urlParams);
-    }
-
-    const data = await this.request(url, [], urlParams, this.getDefaultCacheHeaders());
-    const { values } = processLabels(data, withName);
-    return values;
-  };
-
-  /**
-   * @deprecated
-   * @param interpolatedName
-   * @param range
-   * @param withName
-   * @param url
-   * @param urlParams
-   * @private
-   */
-  private async fetchSeriesLabelsLRUCache(
-    interpolatedName: string,
-    range: { start: string; end: string },
-    withName: boolean | undefined,
-    url: string,
-    urlParams: { start: string; 'match[]': string; end: string }
-  ) {
     // Cache key is a bit different here. We add the `withName` param and also round up to a minute the intervals.
     // The rounding may seem strange but makes relative intervals like now-1h less prone to need separate request every
     // millisecond while still actually getting all the keys for the correct interval. This still can create problems
@@ -706,7 +609,7 @@ export default class PromQlLanguageProvider extends LanguageProvider {
       this.labelsCache.set(cacheKey, value);
     }
     return value;
-  }
+  };
 
   /**
    * Fetch labels for a series using /labels endpoint.  This is cached by its args but also by the global timeRange currently selected as
@@ -716,37 +619,12 @@ export default class PromQlLanguageProvider extends LanguageProvider {
    */
   fetchSeriesLabelsMatch = async (name: string, withName?: boolean): Promise<Record<string, string[]>> => {
     const interpolatedName = this.datasource.interpolateString(name);
-    const range = this.datasource.getAdjustedInterval();
+    const range = this.datasource.getTimeRangeParams();
     const urlParams = {
       ...range,
       'match[]': interpolatedName,
     };
     const url = `/api/v1/labels`;
-    if (!config.featureToggles.prometheusResourceBrowserCache) {
-      return await this.fetchSeriesLabelMatchLRUCache(interpolatedName, range, withName, url, urlParams);
-    }
-
-    const data: string[] = await this.request(url, [], urlParams, this.getDefaultCacheHeaders());
-    // Convert string array to Record<string , []>
-    return data.reduce((ac, a) => ({ ...ac, [a]: '' }), {});
-  };
-
-  /**
-   * @deprecated
-   * @param interpolatedName
-   * @param range
-   * @param withName
-   * @param url
-   * @param urlParams
-   * @private
-   */
-  private async fetchSeriesLabelMatchLRUCache(
-    interpolatedName: string,
-    range: { start: string; end: string },
-    withName: boolean | undefined,
-    url: string,
-    urlParams: { start: string; 'match[]': string; end: string }
-  ) {
     // Cache key is a bit different here. We add the `withName` param and also round up to a minute the intervals.
     // The rounding may seem strange but makes relative intervals like now-1h less prone to need separate request every
     // millisecond while still actually getting all the keys for the correct interval. This still can create problems
@@ -767,7 +645,7 @@ export default class PromQlLanguageProvider extends LanguageProvider {
       this.labelsCache.set(cacheKey, value);
     }
     return value;
-  }
+  };
 
   /**
    * Fetch series for a selector. Use this for raw results. Use fetchSeriesLabels() to get labels.
@@ -777,7 +655,7 @@ export default class PromQlLanguageProvider extends LanguageProvider {
     const url = '/api/v1/series';
     const range = this.datasource.getTimeRangeParams();
     const params = { ...range, 'match[]': match };
-    return await this.request(url, {}, params, this.getDefaultCacheHeaders());
+    return await this.request(url, {}, params);
   };
 
   /**

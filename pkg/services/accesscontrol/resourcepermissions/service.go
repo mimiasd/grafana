@@ -46,9 +46,6 @@ type Store interface {
 
 	// GetResourcePermissions will return all permission for supplied resource id
 	GetResourcePermissions(ctx context.Context, orgID int64, query GetResourcePermissionsQuery) ([]accesscontrol.ResourcePermission, error)
-
-	// DeleteResourcePermissions will delete all permissions for supplied resource id
-	DeleteResourcePermissions(ctx context.Context, orgID int64, cmd *DeleteResourcePermissionsCmd) error
 }
 
 func New(
@@ -265,14 +262,6 @@ func (s *Service) MapActions(permission accesscontrol.ResourcePermission) string
 		}
 	}
 	return ""
-}
-
-func (s *Service) DeleteResourcePermissions(ctx context.Context, orgID int64, resourceID string) error {
-	return s.store.DeleteResourcePermissions(ctx, orgID, &DeleteResourcePermissionsCmd{
-		Resource:          s.options.Resource,
-		ResourceAttribute: s.options.ResourceAttribute,
-		ResourceID:        resourceID,
-	})
 }
 
 func (s *Service) mapPermission(permission string) ([]string, error) {

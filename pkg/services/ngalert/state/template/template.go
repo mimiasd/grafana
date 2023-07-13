@@ -2,7 +2,6 @@ package template
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"net/url"
 	"sort"
@@ -11,7 +10,7 @@ import (
 	"time"
 
 	"github.com/prometheus/common/model"
-	"github.com/prometheus/prometheus/model/timestamp"
+	"github.com/prometheus/prometheus/pkg/timestamp"
 	"github.com/prometheus/prometheus/promql"
 	"github.com/prometheus/prometheus/template"
 
@@ -84,22 +83,7 @@ func NewData(labels map[string]string, res eval.Result) Data {
 	}
 }
 
-// ExpandError is an error containing the template and the error that occurred
-// while expanding it.
-type ExpandError struct {
-	Tmpl string
-	Err  error
-}
-
-func (e ExpandError) Error() string {
-	return fmt.Sprintf("failed to expand template '%s': %s", e.Tmpl, e.Err)
-}
-
 func Expand(ctx context.Context, name, tmpl string, data Data, externalURL *url.URL, evaluatedAt time.Time) (string, error) {
-	if !strings.Contains(tmpl, "{{") { // If it is not a template, skip expanding it.
-		return tmpl, nil
-	}
-
 	// add __alert_ to avoid possible conflicts with other templates
 	name = "__alert_" + name
 	// add variables for the labels and values to the beginning of the template
@@ -117,7 +101,7 @@ func Expand(ctx context.Context, name, tmpl string, data Data, externalURL *url.
 
 	result, err := expander.Expand()
 	if err != nil {
-		return "", ExpandError{Tmpl: tmpl, Err: err}
+		return "", err
 	}
 
 	// We need to replace <no value> with [no value] as some integrations think <no value> is invalid HTML. For example,

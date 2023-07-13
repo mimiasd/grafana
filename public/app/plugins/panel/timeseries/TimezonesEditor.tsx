@@ -46,9 +46,9 @@ export const TimezonesEditor = ({ value, onChange }: Props) => {
             />
           </span>
           {idx === value.length - 1 ? (
-            <IconButton name="plus" onClick={addTimezone} tooltip="Add timezone" />
+            <IconButton ariaLabel="Add timezone" name="plus" onClick={addTimezone} />
           ) : (
-            <IconButton name="times" onClick={() => removeTimezone(idx)} tooltip="Remove timezone" />
+            <IconButton ariaLabel="Remove timezone" name="times" onClick={() => removeTimezone(idx)} />
           )}
         </div>
       ))}

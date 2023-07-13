@@ -10,14 +10,14 @@ import {
 } from '@grafana/data';
 import { ReduceTransformerOptions } from '@grafana/data/src/transformations/transformers/reduce';
 
-import { Options } from './panelcfg.gen';
+import { PanelOptions } from './panelcfg.gen';
 
 /**
  * At 7.0, the `table` panel was swapped from an angular implementation to a react one.
  * The models do not match, so this process will delegate to the old implementation when
  * a saved table configuration exists.
  */
-export const tableMigrationHandler = (panel: PanelModel<Options>): Partial<Options> => {
+export const tableMigrationHandler = (panel: PanelModel<PanelOptions>): Partial<PanelOptions> => {
   // Table was saved as an angular table, lets just swap to the 'table-old' panel
   if (!panel.pluginVersion && (panel as any).columns) {
     console.log('Was angular table', panel);
@@ -73,7 +73,7 @@ const generateThresholds = (thresholds: string[], colors: string[]) => {
 };
 
 const migrateTransformations = (
-  panel: PanelModel<Partial<Options>> | any,
+  panel: PanelModel<Partial<PanelOptions>> | any,
   oldOpts: { columns: any; transform: Transformations }
 ) => {
   const transformations: Transformation[] = panel.transformations ?? [];
@@ -163,10 +163,8 @@ const migrateTableStyleToOverride = (style: Style) => {
 
   if (style.colorMode) {
     override.properties.push({
-      id: 'custom.cellOptions',
-      value: {
-        type: colorModeMap[style.colorMode],
-      },
+      id: 'custom.displayMode',
+      value: colorModeMap[style.colorMode],
     });
   }
 
@@ -202,23 +200,17 @@ const migrateDefaults = (prevDefaults: Style) => {
         displayName: prevDefaults.alias,
         custom: {
           align: prevDefaults.align === 'auto' ? null : prevDefaults.align,
+          displayMode: colorModeMap[prevDefaults.colorMode],
         },
       },
       isNil
     );
-
     if (prevDefaults.thresholds.length) {
       const thresholds: ThresholdsConfig = {
         mode: ThresholdsMode.Absolute,
         steps: generateThresholds(prevDefaults.thresholds, prevDefaults.colors),
       };
       defaults.thresholds = thresholds;
-    }
-
-    if (prevDefaults.colorMode) {
-      defaults.custom.cellOptions = {
-        type: colorModeMap[prevDefaults.colorMode],
-      };
     }
   }
   return defaults;
@@ -228,7 +220,7 @@ const migrateDefaults = (prevDefaults: Style) => {
  * This is called when the panel changes from another panel
  */
 export const tablePanelChangedHandler = (
-  panel: PanelModel<Partial<Options>> | any,
+  panel: PanelModel<Partial<PanelOptions>> | any,
   prevPluginId: string,
   prevOptions: any
 ) => {

@@ -1,14 +1,55 @@
 import { LinkModel } from '@grafana/data/src';
-import { ColorDimensionConfig, TextDimensionConfig } from '@grafana/schema';
-import {
-  BackgroundImageSize,
-  Constraint,
-  HorizontalConstraint,
-  Placement,
-  VerticalConstraint,
-  LineConfig,
-  BackgroundConfig,
-} from 'app/plugins/panel/canvas/panelcfg.gen';
+import { ColorDimensionConfig, ResourceDimensionConfig, TextDimensionConfig } from 'app/features/dimensions/types';
+
+export interface Placement {
+  top?: number;
+  left?: number;
+  right?: number;
+  bottom?: number;
+
+  width?: number;
+  height?: number;
+}
+
+export interface Constraint {
+  horizontal?: HorizontalConstraint;
+  vertical?: VerticalConstraint;
+}
+
+export enum HorizontalConstraint {
+  Left = 'left',
+  Right = 'right',
+  LeftRight = 'leftright',
+  Center = 'center',
+  Scale = 'scale',
+}
+
+export enum VerticalConstraint {
+  Top = 'top',
+  Bottom = 'bottom',
+  TopBottom = 'topbottom',
+  Center = 'center',
+  Scale = 'scale',
+}
+
+export enum BackgroundImageSize {
+  Original = 'original',
+  Contain = 'contain',
+  Cover = 'cover',
+  Fill = 'fill',
+  Tile = 'tile',
+}
+
+export interface BackgroundConfig {
+  color?: ColorDimensionConfig;
+  image?: ResourceDimensionConfig;
+  size?: BackgroundImageSize;
+}
+
+export interface LineConfig {
+  color?: ColorDimensionConfig;
+  width?: number;
+}
 
 export enum QuickPlacement {
   Top = 'top',
@@ -47,13 +88,3 @@ export interface TextConfig {
   align: Align;
   valign: VAlign;
 }
-
-export {
-  Placement,
-  Constraint,
-  HorizontalConstraint,
-  VerticalConstraint,
-  BackgroundImageSize,
-  LineConfig,
-  BackgroundConfig,
-};

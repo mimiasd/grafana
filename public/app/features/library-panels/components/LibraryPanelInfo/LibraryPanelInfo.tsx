@@ -52,7 +52,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       font-size: ${theme.typography.bodySmall.fontSize};
     `,
     userAvatar: css`
-      border-radius: ${theme.shape.radius.circle};
+      border-radius: 50%;
       box-sizing: content-box;
       width: 22px;
       height: 22px;

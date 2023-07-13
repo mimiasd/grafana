@@ -7,12 +7,13 @@ import { Subscription } from 'rxjs';
 import { FieldConfigSource, GrafanaTheme2, NavModel, NavModelItem, PageLayoutType } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
 import { Stack } from '@grafana/experimental';
-import { locationService } from '@grafana/runtime';
+import { config, locationService } from '@grafana/runtime';
 import {
   Button,
   HorizontalGroup,
   InlineSwitch,
   ModalsController,
+  PageToolbar,
   RadioButtonGroup,
   stylesFactory,
   Themeable2,
@@ -166,13 +167,13 @@ export class PanelEditorUnconnected extends PureComponent<Props> {
     });
   };
 
-  onPanelOptionsChanged = (options: PanelModel['options']) => {
+  onPanelOptionsChanged = (options: any) => {
     // we do not need to trigger force update here as the function call below
     // fires PanelOptionsChangedEvent which we subscribe to above
     this.props.panel.updateOptions(options);
   };
 
-  onPanelConfigChanged = (configKey: keyof PanelModel, value: unknown) => {
+  onPanelConfigChanged = (configKey: keyof PanelModel, value: any) => {
     this.props.panel.setProperty(configKey, value);
     this.props.panel.render();
     this.forceUpdate();
@@ -321,7 +322,7 @@ export class PanelEditorUnconnected extends PureComponent<Props> {
   }
 
   renderEditorActions() {
-    const size = 'sm';
+    const size = config.featureToggles.topnav ? 'sm' : 'md';
     let editorActions = [
       <Button
         onClick={this.onDiscard}
@@ -429,6 +430,22 @@ export class PanelEditorUnconnected extends PureComponent<Props> {
     this.setState({ showSaveLibraryPanelModal: false });
   };
 
+  renderToolbar() {
+    if (config.featureToggles.topnav) {
+      return (
+        <AppChromeUpdate
+          actions={<ToolbarButtonRow alignment="right">{this.renderEditorActions()}</ToolbarButtonRow>}
+        />
+      );
+    }
+
+    return (
+      <PageToolbar title={this.props.dashboard.title} section="Edit Panel" onGoBack={this.onGoBackToDashboard}>
+        {this.renderEditorActions()}
+      </PageToolbar>
+    );
+  }
+
   render() {
     const { initDone, uiState, theme, sectionNav, pageNav, className, updatePanelEditorUIState } = this.props;
     const styles = getStyles(theme, this.props);
@@ -443,11 +460,9 @@ export class PanelEditorUnconnected extends PureComponent<Props> {
         pageNav={pageNav}
         aria-label={selectors.components.PanelEditor.General.content}
         layout={PageLayoutType.Custom}
+        toolbar={this.renderToolbar()}
         className={className}
       >
-        <AppChromeUpdate
-          actions={<ToolbarButtonRow alignment="right">{this.renderEditorActions()}</ToolbarButtonRow>}
-        />
         <div className={styles.wrapper}>
           <div className={styles.verticalSplitPanesWrapper}>
             {!uiState.isPanelOptionsVisible ? (
@@ -499,7 +514,7 @@ export const getStyles = stylesFactory((theme: GrafanaTheme2, props: Props) => {
       flexGrow: 1,
       minHeight: 0,
       display: 'flex',
-      paddingTop: theme.spacing(2),
+      paddingTop: config.featureToggles.topnav ? theme.spacing(2) : 0,
     }),
     verticalSplitPanesWrapper: css`
       display: flex;
@@ -537,11 +552,6 @@ export const getStyles = stylesFactory((theme: GrafanaTheme2, props: Props) => {
       padding: 0 0 ${paneSpacing} ${paneSpacing};
       justify-content: space-between;
       flex-wrap: wrap;
-    `,
-    angularWarning: css`
-      display: flex;
-      height: theme.spacing(4);
-      align-items: center;
     `,
     toolbarLeft: css`
       padding-left: ${theme.spacing(1)};

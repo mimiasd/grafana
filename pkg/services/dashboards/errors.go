@@ -116,6 +116,11 @@ var (
 		StatusCode: 404,
 		Status:     "not-found",
 	}
+	ErrDashboardThumbnailNotFound = DashboardErr{
+		Reason:     "Dashboard thumbnail not found",
+		StatusCode: 404,
+		Status:     "not-found",
+	}
 
 	ErrFolderNotFound           = errors.New("folder not found")
 	ErrFolderVersionMismatch    = errors.New("the folder has been changed by someone else")

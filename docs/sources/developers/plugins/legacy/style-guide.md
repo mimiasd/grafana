@@ -1,8 +1,7 @@
 ---
-title: Legacy code style guide
 aliases:
   - ../../../plugins/developing/code-styleguide/
-description: Deprecated guide for Angular plugin development.
+title: Legacy code style guide
 ---
 
 # Legacy code style guide
@@ -28,7 +27,7 @@ grafana-piechart-panel
 mtanda-histogram-panel
 ```
 
-For more information about the file format for `plugin.json` file, refer to [metadata]({{< relref "../metadata.md" >}}).
+For more information about the file format for `plugin.json` file, refer to [metadata]({{< relref "../metadata/" >}}).
 
 Minimal plugin.json:
 

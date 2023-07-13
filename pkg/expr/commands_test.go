@@ -14,7 +14,6 @@ import (
 
 	"github.com/grafana/grafana/pkg/expr/mathexp"
 	"github.com/grafana/grafana/pkg/expr/mathexp/parse"
-	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/grafana/grafana/pkg/util"
 )
 
@@ -116,7 +115,7 @@ func TestReduceExecute(t *testing.T) {
 			},
 		}
 
-		execute, err := cmd.Execute(context.Background(), time.Now(), vars, tracing.NewFakeTracer())
+		execute, err := cmd.Execute(context.Background(), time.Now(), vars)
 		require.NoError(t, err)
 
 		require.Len(t, execute.Values, len(numbers))
@@ -151,7 +150,7 @@ func TestReduceExecute(t *testing.T) {
 			},
 		}
 
-		results, err := cmd.Execute(context.Background(), time.Now(), vars, tracing.NewFakeTracer())
+		results, err := cmd.Execute(context.Background(), time.Now(), vars)
 		require.NoError(t, err)
 
 		require.Len(t, results.Values, 1)
@@ -210,7 +209,7 @@ func TestResampleCommand_Execute(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			result, err := cmd.Execute(context.Background(), time.Now(), mathexp.Vars{
 				varToReduce: mathexp.Results{Values: mathexp.Values{test.vals}},
-			}, tracing.NewFakeTracer())
+			})
 			if test.isError {
 				require.Error(t, err)
 			} else {
@@ -225,7 +224,7 @@ func TestResampleCommand_Execute(t *testing.T) {
 	t.Run("should return empty result if input is nil Value", func(t *testing.T) {
 		result, err := cmd.Execute(context.Background(), time.Now(), mathexp.Vars{
 			varToReduce: mathexp.Results{Values: mathexp.Values{nil}},
-		}, tracing.NewFakeTracer())
+		})
 		require.Empty(t, result.Values)
 		require.NoError(t, err)
 	})

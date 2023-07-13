@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import React from 'react';
+import React, { FC } from 'react';
 import { useFormContext } from 'react-hook-form';
 
 import { DataSourceInstanceSettings, GrafanaTheme2 } from '@grafana/data';
@@ -15,7 +15,7 @@ interface Props {
   editingExistingRule: boolean;
 }
 
-export const AlertType = ({ editingExistingRule }: Props) => {
+export const AlertType: FC<Props> = ({ editingExistingRule }) => {
   const { enabledRuleTypes, defaultRuleType } = getAvailableRuleTypes();
 
   const {
@@ -31,7 +31,7 @@ export const AlertType = ({ editingExistingRule }: Props) => {
 
   return (
     <>
-      {!editingExistingRule && ruleFormType !== RuleFormType.cloudRecording && (
+      {!editingExistingRule && (
         <Field error={errors.type?.message} invalid={!!errors.type?.message} data-testid="alert-type-picker">
           <InputControl
             render={({ field: { onChange } }) => (
@@ -52,7 +52,7 @@ export const AlertType = ({ editingExistingRule }: Props) => {
       )}
 
       <div className={styles.flexRow}>
-        {(ruleFormType === RuleFormType.cloudAlerting || ruleFormType === RuleFormType.cloudRecording) && (
+        {(ruleFormType === RuleFormType.cloudRecording || ruleFormType === RuleFormType.cloudAlerting) && (
           <Field
             className={styles.formInput}
             label="Select data source"
@@ -67,8 +67,6 @@ export const AlertType = ({ editingExistingRule }: Props) => {
                   onChange={(ds: DataSourceInstanceSettings) => {
                     // reset location if switching data sources, as different rules source will have different groups and namespaces
                     setValue('location', undefined);
-                    // reset expression as they don't need to persist after changing datasources
-                    setValue('expression', '');
                     onChange(ds?.name ?? null);
                   }}
                 />

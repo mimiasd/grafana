@@ -17,7 +17,6 @@ type Props = CodeEditorProps & Themeable2;
 class UnthemedCodeEditor extends PureComponent<Props> {
   completionCancel?: monacoType.IDisposable;
   monaco?: Monaco;
-  modelId?: string;
 
   constructor(props: Props) {
     super(props);
@@ -45,8 +44,8 @@ class UnthemedCodeEditor extends PureComponent<Props> {
         return;
       }
 
-      if (getSuggestions && this.modelId) {
-        this.completionCancel = registerSuggestions(this.monaco, language, getSuggestions, this.modelId);
+      if (getSuggestions) {
+        this.completionCancel = registerSuggestions(this.monaco, language, getSuggestions);
       }
     }
 
@@ -86,29 +85,21 @@ class UnthemedCodeEditor extends PureComponent<Props> {
 
   handleBeforeMount = (monaco: Monaco) => {
     this.monaco = monaco;
+    const { language, getSuggestions, onBeforeEditorMount } = this.props;
 
-    const { onBeforeEditorMount } = this.props;
+    if (getSuggestions) {
+      this.completionCancel = registerSuggestions(monaco, language, getSuggestions);
+    }
 
     onBeforeEditorMount?.(monaco);
   };
 
   handleOnMount = (editor: MonacoEditorType, monaco: Monaco) => {
-    const { getSuggestions, language, onChange, onEditorDidMount } = this.props;
+    const { onChange, onEditorDidMount } = this.props;
 
-    this.modelId = editor.getModel()?.id;
     this.getEditorValue = () => editor.getValue();
 
-    if (getSuggestions && this.modelId) {
-      this.completionCancel = registerSuggestions(monaco, language, getSuggestions, this.modelId);
-    }
-    // Save when pressing Ctrl+S or Cmd+S
-    editor.onKeyDown((e: monacoType.IKeyboardEvent) => {
-      if (e.keyCode === monaco.KeyCode.KeyS && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        this.onSave();
-      }
-    });
-
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, this.onSave);
     const languagePromise = this.loadCustomLanguage();
 
     if (onEditorDidMount) {
@@ -166,7 +157,6 @@ class UnthemedCodeEditor extends PureComponent<Props> {
           }}
           beforeMount={this.handleBeforeMount}
           onMount={this.handleOnMount}
-          keepCurrentModel={true}
         />
       </div>
     );

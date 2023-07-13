@@ -1,25 +1,24 @@
-import React, { ReactNode, useState } from 'react';
+import { cx } from '@emotion/css';
+import React, { FC, ReactNode, useState } from 'react';
 
-import { Collapse, Field, Form, InputControl, Link, MultiSelect, Select, useStyles2 } from '@grafana/ui';
+import { Collapse, Field, Form, Input, InputControl, Link, MultiSelect, Select, useStyles2 } from '@grafana/ui';
 import { RouteWithID } from 'app/plugins/datasource/alertmanager/types';
 
 import { FormAmRoute } from '../../types/amroutes';
 import {
-  amRouteToFormAmRoute,
-  commonGroupByOptions,
   mapMultiSelectValueToStrings,
   mapSelectValueToString,
-  promDurationValidator,
-  repeatIntervalValidator,
-  stringsToSelectableValues,
+  optionalPositiveInteger,
   stringToSelectableValue,
+  stringsToSelectableValues,
+  commonGroupByOptions,
+  amRouteToFormAmRoute,
 } from '../../utils/amroutes';
 import { makeAMLink } from '../../utils/misc';
+import { timeOptions } from '../../utils/time';
 import { AmRouteReceiver } from '../receivers/grafanaAppReceivers/types';
 
-import { PromDurationInput } from './PromDurationInput';
 import { getFormStyles } from './formStyles';
-import { TIMING_OPTIONS_DEFAULTS } from './timingOptions';
 
 export interface AmRootRouteFormProps {
   alertManagerSourceName: string;
@@ -29,13 +28,13 @@ export interface AmRootRouteFormProps {
   route: RouteWithID;
 }
 
-export const AmRootRouteForm = ({
+export const AmRootRouteForm: FC<AmRootRouteFormProps> = ({
   actionButtons,
   alertManagerSourceName,
   onSubmit,
   receivers,
   route,
-}: AmRootRouteFormProps) => {
+}) => {
   const styles = useStyles2(getFormStyles);
   const [isTimingOptionsExpanded, setIsTimingOptionsExpanded] = useState(false);
   const [groupByOptions, setGroupByOptions] = useState(stringsToSelectableValues(route.group_by));
@@ -44,7 +43,7 @@ export const AmRootRouteForm = ({
 
   return (
     <Form defaultValues={{ ...defaultValues, overrideTimings: true, overrideGrouping: true }} onSubmit={onSubmit}>
-      {({ register, control, errors, setValue, getValues }) => (
+      {({ control, errors, setValue }) => (
         <>
           <Field label="Default contact point" invalid={!!errors.receiver} error={errors.receiver?.message}>
             <>
@@ -107,55 +106,112 @@ export const AmRootRouteForm = ({
             label="Timing options"
             onToggle={setIsTimingOptionsExpanded}
           >
-            <div className={styles.timingFormContainer}>
-              <Field
-                label="Group wait"
-                description="The waiting time until the initial notification is sent for a new group created by an incoming alert. Default 30 seconds."
-                invalid={!!errors.groupWaitValue}
-                error={errors.groupWaitValue?.message}
-                data-testid="am-group-wait"
-              >
-                <PromDurationInput
-                  {...register('groupWaitValue', { validate: promDurationValidator })}
-                  placeholder={TIMING_OPTIONS_DEFAULTS.group_wait}
-                  className={styles.promDurationInput}
-                  aria-label="Group wait"
-                />
-              </Field>
-              <Field
-                label="Group interval"
-                description="The waiting time to send a batch of new alerts for that group after the first notification was sent. Default 5 minutes."
-                invalid={!!errors.groupIntervalValue}
-                error={errors.groupIntervalValue?.message}
-                data-testid="am-group-interval"
-              >
-                <PromDurationInput
-                  {...register('groupIntervalValue', { validate: promDurationValidator })}
-                  placeholder={TIMING_OPTIONS_DEFAULTS.group_interval}
-                  className={styles.promDurationInput}
-                  aria-label="Group interval"
-                />
-              </Field>
-              <Field
-                label="Repeat interval"
-                description="The waiting time to resend an alert after they have successfully been sent. Default 4 hours."
-                invalid={!!errors.repeatIntervalValue}
-                error={errors.repeatIntervalValue?.message}
-                data-testid="am-repeat-interval"
-              >
-                <PromDurationInput
-                  {...register('repeatIntervalValue', {
-                    validate: (value: string) => {
-                      const groupInterval = getValues('groupIntervalValue');
-                      return repeatIntervalValidator(value, groupInterval);
-                    },
-                  })}
-                  placeholder={TIMING_OPTIONS_DEFAULTS.repeat_interval}
-                  className={styles.promDurationInput}
-                  aria-label="Repeat interval"
-                />
-              </Field>
-            </div>
+            <Field
+              label="Group wait"
+              description="The waiting time until the initial notification is sent for a new group created by an incoming alert. Default 30 seconds."
+              invalid={!!errors.groupWaitValue}
+              error={errors.groupWaitValue?.message}
+              data-testid="am-group-wait"
+            >
+              <>
+                <div className={cx(styles.container, styles.timingContainer)}>
+                  <InputControl
+                    render={({ field, fieldState: { invalid } }) => (
+                      <Input {...field} className={styles.smallInput} invalid={invalid} placeholder={'30'} />
+                    )}
+                    control={control}
+                    name="groupWaitValue"
+                    rules={{
+                      validate: optionalPositiveInteger,
+                    }}
+                  />
+                  <InputControl
+                    render={({ field: { onChange, ref, ...field } }) => (
+                      <Select
+                        {...field}
+                        className={styles.input}
+                        onChange={(value) => onChange(mapSelectValueToString(value))}
+                        options={timeOptions}
+                        aria-label="Group wait type"
+                      />
+                    )}
+                    control={control}
+                    name="groupWaitValueType"
+                  />
+                </div>
+              </>
+            </Field>
+            <Field
+              label="Group interval"
+              description="The waiting time to send a batch of new alerts for that group after the first notification was sent. Default 5 minutes."
+              invalid={!!errors.groupIntervalValue}
+              error={errors.groupIntervalValue?.message}
+              data-testid="am-group-interval"
+            >
+              <>
+                <div className={cx(styles.container, styles.timingContainer)}>
+                  <InputControl
+                    render={({ field, fieldState: { invalid } }) => (
+                      <Input {...field} className={styles.smallInput} invalid={invalid} placeholder={'5'} />
+                    )}
+                    control={control}
+                    name="groupIntervalValue"
+                    rules={{
+                      validate: optionalPositiveInteger,
+                    }}
+                  />
+                  <InputControl
+                    render={({ field: { onChange, ref, ...field } }) => (
+                      <Select
+                        {...field}
+                        className={styles.input}
+                        onChange={(value) => onChange(mapSelectValueToString(value))}
+                        options={timeOptions}
+                        aria-label="Group interval type"
+                      />
+                    )}
+                    control={control}
+                    name="groupIntervalValueType"
+                  />
+                </div>
+              </>
+            </Field>
+            <Field
+              label="Repeat interval"
+              description="The waiting time to resend an alert after they have successfully been sent. Default 4 hours."
+              invalid={!!errors.repeatIntervalValue}
+              error={errors.repeatIntervalValue?.message}
+              data-testid="am-repeat-interval"
+            >
+              <>
+                <div className={cx(styles.container, styles.timingContainer)}>
+                  <InputControl
+                    render={({ field, fieldState: { invalid } }) => (
+                      <Input {...field} className={styles.smallInput} invalid={invalid} placeholder="4" />
+                    )}
+                    control={control}
+                    name="repeatIntervalValue"
+                    rules={{
+                      validate: optionalPositiveInteger,
+                    }}
+                  />
+                  <InputControl
+                    render={({ field: { onChange, ref, ...field } }) => (
+                      <Select
+                        {...field}
+                        className={styles.input}
+                        menuPlacement="top"
+                        onChange={(value) => onChange(mapSelectValueToString(value))}
+                        options={timeOptions}
+                        aria-label="Repeat interval type"
+                      />
+                    )}
+                    control={control}
+                    name="repeatIntervalValueType"
+                  />
+                </div>
+              </>
+            </Field>
           </Collapse>
           <div className={styles.container}>{actionButtons}</div>
         </>

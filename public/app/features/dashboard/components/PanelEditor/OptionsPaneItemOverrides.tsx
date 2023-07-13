@@ -28,7 +28,7 @@ const getStyles = (theme: GrafanaTheme2) => {
   const common: CSSObject = {
     width: 8,
     height: 8,
-    borderRadius: theme.shape.radius.circle,
+    borderRadius: '50%',
     marginLeft: theme.spacing(1),
     position: 'relative',
     top: '-1px',

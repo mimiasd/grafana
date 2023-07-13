@@ -1,5 +1,5 @@
 import { cx, css } from '@emotion/css';
-import React, { PureComponent, ReactElement } from 'react';
+import React, { PureComponent, SyntheticEvent } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
 
@@ -11,7 +11,6 @@ import { Button, ButtonVariant } from '../Button';
 export interface Props extends Themeable2 {
   /** Confirm action callback */
   onConfirm(): void;
-  children: string | ReactElement;
   /** Custom button styles */
   className?: string;
   /** Button size */
@@ -37,14 +36,14 @@ interface State {
   showConfirm: boolean;
 }
 
-class UnThemedConfirmButton extends PureComponent<Props, State> {
+class UnThemedConfirmButton extends PureComponent<React.PropsWithChildren<Props>, State> {
   mainButtonRef = React.createRef<HTMLButtonElement>();
   confirmButtonRef = React.createRef<HTMLButtonElement>();
   state: State = {
     showConfirm: false,
   };
 
-  onClickButton = (event: React.MouseEvent<HTMLButtonElement>) => {
+  onClickButton = (event: SyntheticEvent) => {
     if (event) {
       event.preventDefault();
     }
@@ -65,7 +64,7 @@ class UnThemedConfirmButton extends PureComponent<Props, State> {
     }
   };
 
-  onClickCancel = (event: React.MouseEvent<HTMLButtonElement>) => {
+  onClickCancel = (event: SyntheticEvent) => {
     if (event) {
       event.preventDefault();
     }
@@ -81,7 +80,7 @@ class UnThemedConfirmButton extends PureComponent<Props, State> {
       this.props.onCancel();
     }
   };
-  onConfirm = (event: React.MouseEvent<HTMLButtonElement>) => {
+  onConfirm = (event: SyntheticEvent) => {
     if (event) {
       event.preventDefault();
     }
@@ -119,15 +118,17 @@ class UnThemedConfirmButton extends PureComponent<Props, State> {
     return (
       <span className={styles.buttonContainer}>
         <div className={cx(disabled && styles.disabled)}>
-          <span className={buttonClass}>
-            {typeof children === 'string' ? (
+          {typeof children === 'string' ? (
+            <span className={buttonClass}>
               <Button size={size} fill="text" onClick={onClick} ref={this.mainButtonRef}>
                 {children}
               </Button>
-            ) : (
-              React.cloneElement(children, { onClick, ref: this.mainButtonRef })
-            )}
-          </span>
+            </span>
+          ) : (
+            <span className={buttonClass} onClick={onClick}>
+              {children}
+            </span>
+          )}
         </div>
         <span className={confirmButtonClass}>
           <Button size={size} variant={confirmButtonVariant} onClick={this.onConfirm} ref={this.confirmButtonRef}>

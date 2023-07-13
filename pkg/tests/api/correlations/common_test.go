@@ -51,13 +51,12 @@ type User struct {
 type GetParams struct {
 	url  string
 	user User
-	page string
 }
 
 func (c TestContext) Get(params GetParams) *http.Response {
 	c.t.Helper()
-	fmtUrl := fmt.Sprintf("%s?page=%s", params.url, params.page)
-	resp, err := http.Get(c.getURL(fmtUrl, params.user))
+
+	resp, err := http.Get(c.getURL(params.url, params.user))
 	require.NoError(c.t, err)
 
 	return resp

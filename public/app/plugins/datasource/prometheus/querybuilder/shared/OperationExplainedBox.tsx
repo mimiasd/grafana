@@ -48,7 +48,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       background: theme.colors.secondary.main,
       width: '20px',
       height: '20px',
-      borderRadius: theme.shape.radius.circle,
+      borderRadius: '50%',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',

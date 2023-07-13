@@ -12,7 +12,6 @@ import {
   getActiveThreshold,
   getDataSourceRef,
   isDataSourceRef,
-  isEmptyObject,
   MappingType,
   PanelPlugin,
   SpecialValueMatch,
@@ -585,9 +584,6 @@ export class DashboardMigrator {
           continue;
         }
         const { multi, current } = variable;
-        if (isEmptyObject(current)) {
-          continue;
-        }
         variable.current = alignCurrentWithMulti(current, multi);
       }
     }
@@ -829,14 +825,14 @@ export class DashboardMigrator {
           }
 
           // Update any overrides referencing the cell display mode
-          if (panel.fieldConfig?.overrides) {
-            for (const override of panel.fieldConfig.overrides) {
-              for (let j = 0; j < override.properties?.length ?? 0; j++) {
-                let overrideDisplayMode = override.properties[j].value;
-                if (override.properties[j].id === 'custom.displayMode') {
-                  override.properties[j].id = 'custom.cellOptions';
-                  override.properties[j].value = migrateTableDisplayModeToCellOptions(overrideDisplayMode);
-                }
+          for (let i = 0; i < panel.fieldConfig.overrides.length; i++) {
+            for (let j = 0; j < panel.fieldConfig.overrides[i].properties.length; j++) {
+              let overrideDisplayMode = panel.fieldConfig.overrides[i].properties[j].value;
+
+              if (panel.fieldConfig.overrides[i].properties[j].id === 'custom.displayMode') {
+                panel.fieldConfig.overrides[i].properties[j].id = 'custom.cellOptions';
+                panel.fieldConfig.overrides[i].properties[j].value =
+                  migrateTableDisplayModeToCellOptions(overrideDisplayMode);
               }
             }
           }

@@ -1,6 +1,6 @@
 import { css } from '@emotion/css';
 import pluralize from 'pluralize';
-import React, { useMemo } from 'react';
+import React, { FC, useMemo } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { LoadingPlaceholder, Pagination, Spinner, useStyles2 } from '@grafana/ui';
@@ -21,7 +21,7 @@ interface Props {
   expandAll: boolean;
 }
 
-export const CloudRules = ({ namespaces, expandAll }: Props) => {
+export const CloudRules: FC<Props> = ({ namespaces, expandAll }) => {
   const styles = useStyles2(getStyles);
 
   const dsConfigs = useUnifiedAlertingSelector((state) => state.dataSources);
@@ -37,7 +37,7 @@ export const CloudRules = ({ namespaces, expandAll }: Props) => {
     [promRules, dsConfigs, rulesDataSources]
   );
 
-  const hasSomeResults = rulesDataSources.some((ds) => Boolean(promRules[ds.name]?.result?.length));
+  const hasSomeResults = rulesDataSources.some((ds) => promRules[ds.name]?.result?.length ?? 0 > 0);
 
   const hasDataSourcesConfigured = rulesDataSources.length > 0;
   const hasDataSourcesLoading = dataSourcesLoading.length > 0;

@@ -2,6 +2,7 @@ import React from 'react';
 import uPlot from 'uplot';
 
 import {
+  ArrayVector,
   DataFrame,
   DashboardCursorSync,
   DataHoverPayload,
@@ -31,7 +32,6 @@ import {
   VisibilityMode,
   TimelineValueAlignment,
   HideableFieldConfig,
-  MappingType,
 } from '@grafana/schema';
 import {
   FIXED_UNIT,
@@ -60,7 +60,7 @@ interface UPlotConfigOptions {
   showValue: VisibilityMode;
   alignValue?: TimelineValueAlignment;
   mergeValues?: boolean;
-  getValueColor: (frameIdx: number, fieldIdx: number, value: unknown) => string;
+  getValueColor: (frameIdx: number, fieldIdx: number, value: any) => string;
 }
 
 /**
@@ -113,15 +113,7 @@ export const preparePlotConfigBuilder: UPlotConfigPrepFn<UPlotConfigOptions> = (
     return !(mode && field.display && mode.startsWith('continuous-'));
   };
 
-  const hasMappedNull = (field: Field) => {
-    return (
-      field.config.mappings?.some(
-        (mapping) => mapping.type === MappingType.SpecialValue && mapping.options.match === 'null'
-      ) || false
-    );
-  };
-
-  const getValueColorFn = (seriesIdx: number, value: unknown) => {
+  const getValueColorFn = (seriesIdx: number, value: any) => {
     const field = frame.fields[seriesIdx];
 
     if (
@@ -139,7 +131,6 @@ export const preparePlotConfigBuilder: UPlotConfigPrepFn<UPlotConfigOptions> = (
     mode: mode!,
     numSeries: frame.fields.length - 1,
     isDiscrete: (seriesIdx) => isDiscrete(frame.fields[seriesIdx]),
-    hasMappedNull: (seriesIdx) => hasMappedNull(frame.fields[seriesIdx]),
     mergeValues,
     rowHeight: rowHeight,
     colWidth: colWidth,
@@ -380,7 +371,7 @@ export function mergeThresholdValues(field: Field, theme: GrafanaTheme2): Field 
     textToColor.set(items[i].label, items[i].color!);
   }
 
-  let input = field.values;
+  let input = field.values.toArray();
   const vals = new Array<String | undefined>(field.values.length);
   if (thresholds.mode === ThresholdsMode.Percentage) {
     const { min, max } = getFieldConfigWithMinMax(field);
@@ -412,10 +403,10 @@ export function mergeThresholdValues(field: Field, theme: GrafanaTheme2): Field 
       },
     },
     type: FieldType.string,
-    values: vals,
-    display: (value) => ({
-      text: String(value),
-      color: textToColor.get(String(value)),
+    values: new ArrayVector(vals),
+    display: (value: string) => ({
+      text: value,
+      color: textToColor.get(value),
       numeric: NaN,
     }),
   };
@@ -454,9 +445,6 @@ export function prepareTimelineFields(
 
     const fields: Field[] = [];
     for (let field of nullToValue(nulledFrame).fields) {
-      if (field.config.custom?.hideFrom?.viz) {
-        continue;
-      }
       switch (field.type) {
         case FieldType.time:
           isTimeseries = true;
@@ -571,7 +559,6 @@ export function getFieldLegendItem(fields: Field[], theme: GrafanaTheme2): VizLe
   const thresholds = fieldConfig.thresholds;
 
   // If thresholds are enabled show each step in the legend
-  // This ignores the hide from legend since the range is valid
   if (colorMode === FieldColorModeId.Thresholds && thresholds?.steps && thresholds.steps.length > 1) {
     return getThresholdItems(fieldConfig, theme);
   }
@@ -581,17 +568,15 @@ export function getFieldLegendItem(fields: Field[], theme: GrafanaTheme2): VizLe
     return undefined; // eventually a color bar
   }
 
-  const stateColors: Map<string, string | undefined> = new Map();
+  let stateColors: Map<string, string | undefined> = new Map();
 
   fields.forEach((field) => {
-    if (!field.config.custom?.hideFrom?.legend) {
-      field.values.forEach((v) => {
-        let state = field.display!(v);
-        if (state.color) {
-          stateColors.set(state.text, state.color!);
-        }
-      });
-    }
+    field.values.toArray().forEach((v) => {
+      let state = field.display!(v);
+      if (state.color) {
+        stateColors.set(state.text, state.color!);
+      }
+    });
   });
 
   stateColors.forEach((color, label) => {
@@ -627,13 +612,13 @@ export function findNextStateIndex(field: Field, datapointIdx: number) {
     return null;
   }
 
-  const startValue = field.values[datapointIdx];
+  const startValue = field.values.get(datapointIdx);
 
   while (end === undefined) {
     if (rightPointer >= field.values.length) {
       return null;
     }
-    const rightValue = field.values[rightPointer];
+    const rightValue = field.values.get(rightPointer);
 
     if (rightValue === undefined || rightValue === startValue) {
       rightPointer++;

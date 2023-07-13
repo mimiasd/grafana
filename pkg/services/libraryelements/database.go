@@ -12,7 +12,6 @@ import (
 	"github.com/grafana/grafana/pkg/infra/db"
 	"github.com/grafana/grafana/pkg/kinds/librarypanel"
 	"github.com/grafana/grafana/pkg/services/dashboards"
-	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/services/libraryelements/model"
 	"github.com/grafana/grafana/pkg/services/org"
 	"github.com/grafana/grafana/pkg/services/search"
@@ -228,16 +227,10 @@ func (l *LibraryElementService) deleteLibraryElement(c context.Context, signedIn
 }
 
 // getLibraryElements gets a Library Element where param == value
-func getLibraryElements(c context.Context, store db.DB, cfg *setting.Cfg, signedInUser *user.SignedInUser, params []Pair, features featuremgmt.FeatureToggles) ([]model.LibraryElementDTO, error) {
+func getLibraryElements(c context.Context, store db.DB, cfg *setting.Cfg, signedInUser *user.SignedInUser, params []Pair) ([]model.LibraryElementDTO, error) {
 	libraryElements := make([]model.LibraryElementWithMeta, 0)
-
-	recursiveQueriesAreSupported, err := store.RecursiveQueriesAreSupported()
-	if err != nil {
-		return nil, err
-	}
-
-	err = store.WithDbSession(c, func(session *db.Session) error {
-		builder := db.NewSqlBuilder(cfg, features, store.GetDialect(), recursiveQueriesAreSupported)
+	err := store.WithDbSession(c, func(session *db.Session) error {
+		builder := db.NewSqlBuilder(cfg, store.GetDialect())
 		builder.Write(selectLibraryElementDTOWithMeta)
 		builder.Write(", 'General' as folder_name ")
 		builder.Write(", '' as folder_uid ")
@@ -250,7 +243,9 @@ func getLibraryElements(c context.Context, store db.DB, cfg *setting.Cfg, signed
 		builder.Write(getFromLibraryElementDTOWithMeta(store.GetDialect()))
 		builder.Write(" INNER JOIN dashboard AS dashboard on le.folder_id = dashboard.id AND le.folder_id <> 0")
 		writeParamSelectorSQL(&builder, params...)
-		builder.WriteDashboardPermissionFilter(signedInUser, dashboards.PERMISSION_VIEW, "")
+		if signedInUser.OrgRole != org.RoleAdmin {
+			builder.WriteDashboardPermissionFilter(signedInUser, dashboards.PERMISSION_VIEW)
+		}
 		builder.Write(` OR dashboard.id=0`)
 		if err := session.SQL(builder.GetSQLString(), builder.GetParams()...).Find(&libraryElements); err != nil {
 			return err
@@ -304,7 +299,7 @@ func getLibraryElements(c context.Context, store db.DB, cfg *setting.Cfg, signed
 
 // getLibraryElementByUid gets a Library Element by uid.
 func (l *LibraryElementService) getLibraryElementByUid(c context.Context, signedInUser *user.SignedInUser, UID string) (model.LibraryElementDTO, error) {
-	libraryElements, err := getLibraryElements(c, l.SQLStore, l.Cfg, signedInUser, []Pair{{key: "org_id", value: signedInUser.OrgID}, {key: "uid", value: UID}}, l.features)
+	libraryElements, err := getLibraryElements(c, l.SQLStore, l.Cfg, signedInUser, []Pair{{key: "org_id", value: signedInUser.OrgID}, {key: "uid", value: UID}})
 	if err != nil {
 		return model.LibraryElementDTO{}, err
 	}
@@ -317,19 +312,13 @@ func (l *LibraryElementService) getLibraryElementByUid(c context.Context, signed
 
 // getLibraryElementByName gets a Library Element by name.
 func (l *LibraryElementService) getLibraryElementsByName(c context.Context, signedInUser *user.SignedInUser, name string) ([]model.LibraryElementDTO, error) {
-	return getLibraryElements(c, l.SQLStore, l.Cfg, signedInUser, []Pair{{"org_id", signedInUser.OrgID}, {"name", name}}, l.features)
+	return getLibraryElements(c, l.SQLStore, l.Cfg, signedInUser, []Pair{{"org_id", signedInUser.OrgID}, {"name", name}})
 }
 
 // getAllLibraryElements gets all Library Elements.
 func (l *LibraryElementService) getAllLibraryElements(c context.Context, signedInUser *user.SignedInUser, query model.SearchLibraryElementsQuery) (model.LibraryElementSearchResult, error) {
 	elements := make([]model.LibraryElementWithMeta, 0)
 	result := model.LibraryElementSearchResult{}
-
-	recursiveQueriesAreSupported, err := l.SQLStore.RecursiveQueriesAreSupported()
-	if err != nil {
-		return result, err
-	}
-
 	if query.PerPage <= 0 {
 		query.PerPage = 100
 	}
@@ -344,8 +333,8 @@ func (l *LibraryElementService) getAllLibraryElements(c context.Context, signedI
 	if folderFilter.parseError != nil {
 		return model.LibraryElementSearchResult{}, folderFilter.parseError
 	}
-	err = l.SQLStore.WithDbSession(c, func(session *db.Session) error {
-		builder := db.NewSqlBuilder(l.Cfg, l.features, l.SQLStore.GetDialect(), recursiveQueriesAreSupported)
+	err := l.SQLStore.WithDbSession(c, func(session *db.Session) error {
+		builder := db.NewSqlBuilder(l.Cfg, l.SQLStore.GetDialect())
 		if folderFilter.includeGeneralFolder {
 			builder.Write(selectLibraryElementDTOWithMeta)
 			builder.Write(", 'General' as folder_name ")
@@ -372,7 +361,7 @@ func (l *LibraryElementService) getAllLibraryElements(c context.Context, signedI
 			return err
 		}
 		if signedInUser.OrgRole != org.RoleAdmin {
-			builder.WriteDashboardPermissionFilter(signedInUser, dashboards.PERMISSION_VIEW, "")
+			builder.WriteDashboardPermissionFilter(signedInUser, dashboards.PERMISSION_VIEW)
 		}
 		if query.SortDirection == search.SortAlphaDesc.Name {
 			builder.Write(" ORDER BY 1 DESC")
@@ -420,19 +409,8 @@ func (l *LibraryElementService) getAllLibraryElements(c context.Context, signedI
 
 		var libraryElements []model.LibraryElement
 		countBuilder := db.SQLBuilder{}
-		if folderFilter.includeGeneralFolder {
-			countBuilder.Write(selectLibraryElementDTOWithMeta)
-			countBuilder.Write(getFromLibraryElementDTOWithMeta(l.SQLStore.GetDialect()))
-			countBuilder.Write(` WHERE le.org_id=? AND le.folder_id=0`, signedInUser.OrgID)
-			writeKindSQL(query, &countBuilder)
-			writeSearchStringSQL(query, l.SQLStore, &countBuilder)
-			writeExcludeSQL(query, &countBuilder)
-			writeTypeFilterSQL(typeFilter, &countBuilder)
-			countBuilder.Write(" UNION ")
-		}
-		countBuilder.Write(selectLibraryElementDTOWithMeta)
-		countBuilder.Write(getFromLibraryElementDTOWithMeta(l.SQLStore.GetDialect()))
-		countBuilder.Write(" INNER JOIN dashboard AS dashboard on le.folder_id = dashboard.id and le.folder_id<>0")
+		countBuilder.Write("SELECT * FROM library_element AS le")
+		countBuilder.Write(" INNER JOIN dashboard AS dashboard on le.folder_id = dashboard.id")
 		countBuilder.Write(` WHERE le.org_id=?`, signedInUser.OrgID)
 		writeKindSQL(query, &countBuilder)
 		writeSearchStringSQL(query, l.SQLStore, &countBuilder)
@@ -585,25 +563,20 @@ func (l *LibraryElementService) patchLibraryElement(c context.Context, signedInU
 // getConnections gets all connections for a Library Element.
 func (l *LibraryElementService) getConnections(c context.Context, signedInUser *user.SignedInUser, uid string) ([]model.LibraryElementConnectionDTO, error) {
 	connections := make([]model.LibraryElementConnectionDTO, 0)
-	recursiveQueriesAreSupported, err := l.SQLStore.RecursiveQueriesAreSupported()
-	if err != nil {
-		return nil, err
-	}
-
-	err = l.SQLStore.WithDbSession(c, func(session *db.Session) error {
+	err := l.SQLStore.WithDbSession(c, func(session *db.Session) error {
 		element, err := getLibraryElement(l.SQLStore.GetDialect(), session, uid, signedInUser.OrgID)
 		if err != nil {
 			return err
 		}
 		var libraryElementConnections []model.LibraryElementConnectionWithMeta
-		builder := db.NewSqlBuilder(l.Cfg, l.features, l.SQLStore.GetDialect(), recursiveQueriesAreSupported)
+		builder := db.NewSqlBuilder(l.Cfg, l.SQLStore.GetDialect())
 		builder.Write("SELECT lec.*, u1.login AS created_by_name, u1.email AS created_by_email, dashboard.uid AS connection_uid")
 		builder.Write(" FROM " + model.LibraryElementConnectionTableName + " AS lec")
 		builder.Write(" LEFT JOIN " + l.SQLStore.GetDialect().Quote("user") + " AS u1 ON lec.created_by = u1.id")
 		builder.Write(" INNER JOIN dashboard AS dashboard on lec.connection_id = dashboard.id")
 		builder.Write(` WHERE lec.element_id=?`, element.ID)
 		if signedInUser.OrgRole != org.RoleAdmin {
-			builder.WriteDashboardPermissionFilter(signedInUser, dashboards.PERMISSION_VIEW, "")
+			builder.WriteDashboardPermissionFilter(signedInUser, dashboards.PERMISSION_VIEW)
 		}
 		if err := session.SQL(builder.GetSQLString(), builder.GetParams()...).Find(&libraryElementConnections); err != nil {
 			return err

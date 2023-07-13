@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import React from 'react';
+import React, { FC } from 'react';
 
 import { GrafanaTheme2, LoadingState } from '@grafana/data';
 import { Icon, Tooltip, useStyles2 } from '@grafana/ui';
@@ -9,13 +9,11 @@ interface Props {
   onClick: () => void;
 }
 
-export const PanelHeaderLoadingIndicator = ({ state, onClick }: Props) => {
+export const PanelHeaderLoadingIndicator: FC<Props> = ({ state, onClick }) => {
   const styles = useStyles2(getStyles);
 
   if (state === LoadingState.Loading) {
     return (
-      // TODO: fix keyboard a11y
-      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
       <div className="panel-loading" onClick={onClick}>
         <Tooltip content="Cancel query">
           <Icon className="panel-loading__spinner spin-clockwise" name="sync" />
@@ -26,8 +24,6 @@ export const PanelHeaderLoadingIndicator = ({ state, onClick }: Props) => {
 
   if (state === LoadingState.Streaming) {
     return (
-      // TODO: fix keyboard a11y
-      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
       <div className="panel-loading" onClick={onClick}>
         <div title="Streaming (click to stop)" className={styles.streamIndicator} />
       </div>
@@ -44,7 +40,7 @@ function getStyles(theme: GrafanaTheme2) {
       height: 10px;
       background: ${theme.colors.text.disabled};
       box-shadow: 0 0 2px ${theme.colors.text.disabled};
-      border-radius: ${theme.shape.radius.circle};
+      border-radius: 50%;
       position: relative;
       top: 6px;
       right: 1px;

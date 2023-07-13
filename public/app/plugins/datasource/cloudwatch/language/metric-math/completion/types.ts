@@ -12,6 +12,4 @@ export const MetricMathTokenTypes: TokenTypes = {
   Number: 'number.cloudwatch-MetricMath',
   String: 'string.cloudwatch-MetricMath',
   Variable: 'variable.cloudwatch-MetricMath',
-  Comment: 'comment.cloudwatch-MetricMath',
-  Regexp: 'regexp.cloudwatch-MetricMath',
 };

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -19,7 +18,8 @@ func TestQueryEvaluator_Eval(t *testing.T) {
 	ctx := context.Background()
 	interval := time.Duration(rand.Int63n(9)+1) * time.Second
 	times := rand.Intn(11) + 5
-	from := time.Now().Add(-time.Duration(times) * interval)
+	to := time.Now()
+	from := to.Add(-time.Duration(times) * interval)
 
 	t.Run("should evaluate query", func(t *testing.T) {
 		m := &eval_mocks.ConditionEvaluatorMock{}
@@ -29,20 +29,15 @@ func TestQueryEvaluator_Eval(t *testing.T) {
 			eval: m,
 		}
 
-		intervals := make([]time.Time, times)
+		intervals := make([]time.Time, 0, times)
 
-		err := evaluator.Eval(ctx, from, interval, times, func(idx int, now time.Time, results eval.Results) error {
-			intervals[idx] = now
+		err := evaluator.Eval(ctx, from, to, interval, func(now time.Time, results eval.Results) error {
+			intervals = append(intervals, now)
 			return nil
 		})
 		require.NoError(t, err)
 		require.Len(t, intervals, times)
 
-		expected := from
-		for idx, actual := range intervals {
-			assert.Equalf(t, expected, actual, "item at index %d is not times of interval %v", idx, interval)
-			expected = expected.Add(interval)
-		}
 		m.AssertNumberOfCalls(t, "Evaluate", times)
 		for _, now := range intervals {
 			m.AssertCalled(t, "Evaluate", ctx, now)
@@ -62,7 +57,7 @@ func TestQueryEvaluator_Eval(t *testing.T) {
 
 			intervals := make([]time.Time, 0, times)
 
-			err := evaluator.Eval(ctx, from, interval, times, func(idx int, now time.Time, results eval.Results) error {
+			err := evaluator.Eval(ctx, from, to, interval, func(now time.Time, results eval.Results) error {
 				intervals = append(intervals, now)
 				return nil
 			})
@@ -81,7 +76,7 @@ func TestQueryEvaluator_Eval(t *testing.T) {
 
 			intervals := make([]time.Time, 0, times)
 
-			err := evaluator.Eval(ctx, from, interval, times, func(idx int, now time.Time, results eval.Results) error {
+			err := evaluator.Eval(ctx, from, to, interval, func(now time.Time, results eval.Results) error {
 				if len(intervals) > 3 {
 					return expectedError
 				}

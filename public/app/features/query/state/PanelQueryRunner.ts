@@ -1,5 +1,5 @@
 import { cloneDeep } from 'lodash';
-import { Observable, of, ReplaySubject, Unsubscribable } from 'rxjs';
+import { MonoTypeOperatorFunction, Observable, of, ReplaySubject, Unsubscribable } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
 
 import {
@@ -26,7 +26,6 @@ import {
   toDataFrame,
   transformDataFrame,
   preProcessPanelData,
-  ApplyFieldOverrideOptions,
 } from '@grafana/data';
 import { getTemplateSrv, toDataQueryError } from '@grafana/runtime';
 import { ExpressionDatasourceRef } from '@grafana/runtime/src/utils/DataSourceWithBackend';
@@ -49,6 +48,8 @@ export interface QueryRunnerOptions<
   datasource: DataSourceRef | DataSourceApi<TQuery, TOptions> | null;
   queries: TQuery[];
   panelId?: number;
+  /** @deprecate */
+  dashboardId?: number;
   dashboardUID?: string;
   publicDashboardAccessToken?: string;
   timezone: TimeZone;
@@ -92,10 +93,7 @@ export class PanelQueryRunner {
   getData(options: GetDataOptions): Observable<PanelData> {
     const { withFieldConfig, withTransforms } = options;
     let structureRev = 1;
-    let lastFieldConfig: ApplyFieldOverrideOptions | undefined = undefined;
-    let lastProcessedFrames: DataFrame[] = [];
-    let lastRawFrames: DataFrame[] = [];
-    let lastTransformations: DataTransformerConfig[] | undefined;
+    let lastData: DataFrame[] = [];
     let isFirstPacket = true;
     let lastConfigRev = -1;
 
@@ -109,109 +107,97 @@ export class PanelQueryRunner {
     }
 
     return this.subject.pipe(
-      mergeMap((data: PanelData) => {
-        let fieldConfig = this.dataConfigSource.getFieldOverrideOptions();
-        let transformations = this.dataConfigSource.getTransformations();
+      this.getTransformationsStream(withTransforms),
+      map((data: PanelData) => {
+        let processedData = data;
+        let streamingPacketWithSameSchema = false;
 
-        if (
-          data.series === lastRawFrames &&
-          lastFieldConfig?.fieldConfig === fieldConfig?.fieldConfig &&
-          lastTransformations === transformations
-        ) {
-          return of({ ...data, structureRev, series: lastProcessedFrames });
-        }
-
-        lastFieldConfig = fieldConfig;
-        lastTransformations = transformations;
-        lastRawFrames = data.series;
-        let dataWithTransforms = of(data);
-
-        if (withTransforms) {
-          dataWithTransforms = this.applyTransformations(data);
-        }
-
-        return dataWithTransforms.pipe(
-          map((data: PanelData) => {
-            let processedData = data;
-            let streamingPacketWithSameSchema = false;
-
-            if (withFieldConfig && data.series?.length) {
-              if (lastConfigRev === this.dataConfigSource.configRev) {
-                const streamingDataFrame = data.series.find((data) => isStreamingDataFrame(data)) as
-                  | StreamingDataFrame
-                  | undefined;
-
-                if (
-                  streamingDataFrame &&
-                  !streamingDataFrame.packetInfo.schemaChanged &&
-                  // TODO: remove the condition below after fixing
-                  // https://github.com/grafana/grafana/pull/41492#issuecomment-970281430
-                  lastProcessedFrames[0].fields.length === streamingDataFrame.fields.length
-                ) {
-                  processedData = {
-                    ...processedData,
-                    series: lastProcessedFrames.map((frame, frameIndex) => ({
-                      ...frame,
-                      length: data.series[frameIndex].length,
-                      fields: frame.fields.map((field, fieldIndex) => ({
-                        ...field,
-                        values: data.series[frameIndex].fields[fieldIndex].values,
-                        state: {
-                          ...field.state,
-                          calcs: undefined,
-                          range: undefined,
-                        },
-                      })),
-                    })),
-                  };
-
-                  streamingPacketWithSameSchema = true;
-                }
-              }
-
-              if (fieldConfig != null && (isFirstPacket || !streamingPacketWithSameSchema)) {
-                lastConfigRev = this.dataConfigSource.configRev!;
-                processedData = {
-                  ...processedData,
-                  series: applyFieldOverrides({
-                    timeZone: data.request?.timezone ?? 'browser',
-                    data: processedData.series,
-                    ...fieldConfig!,
-                  }),
-                };
-                isFirstPacket = false;
-              }
-            }
+        if (withFieldConfig && data.series?.length) {
+          if (lastConfigRev === this.dataConfigSource.configRev) {
+            const streamingDataFrame = data.series.find((data) => isStreamingDataFrame(data)) as
+              | StreamingDataFrame
+              | undefined;
 
             if (
-              !streamingPacketWithSameSchema &&
-              !compareArrayValues(lastProcessedFrames, processedData.series, compareDataFrameStructures)
+              streamingDataFrame &&
+              !streamingDataFrame.packetInfo.schemaChanged &&
+              // TODO: remove the condition below after fixing
+              // https://github.com/grafana/grafana/pull/41492#issuecomment-970281430
+              lastData[0].fields.length === streamingDataFrame.fields.length
             ) {
-              structureRev++;
+              processedData = {
+                ...processedData,
+                series: lastData.map((frame, frameIndex) => ({
+                  ...frame,
+                  length: data.series[frameIndex].length,
+                  fields: frame.fields.map((field, fieldIndex) => ({
+                    ...field,
+                    values: data.series[frameIndex].fields[fieldIndex].values,
+                    state: {
+                      ...field.state,
+                      calcs: undefined,
+                      range: undefined,
+                    },
+                  })),
+                })),
+              };
+
+              streamingPacketWithSameSchema = true;
             }
+          }
 
-            lastProcessedFrames = processedData.series;
+          // Apply field defaults and overrides
+          let fieldConfig = this.dataConfigSource.getFieldOverrideOptions();
 
-            return { ...processedData, structureRev };
-          })
-        );
+          if (fieldConfig != null && (isFirstPacket || !streamingPacketWithSameSchema)) {
+            lastConfigRev = this.dataConfigSource.configRev!;
+            processedData = {
+              ...processedData,
+              series: applyFieldOverrides({
+                timeZone: data.request?.timezone ?? 'browser',
+                data: processedData.series,
+                ...fieldConfig!,
+              }),
+            };
+            isFirstPacket = false;
+          }
+        }
+
+        if (
+          !streamingPacketWithSameSchema &&
+          !compareArrayValues(lastData, processedData.series, compareDataFrameStructures)
+        ) {
+          structureRev++;
+        }
+        lastData = processedData.series;
+
+        return { ...processedData, structureRev };
       })
     );
   }
 
-  private applyTransformations(data: PanelData): Observable<PanelData> {
-    const transformations = this.dataConfigSource.getTransformations();
+  private getTransformationsStream = (withTransforms: boolean): MonoTypeOperatorFunction<PanelData> => {
+    return (inputStream) =>
+      inputStream.pipe(
+        mergeMap((data) => {
+          if (!withTransforms) {
+            return of(data);
+          }
 
-    if (!transformations || transformations.length === 0) {
-      return of(data);
-    }
+          const transformations = this.dataConfigSource.getTransformations();
 
-    const ctx: DataTransformContext = {
-      interpolate: (v: string) => getTemplateSrv().replace(v, data?.request?.scopedVars),
-    };
+          if (!transformations || transformations.length === 0) {
+            return of(data);
+          }
 
-    return transformDataFrame(transformations, data.series, ctx).pipe(map((series) => ({ ...data, series })));
-  }
+          const ctx: DataTransformContext = {
+            interpolate: (v: string) => getTemplateSrv().replace(v, data?.request?.scopedVars),
+          };
+
+          return transformDataFrame(transformations, data.series, ctx).pipe(map((series) => ({ ...data, series })));
+        })
+      );
+  };
 
   async run(options: QueryRunnerOptions) {
     const {
@@ -219,6 +205,7 @@ export class PanelQueryRunner {
       timezone,
       datasource,
       panelId,
+      dashboardId,
       dashboardUID,
       publicDashboardAccessToken,
       timeRange,
@@ -232,7 +219,7 @@ export class PanelQueryRunner {
     } = options;
 
     if (isSharedDashboardQuery(datasource)) {
-      this.pipeToSubject(runSharedRequest(options, queries[0]), panelId, true);
+      this.pipeToSubject(runSharedRequest(options, queries[0]), panelId);
       return;
     }
 
@@ -241,6 +228,7 @@ export class PanelQueryRunner {
       requestId: getNextRequestId(),
       timezone,
       panelId,
+      dashboardId,
       dashboardUID,
       publicDashboardAccessToken,
       range: timeRange,
@@ -300,7 +288,7 @@ export class PanelQueryRunner {
     }
   }
 
-  private pipeToSubject(observable: Observable<PanelData>, panelId?: number, skipPreProcess = false) {
+  private pipeToSubject(observable: Observable<PanelData>, panelId?: number) {
     if (this.subscription) {
       this.subscription.unsubscribe();
     }
@@ -315,7 +303,7 @@ export class PanelQueryRunner {
 
     this.subscription = panelData.subscribe({
       next: (data) => {
-        this.lastResult = skipPreProcess ? data : preProcessPanelData(data, this.lastResult);
+        this.lastResult = preProcessPanelData(data, this.lastResult);
         // Store preprocessed query results for applying overrides later on in the pipeline
         this.subject.next(this.lastResult);
       },
@@ -329,11 +317,8 @@ export class PanelQueryRunner {
 
     this.subscription.unsubscribe();
 
-    // If we have an old result with loading or streaming state, send it with done state
-    if (
-      this.lastResult &&
-      (this.lastResult.state === LoadingState.Loading || this.lastResult.state === LoadingState.Streaming)
-    ) {
+    // If we have an old result with loading state, send it with done state
+    if (this.lastResult && this.lastResult.state === LoadingState.Loading) {
       this.subject.next({
         ...this.lastResult,
         state: LoadingState.Done,

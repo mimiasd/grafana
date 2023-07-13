@@ -1,42 +1,50 @@
 import React, { useCallback, useEffect } from 'react';
-import { Route, RouteChildrenProps, Switch } from 'react-router-dom';
+import { Redirect, Route, RouteChildrenProps, Switch, useLocation } from 'react-router-dom';
 
 import { Alert, withErrorBoundary } from '@grafana/ui';
 import { Silence } from 'app/plugins/datasource/alertmanager/types';
 import { useDispatch } from 'app/types';
 
 import { featureDiscoveryApi } from './api/featureDiscoveryApi';
-import { AlertmanagerPageWrapper } from './components/AlertingPageWrapper';
+import { AlertManagerPicker } from './components/AlertManagerPicker';
+import { AlertingPageWrapper } from './components/AlertingPageWrapper';
 import { GrafanaAlertmanagerDeliveryWarning } from './components/GrafanaAlertmanagerDeliveryWarning';
+import { NoAlertManagerWarning } from './components/NoAlertManagerWarning';
 import SilencesEditor from './components/silences/SilencesEditor';
 import SilencesTable from './components/silences/SilencesTable';
+import { useAlertManagerSourceName } from './hooks/useAlertManagerSourceName';
+import { useAlertManagersByPermission } from './hooks/useAlertManagerSources';
 import { useSilenceNavData } from './hooks/useSilenceNavData';
 import { useUnifiedAlertingSelector } from './hooks/useUnifiedAlertingSelector';
-import { useAlertmanager } from './state/AlertmanagerContext';
 import { fetchAmAlertsAction, fetchSilencesAction } from './state/actions';
 import { SILENCES_POLL_INTERVAL_MS } from './utils/constants';
 import { AsyncRequestState, initialAsyncRequestState } from './utils/redux';
 
 const Silences = () => {
-  const { selectedAlertmanager } = useAlertmanager();
+  const alertManagers = useAlertManagersByPermission('instance');
+  const [alertManagerSourceName, setAlertManagerSourceName] = useAlertManagerSourceName(alertManagers);
 
   const dispatch = useDispatch();
   const silences = useUnifiedAlertingSelector((state) => state.silences);
   const alertsRequests = useUnifiedAlertingSelector((state) => state.amAlerts);
-  const alertsRequest = selectedAlertmanager
-    ? alertsRequests[selectedAlertmanager] || initialAsyncRequestState
+  const alertsRequest = alertManagerSourceName
+    ? alertsRequests[alertManagerSourceName] || initialAsyncRequestState
     : undefined;
 
+  const location = useLocation();
+  const pageNav = useSilenceNavData();
+  const isRoot = location.pathname.endsWith('/alerting/silences');
+
   const { currentData: amFeatures } = featureDiscoveryApi.useDiscoverAmFeaturesQuery(
-    { amSourceName: selectedAlertmanager ?? '' },
-    { skip: !selectedAlertmanager }
+    { amSourceName: alertManagerSourceName ?? '' },
+    { skip: !alertManagerSourceName }
   );
 
   useEffect(() => {
     function fetchAll() {
-      if (selectedAlertmanager) {
-        dispatch(fetchSilencesAction(selectedAlertmanager));
-        dispatch(fetchAmAlertsAction(selectedAlertmanager));
+      if (alertManagerSourceName) {
+        dispatch(fetchSilencesAction(alertManagerSourceName));
+        dispatch(fetchAmAlertsAction(alertManagerSourceName));
       }
     }
     fetchAll();
@@ -44,23 +52,35 @@ const Silences = () => {
     return () => {
       clearInterval(interval);
     };
-  }, [selectedAlertmanager, dispatch]);
+  }, [alertManagerSourceName, dispatch]);
 
   const { result, loading, error }: AsyncRequestState<Silence[]> =
-    (selectedAlertmanager && silences[selectedAlertmanager]) || initialAsyncRequestState;
+    (alertManagerSourceName && silences[alertManagerSourceName]) || initialAsyncRequestState;
 
   const getSilenceById = useCallback((id: string) => result && result.find((silence) => silence.id === id), [result]);
 
   const mimirLazyInitError =
     error?.message?.includes('the Alertmanager is not configured') && amFeatures?.lazyConfigInit;
 
-  if (!selectedAlertmanager) {
-    return null;
+  if (!alertManagerSourceName) {
+    return isRoot ? (
+      <AlertingPageWrapper pageId="silences" pageNav={pageNav}>
+        <NoAlertManagerWarning availableAlertManagers={alertManagers} />
+      </AlertingPageWrapper>
+    ) : (
+      <Redirect to="/alerting/silences" />
+    );
   }
 
   return (
-    <>
-      <GrafanaAlertmanagerDeliveryWarning currentAlertmanager={selectedAlertmanager} />
+    <AlertingPageWrapper pageId="silences" isLoading={loading} pageNav={pageNav}>
+      <AlertManagerPicker
+        disabled={!isRoot}
+        current={alertManagerSourceName}
+        onChange={setAlertManagerSourceName}
+        dataSources={alertManagers}
+      />
+      <GrafanaAlertmanagerDeliveryWarning currentAlertmanager={alertManagerSourceName} />
 
       {mimirLazyInitError && (
         <Alert title="The selected Alertmanager has no configuration" severity="warning">
@@ -84,11 +104,11 @@ const Silences = () => {
             <SilencesTable
               silences={result}
               alertManagerAlerts={alertsRequest?.result ?? []}
-              alertManagerSourceName={selectedAlertmanager}
+              alertManagerSourceName={alertManagerSourceName}
             />
           </Route>
           <Route exact path="/alerting/silence/new">
-            <SilencesEditor alertManagerSourceName={selectedAlertmanager} />
+            <SilencesEditor alertManagerSourceName={alertManagerSourceName} />
           </Route>
           <Route exact path="/alerting/silence/:id/edit">
             {({ match }: RouteChildrenProps<{ id: string }>) => {
@@ -96,7 +116,7 @@ const Silences = () => {
                 match?.params.id && (
                   <SilencesEditor
                     silence={getSilenceById(match.params.id)}
-                    alertManagerSourceName={selectedAlertmanager}
+                    alertManagerSourceName={alertManagerSourceName}
                   />
                 )
               );
@@ -104,18 +124,8 @@ const Silences = () => {
           </Route>
         </Switch>
       )}
-    </>
+    </AlertingPageWrapper>
   );
 };
 
-function SilencesPage() {
-  const pageNav = useSilenceNavData();
-
-  return (
-    <AlertmanagerPageWrapper pageId="silences" pageNav={pageNav} accessType="instance">
-      <Silences />
-    </AlertmanagerPageWrapper>
-  );
-}
-
-export default withErrorBoundary(SilencesPage, { style: 'page' });
+export default withErrorBoundary(Silences, { style: 'page' });

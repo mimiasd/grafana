@@ -23,7 +23,7 @@ import { isHeatmapCellsDense, readHeatmapRowsCustomMeta } from 'app/features/tra
 import { pointWithin, Quadtree, Rect } from '../barchart/quadtree';
 
 import { HeatmapData } from './fields';
-import { FieldConfig, YAxisConfig } from './types';
+import { PanelFieldConfig, YAxisConfig } from './types';
 
 interface PathbuilderOpts {
   each: (u: uPlot, seriesIdx: number, dataIdx: number, lft: number, top: number, wid: number, hgt: number) => void;
@@ -67,6 +67,7 @@ interface PrepConfigOpts {
   isToolTipOpen: MutableRefObject<boolean>;
   timeZone: string;
   getTimeRange: () => TimeRange;
+  palette: string[];
   exemplarColor: string;
   cellGap?: number | null; // in css pixels
   hideLE?: number;
@@ -87,6 +88,7 @@ export function prepConfig(opts: PrepConfigOpts) {
     isToolTipOpen,
     timeZone,
     getTimeRange,
+    palette,
     cellGap,
     hideLE,
     hideGE,
@@ -287,7 +289,8 @@ export function prepConfig(opts: PrepConfigOpts) {
     return builder; // early abort (avoids error)
   }
 
-  const yFieldConfig: FieldConfig | undefined = yField.config?.custom;
+  // eslint-ignore @typescript-eslint/no-explicit-any
+  const yFieldConfig = yField.config?.custom as PanelFieldConfig | undefined;
   const yScale = yFieldConfig?.scaleDistribution ?? { type: ScaleDistribution.Linear };
   const yAxisReverse = Boolean(yAxisConfig.reverse);
   const isSparseHeatmap = heatmapType === DataFrameType.HeatmapCells && !isHeatmapCellsDense(dataRef.current?.heatmap!);
@@ -523,8 +526,16 @@ export function prepConfig(opts: PrepConfigOpts) {
       ySizeDivisor,
       disp: {
         fill: {
-          values: (u, seriesIdx) => dataRef.current?.heatmapColors?.values!,
-          index: dataRef.current?.heatmapColors?.palette!,
+          values: (u, seriesIdx) => {
+            let countFacetIdx = !isSparseHeatmap ? 2 : 3;
+            return valuesToFills(
+              u.data[seriesIdx][countFacetIdx] as unknown as number[],
+              palette,
+              dataRef.current?.minValue!,
+              dataRef.current?.maxValue!
+            );
+          },
+          index: palette,
         },
       },
     }),
@@ -955,8 +966,8 @@ export const boundedMinMax = (
   return [minValue, maxValue];
 };
 
-export const valuesToFills = (values: number[], palette: string[], minValue: number, maxValue: number): number[] => {
-  let range = maxValue - minValue || 1;
+export const valuesToFills = (values: number[], palette: string[], minValue: number, maxValue: number) => {
+  let range = Math.max(maxValue - minValue, 1);
 
   let paletteSize = palette.length;
 

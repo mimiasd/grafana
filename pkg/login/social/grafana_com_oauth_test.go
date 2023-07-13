@@ -1,7 +1,6 @@
 package social
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -82,7 +81,7 @@ func TestSocialGrafanaCom_UserInfo(t *testing.T) {
 				}
 			}))
 			provider.url = ts.URL
-			actualResult, err := provider.UserInfo(context.Background(), ts.Client(), nil)
+			actualResult, err := provider.UserInfo(ts.Client(), nil)
 			if test.ExpectedError != nil {
 				require.Equal(t, err, test.ExpectedError)
 				return

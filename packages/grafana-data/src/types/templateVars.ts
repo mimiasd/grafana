@@ -109,7 +109,7 @@ export interface VariableWithMultiSupport extends VariableWithOptions {
 }
 
 export interface VariableWithOptions extends BaseVariableModel {
-  current: VariableOption | Record<string, never>;
+  current: VariableOption;
   options: VariableOption[];
   query: string;
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -15,7 +14,7 @@ type PackageJSON struct {
 
 // Opens the package.json file in the provided directory and returns a struct that represents its contents
 func OpenPackageJSON(dir string) (PackageJSON, error) {
-	reader, err := os.Open(filepath.Clean(dir + "/package.json"))
+	reader, err := os.Open("package.json")
 	if err != nil {
 		return PackageJSON{}, err
 	}

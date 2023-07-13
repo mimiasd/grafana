@@ -14,8 +14,9 @@ const loadingTeam = {
   memberCount: 0,
   permission: TeamPermissionLevel.Member,
   accessControl: { isEditor: false },
+  created: 0,
   orgId: 0,
-  updated: '',
+  updated: 0,
 };
 
 export function buildNavModel(team: Team): NavModelItem {
@@ -25,6 +26,7 @@ export function buildNavModel(team: Team): NavModelItem {
     subTitle: 'Manage members and settings',
     url: '',
     text: team.name,
+    breadcrumbs: [{ title: 'Teams', url: 'org/teams' }],
     children: [
       // With RBAC this tab will always be available (but not always editable)
       // With Legacy it will be hidden by hideTabsFromNonTeamAdmin should the user not be allowed to see it

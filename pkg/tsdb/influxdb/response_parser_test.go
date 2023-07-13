@@ -10,10 +10,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+	"github.com/grafana/grafana/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/grafana/grafana/pkg/util"
 )
 
 func prepare(text string) io.ReadCloser {
@@ -36,13 +35,13 @@ func TestInfluxdbResponseParser(t *testing.T) {
 
 		query := &Query{}
 
-		result := parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+		result := parser.Parse(prepare(response), addQueryToQueries(*query))
 
 		require.Nil(t, result.Responses["A"].Frames)
 		require.Error(t, result.Responses["A"].Error)
 	})
 
-	t.Run("Influxdb response parser should parse everything normally including nil bools and nil strings", func(t *testing.T) {
+	t.Run("Influxdb response parser should parse everything normally", func(t *testing.T) {
 		parser := &ResponseParser{}
 
 		response := `
@@ -55,7 +54,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 							"columns": ["time","mean","path","isActive"],
 							"tags": {"datacenter": "America"},
 							"values": [
-								[111,222,null,null],
+								[111,222,"/usr/path",true],
 								[111,222,"/usr/path",false],
 								[111,null,"/usr/path",true]
 							]
@@ -70,12 +69,12 @@ func TestInfluxdbResponseParser(t *testing.T) {
 		labels, err := data.LabelsFromString("datacenter=America")
 		require.Nil(t, err)
 
-		floatField := data.NewField("Value", labels, []*float64{
+		floatField := data.NewField("value", labels, []*float64{
 			util.Pointer(222.0), util.Pointer(222.0), nil,
 		})
 		floatField.Config = &data.FieldConfig{DisplayNameFromDS: "cpu.mean { datacenter: America }"}
 		floatFrame := data.NewFrame("cpu.mean { datacenter: America }",
-			data.NewField("Time", nil,
+			data.NewField("time", nil,
 				[]time.Time{
 					time.Date(1970, 1, 1, 0, 0, 0, 111000000, time.UTC),
 					time.Date(1970, 1, 1, 0, 0, 0, 111000000, time.UTC),
@@ -85,13 +84,12 @@ func TestInfluxdbResponseParser(t *testing.T) {
 		)
 		floatFrame.Meta = &data.FrameMeta{ExecutedQueryString: "Test raw query"}
 
-		string_test := "/usr/path"
-		stringField := data.NewField("Value", labels, []*string{
-			nil, &string_test, &string_test,
+		stringField := data.NewField("value", labels, []string{
+			"/usr/path", "/usr/path", "/usr/path",
 		})
 		stringField.Config = &data.FieldConfig{DisplayNameFromDS: "cpu.path { datacenter: America }"}
 		stringFrame := data.NewFrame("cpu.path { datacenter: America }",
-			data.NewField("Time", nil,
+			data.NewField("time", nil,
 				[]time.Time{
 					time.Date(1970, 1, 1, 0, 0, 0, 111000000, time.UTC),
 					time.Date(1970, 1, 1, 0, 0, 0, 111000000, time.UTC),
@@ -101,14 +99,12 @@ func TestInfluxdbResponseParser(t *testing.T) {
 		)
 		stringFrame.Meta = &data.FrameMeta{ExecutedQueryString: "Test raw query"}
 
-		bool_true := true
-		bool_false := false
-		boolField := data.NewField("Value", labels, []*bool{
-			nil, &bool_false, &bool_true,
+		boolField := data.NewField("value", labels, []bool{
+			true, false, true,
 		})
 		boolField.Config = &data.FieldConfig{DisplayNameFromDS: "cpu.isActive { datacenter: America }"}
 		boolFrame := data.NewFrame("cpu.isActive { datacenter: America }",
-			data.NewField("Time", nil,
+			data.NewField("time", nil,
 				[]time.Time{
 					time.Date(1970, 1, 1, 0, 0, 0, 111000000, time.UTC),
 					time.Date(1970, 1, 1, 0, 0, 0, 111000000, time.UTC),
@@ -118,7 +114,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 		)
 		boolFrame.Meta = &data.FrameMeta{ExecutedQueryString: "Test raw query"}
 
-		result := parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+		result := parser.Parse(prepare(response), addQueryToQueries(*query))
 
 		frame := result.Responses["A"]
 		if diff := cmp.Diff(floatFrame, frame.Frames[0], data.FrameTestCompareOptions()...); diff != "" {
@@ -157,14 +153,14 @@ func TestInfluxdbResponseParser(t *testing.T) {
 
 		var queries []Query
 		queries = append(queries, Query{RefID: "metricFindQuery"})
-		newField := data.NewField("Value", nil, []string{
+		newField := data.NewField("value", nil, []string{
 			"cpu", "disk", "logs",
 		})
 		testFrame := data.NewFrame("cpu",
 			newField,
 		)
 
-		result := parser.Parse(prepare(response), 200, queries)
+		result := parser.Parse(prepare(response), queries)
 
 		frame := result.Responses["metricFindQuery"]
 		if diff := cmp.Diff(testFrame, frame.Frames[0], data.FrameTestCompareOptions()...); diff != "" {
@@ -196,14 +192,14 @@ func TestInfluxdbResponseParser(t *testing.T) {
 
 		var queries []Query
 		queries = append(queries, Query{RawQuery: "SHOW TAG VALUES", RefID: "metricFindQuery"})
-		newField := data.NewField("Value", nil, []string{
+		newField := data.NewField("value", nil, []string{
 			"cpu-total", "cpu0", "cpu1",
 		})
 		testFrame := data.NewFrame("cpu",
 			newField,
 		)
 
-		result := parser.Parse(prepare(response), 200, queries)
+		result := parser.Parse(prepare(response), queries)
 
 		frame := result.Responses["metricFindQuery"]
 		if diff := cmp.Diff(testFrame, frame.Frames[0], data.FrameTestCompareOptions()...); diff != "" {
@@ -232,7 +228,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 		queryB := &Query{}
 		queryB.RefID = "B"
 		queries = append(queries, *queryB)
-		result := parser.Parse(prepare(response), 200, queries)
+		result := parser.Parse(prepare(response), queries)
 
 		assert.Len(t, result.Responses, 2)
 		assert.Contains(t, result.Responses, "A")
@@ -265,7 +261,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 
 		query := &Query{}
 		query.RawQuery = "Test raw query"
-		result := parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+		result := parser.Parse(prepare(response), addQueryToQueries(*query))
 
 		frame := result.Responses["A"]
 		assert.Equal(t, frame.Frames[0].Meta.ExecutedQueryString, "Test raw query")
@@ -296,12 +292,12 @@ func TestInfluxdbResponseParser(t *testing.T) {
 
 		query := &Query{}
 
-		newField := data.NewField("Value", nil, []*float64{
+		newField := data.NewField("value", nil, []*float64{
 			util.Pointer(50.0), nil, util.Pointer(52.0),
 		})
 		newField.Config = &data.FieldConfig{DisplayNameFromDS: "cpu.mean"}
 		testFrame := data.NewFrame("cpu.mean",
-			data.NewField("Time", nil,
+			data.NewField("time", nil,
 				[]time.Time{
 					time.Date(1970, 1, 1, 0, 0, 0, 100000000, time.UTC),
 					time.Date(1970, 1, 1, 0, 0, 0, 101000000, time.UTC),
@@ -311,7 +307,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 		)
 		testFrame.Meta = &data.FrameMeta{ExecutedQueryString: "Test raw query"}
 
-		result := parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+		result := parser.Parse(prepare(response), addQueryToQueries(*query))
 
 		frame := result.Responses["A"]
 		if diff := cmp.Diff(testFrame, frame.Frames[0], data.FrameTestCompareOptions()...); diff != "" {
@@ -345,12 +341,12 @@ func TestInfluxdbResponseParser(t *testing.T) {
 
 		query := &Query{}
 
-		newField := data.NewField("Value", nil, []*float64{
+		newField := data.NewField("value", nil, []*float64{
 			util.Pointer(50.0), util.Pointer(52.0),
 		})
 		newField.Config = &data.FieldConfig{DisplayNameFromDS: "cpu.mean"}
 		testFrame := data.NewFrame("cpu.mean",
-			data.NewField("Time", nil,
+			data.NewField("time", nil,
 				[]time.Time{
 					time.Date(1970, 1, 1, 0, 0, 0, 100000000, time.UTC),
 					time.Date(1970, 1, 1, 0, 0, 0, 102000000, time.UTC),
@@ -359,7 +355,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 		)
 		testFrame.Meta = &data.FrameMeta{ExecutedQueryString: "Test raw query"}
 
-		result := parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+		result := parser.Parse(prepare(response), addQueryToQueries(*query))
 
 		frame := result.Responses["A"]
 		if diff := cmp.Diff(testFrame, frame.Frames[0], data.FrameTestCompareOptions()...); diff != "" {
@@ -398,19 +394,19 @@ func TestInfluxdbResponseParser(t *testing.T) {
 		query := &Query{Alias: "series alias"}
 		labels, err := data.LabelsFromString("/cluster/name/=Cluster/, @cluster@name@=Cluster@, cluster-name=Cluster, datacenter=America, dc.region.name=Northeast")
 		require.Nil(t, err)
-		newField := data.NewField("Value", labels, []*float64{
+		newField := data.NewField("value", labels, []*float64{
 			util.Pointer(222.0),
 		})
 		newField.Config = &data.FieldConfig{DisplayNameFromDS: "series alias"}
 		testFrame := data.NewFrame("series alias",
-			data.NewField("Time", nil,
+			data.NewField("time", nil,
 				[]time.Time{
 					time.Date(1970, 1, 1, 0, 0, 0, 111000000, time.UTC),
 				}),
 			newField,
 		)
 		testFrame.Meta = &data.FrameMeta{ExecutedQueryString: "Test raw query"}
-		result := parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+		result := parser.Parse(prepare(response), addQueryToQueries(*query))
 		t.Run("should parse aliases", func(t *testing.T) {
 			frame := result.Responses["A"]
 			if diff := cmp.Diff(testFrame, frame.Frames[0], data.FrameTestCompareOptions()...); diff != "" {
@@ -418,7 +414,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias $m $measurement", Measurement: "10m"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 
 			frame = result.Responses["A"]
 			name := "alias 10m 10m"
@@ -429,7 +425,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias $col", Measurement: "10m"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias mean"
 			testFrame.Name = name
@@ -439,7 +435,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 			name = "alias sum"
 			testFrame.Name = name
-			newField = data.NewField("Value", labels, []*float64{
+			newField = data.NewField("value", labels, []*float64{
 				util.Pointer(333.0),
 			})
 			testFrame.Fields[1] = newField
@@ -449,11 +445,11 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias $tag_datacenter"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias America"
 			testFrame.Name = name
-			newField = data.NewField("Value", labels, []*float64{
+			newField = data.NewField("value", labels, []*float64{
 				util.Pointer(222.0),
 			})
 			testFrame.Fields[1] = newField
@@ -463,11 +459,11 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias $tag_datacenter/$tag_datacenter"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias America/America"
 			testFrame.Name = name
-			newField = data.NewField("Value", labels, []*float64{
+			newField = data.NewField("value", labels, []*float64{
 				util.Pointer(222.0),
 			})
 			testFrame.Fields[1] = newField
@@ -477,7 +473,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias [[col]]", Measurement: "10m"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias mean"
 			testFrame.Name = name
@@ -487,7 +483,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias $0 $1 $2 $3 $4"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias cpu upc $2 $3 $4"
 			testFrame.Name = name
@@ -497,7 +493,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias $0, $1 - $2 - $3, $4: something"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias cpu, upc - $2 - $3, $4: something"
 			testFrame.Name = name
@@ -507,7 +503,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias $1"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias upc"
 			testFrame.Name = name
@@ -517,7 +513,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias $5"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias $5"
 			testFrame.Name = name
@@ -527,7 +523,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "series alias"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "series alias"
 			testFrame.Name = name
@@ -537,7 +533,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias [[m]] [[measurement]]", Measurement: "10m"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias 10m 10m"
 			testFrame.Name = name
@@ -547,7 +543,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias [[tag_datacenter]]"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias America"
 			testFrame.Name = name
@@ -557,7 +553,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias [[tag_dc.region.name]]"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias Northeast"
 			testFrame.Name = name
@@ -567,7 +563,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias [[tag_cluster-name]]"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias Cluster"
 			testFrame.Name = name
@@ -577,7 +573,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias [[tag_/cluster/name/]]"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias Cluster/"
 			testFrame.Name = name
@@ -587,7 +583,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias [[tag_@cluster@name@]]"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias Cluster@"
 			testFrame.Name = name
@@ -598,7 +594,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 		})
 		t.Run("shouldn't parse aliases", func(t *testing.T) {
 			query = &Query{Alias: "alias words with no brackets"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame := result.Responses["A"]
 			name := "alias words with no brackets"
 			testFrame.Name = name
@@ -608,7 +604,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias Test 1.5"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias Test 1.5"
 			testFrame.Name = name
@@ -618,7 +614,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			}
 
 			query = &Query{Alias: "alias Test -1"}
-			result = parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+			result = parser.Parse(prepare(response), addQueryToQueries(*query))
 			frame = result.Responses["A"]
 			name = "alias Test -1"
 			testFrame.Name = name
@@ -663,12 +659,12 @@ func TestInfluxdbResponseParser(t *testing.T) {
 		queries = append(queries, *queryB)
 		labels, err := data.LabelsFromString("datacenter=America")
 		require.Nil(t, err)
-		newField := data.NewField("Value", labels, []*float64{
+		newField := data.NewField("value", labels, []*float64{
 			util.Pointer(222.0), util.Pointer(222.0), nil,
 		})
 		newField.Config = &data.FieldConfig{DisplayNameFromDS: "cpu.mean { datacenter: America }"}
 		testFrame := data.NewFrame("cpu.mean { datacenter: America }",
-			data.NewField("Time", nil,
+			data.NewField("time", nil,
 				[]time.Time{
 					time.Date(1970, 1, 1, 0, 0, 0, 111000000, time.UTC),
 					time.Date(1970, 1, 1, 0, 0, 0, 111000000, time.UTC),
@@ -677,7 +673,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 			newField,
 		)
 		testFrame.Meta = &data.FrameMeta{ExecutedQueryString: "Test raw query"}
-		result := parser.Parse(prepare(response), 200, queries)
+		result := parser.Parse(prepare(response), queries)
 
 		frame := result.Responses["A"]
 		if diff := cmp.Diff(testFrame, frame.Frames[0], data.FrameTestCompareOptions()...); diff != "" {
@@ -698,7 +694,7 @@ func TestInfluxdbResponseParser(t *testing.T) {
 
 		query := &Query{}
 
-		result := parser.Parse(prepare(response), 200, addQueryToQueries(*query))
+		result := parser.Parse(prepare(response), addQueryToQueries(*query))
 
 		require.Nil(t, result.Responses["A"].Frames)
 
@@ -734,78 +730,6 @@ func TestInfluxdbResponseParser(t *testing.T) {
 	})
 }
 
-func TestResponseParser_Parse_RetentionPolicy(t *testing.T) {
-	t.Run("Influxdb response parser should parse metricFindQueries->SHOW RETENTION POLICIES normally", func(t *testing.T) {
-		parser := &ResponseParser{}
-
-		response := `
-		{
-		  "results": [
-		    {
-		      "statement_id": 0,
-		      "series": [
-		        {
-		          "columns": [
-		            "name",
-		            "duration",
-		            "shardGroupDuration",
-		            "replicaN",
-		            "default"
-		          ],
-		          "values": [
-		            [
-		              "autogen",
-		              "0s",
-		              "168h0m0s",
-		              1,
-		              false
-		            ],
-		            [
-		              "bar",
-		              "24h0m0s",
-		              "1h0m0s",
-		              1,
-		              true
-		            ],
-		            [
-		              "5m_avg",
-		              "2400h0m0s",
-		              "24h0m0s",
-		              1,
-		              false
-		            ],
-		            [
-		              "1m_avg",
-		              "240h0m0s",
-		              "24h0m0s",
-		              1,
-		              false
-		            ]
-		          ]
-		        }
-		      ]
-		    }
-		  ]
-		}
-		`
-
-		var queries []Query
-		queries = append(queries, Query{RefID: "metricFindQuery", RawQuery: "SHOW RETENTION POLICIES"})
-		policyFrame := data.NewFrame("",
-			data.NewField("Value", nil, []string{
-				"bar", "autogen", "5m_avg", "1m_avg",
-			}),
-		)
-
-		result := parser.Parse(prepare(response), 200, queries)
-
-		frame := result.Responses["metricFindQuery"]
-		if diff := cmp.Diff(policyFrame, frame.Frames[0], data.FrameTestCompareOptions()...); diff != "" {
-			t.Errorf("Result mismatch (-want +got):\n%s", diff)
-		}
-	})
-}
-
 func TestResponseParser_Parse(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -824,10 +748,10 @@ func TestResponseParser_Parse(t *testing.T) {
 				]
 			}]}]}`,
 			f: func(t *testing.T, got *backend.QueryDataResponse) {
-				newField := data.NewField("Value", nil, []*float64{nil, nil, util.Pointer(52.0)})
+				newField := data.NewField("value", nil, []*float64{nil, nil, util.Pointer(52.0)})
 				newField.Config = &data.FieldConfig{DisplayNameFromDS: "cpu.mean"}
 				testFrame := data.NewFrame("cpu.mean",
-					data.NewField("Time", nil,
+					data.NewField("time", nil,
 						[]time.Time{
 							time.Date(1970, 1, 1, 0, 0, 0, 100000000, time.UTC),
 							time.Date(1970, 1, 1, 0, 0, 0, 101000000, time.UTC),
@@ -851,10 +775,10 @@ func TestResponseParser_Parse(t *testing.T) {
 				]
 			}]}]}`,
 			f: func(t *testing.T, got *backend.QueryDataResponse) {
-				newField := data.NewField("Value", nil, []*float64{nil, nil, nil})
+				newField := data.NewField("value", nil, []*float64{nil, nil, nil})
 				newField.Config = &data.FieldConfig{DisplayNameFromDS: "cpu.mean"}
 				testFrame := data.NewFrame("cpu.mean",
-					data.NewField("Time", nil,
+					data.NewField("time", nil,
 						[]time.Time{
 							time.Date(1970, 1, 1, 0, 0, 0, 100000000, time.UTC),
 							time.Date(1970, 1, 1, 0, 0, 0, 101000000, time.UTC),
@@ -870,7 +794,7 @@ func TestResponseParser_Parse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			parser := &ResponseParser{}
-			got := parser.Parse(prepare(tt.input), 200, addQueryToQueries(Query{}))
+			got := parser.Parse(prepare(tt.input), addQueryToQueries(Query{}))
 			require.NotNil(t, got)
 			if tt.f != nil {
 				tt.f(t, got)

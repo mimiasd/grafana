@@ -3,6 +3,7 @@ import React, { ComponentProps } from 'react';
 import { Observable } from 'rxjs';
 
 import { LoadingState, InternalTimeZones, getDefaultTimeRange } from '@grafana/data';
+import { ExploreId } from 'app/types';
 
 import { ExploreQueryInspector } from './ExploreQueryInspector';
 
@@ -37,7 +38,7 @@ const setup = (propOverrides = {}) => {
   const props: ExploreQueryInspectorProps = {
     loading: false,
     width: 100,
-    exploreId: 'left',
+    exploreId: ExploreId.left,
     onClose: jest.fn(),
     timeZone: InternalTimeZones.utc,
     queryResponse: {
@@ -48,7 +49,6 @@ const setup = (propOverrides = {}) => {
       logsFrames: [],
       tableFrames: [],
       traceFrames: [],
-      customFrames: [],
       nodeGraphFrames: [],
       flameGraphFrames: [],
       rawPrometheusFrames: [],
@@ -67,7 +67,7 @@ const setup = (propOverrides = {}) => {
 describe('ExploreQueryInspector', () => {
   it('should render closable drawer component', () => {
     setup();
-    expect(screen.getByLabelText(/close query inspector/i)).toBeInTheDocument();
+    expect(screen.getByTitle(/close query inspector/i)).toBeInTheDocument();
   });
   it('should render 4 Tabs if queryResponse has no error', () => {
     setup();

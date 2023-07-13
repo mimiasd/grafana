@@ -129,13 +129,23 @@ const getStyles = (theme: GrafanaTheme2) => {
   const destructiveVariant = getPropertiesForVariant(theme, 'destructive', 'solid');
 
   const defaultOld = css`
-    color: ${theme.colors.text.primary};
-    background: ${theme.colors.secondary.main};
+    color: ${theme.colors.text.secondary};
+    background-color: ${theme.colors.background.primary};
 
     &:hover {
       color: ${theme.colors.text.primary};
-      background: ${theme.colors.secondary.shade};
-      border: 1px solid ${theme.colors.border.medium};
+      background: ${theme.colors.background.secondary};
+    }
+  `;
+
+  const defaultTopNav = css`
+    color: ${theme.colors.text.secondary};
+    background-color: transparent;
+    border-color: transparent;
+
+    &:hover {
+      color: ${theme.colors.text.primary};
+      background: ${theme.colors.background.secondary};
     }
   `;
 
@@ -150,7 +160,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       border-radius: ${theme.shape.borderRadius()};
       line-height: ${theme.components.height.md * theme.spacing.gridSize - 2}px;
       font-weight: ${theme.typography.fontWeightMedium};
-      border: 1px solid ${theme.colors.secondary.border};
+      border: 1px solid ${theme.colors.border.weak};
       white-space: nowrap;
       transition: ${theme.transitions.create(['background', 'box-shadow', 'border-color', 'color'], {
         duration: theme.transitions.duration.short,
@@ -184,33 +194,18 @@ const getStyles = (theme: GrafanaTheme2) => {
         }
       }
     `,
-    default: css`
-      color: ${theme.colors.text.secondary};
-      background: transparent;
-      border: 1px solid transparent;
+    default: theme.flags.topnav ? defaultTopNav : defaultOld,
+    canvas: defaultOld,
+    active: css`
+      color: ${theme.v1.palette.orangeDark};
+      border-color: ${theme.v1.palette.orangeDark};
+      background-color: transparent;
 
       &:hover {
         color: ${theme.colors.text.primary};
-        background: ${theme.colors.background.secondary};
+        background: ${theme.colors.emphasize(theme.colors.background.canvas, 0.03)};
       }
     `,
-    canvas: defaultOld,
-    active: cx(
-      defaultOld,
-      css(`
-    &::before {
-      display: block;
-      content: ' ';
-      position: absolute;
-      left: 0;
-      right: 0;
-      height: 2px;
-      bottom: 0px;
-      border-radius: ${theme.shape.radius.default};
-      background-image: ${theme.colors.gradients.brandHorizontal};
-    }
-    `)
-    ),
     primary: css(primaryVariant),
     destructive: css(destructiveVariant),
     narrow: css`
@@ -240,7 +235,7 @@ const getStyles = (theme: GrafanaTheme2) => {
     `,
     highlight: css`
       background-color: ${theme.colors.success.main};
-      border-radius: ${theme.shape.radius.circle};
+      border-radius: 50%;
       width: 6px;
       height: 6px;
       position: absolute;

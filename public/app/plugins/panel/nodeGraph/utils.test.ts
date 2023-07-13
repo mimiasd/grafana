@@ -1,4 +1,4 @@
-import { DataFrame, FieldType, createDataFrame } from '@grafana/data';
+import { ArrayVector, DataFrame, FieldType, MutableDataFrame } from '@grafana/data';
 
 import { NodeDatum, NodeGraphOptions } from './types';
 import {
@@ -63,8 +63,8 @@ describe('processNodes', () => {
       expect.objectContaining(makeNodeFromEdgeDatum({ dataFrameRowIndex: 2, id: '2', incoming: 2, title: '2' })),
     ]);
 
-    expect(nodes[0].mainStat?.values).toEqual([undefined, 1, 2]);
-    expect(nodes[0].secondaryStat?.values).toEqual([undefined, 1, 2]);
+    expect(nodes[0].mainStat?.values).toEqual(new ArrayVector([undefined, 1, 2]));
+    expect(nodes[0].secondaryStat?.values).toEqual(new ArrayVector([undefined, 1, 2]));
 
     expect(nodes[0].mainStat).toEqual(nodes[1].mainStat);
     expect(nodes[0].mainStat).toEqual(nodes[2].mainStat);
@@ -81,27 +81,27 @@ describe('processNodes', () => {
 
   it('detects dataframes correctly', () => {
     const validFrames = [
-      createDataFrame({
+      new MutableDataFrame({
         refId: 'hasPreferredVisualisationType',
         fields: [],
         meta: {
           preferredVisualisationType: 'nodeGraph',
         },
       }),
-      createDataFrame({
+      new MutableDataFrame({
         refId: 'hasName',
         fields: [],
         name: 'nodes',
       }),
-      createDataFrame({
+      new MutableDataFrame({
         refId: 'nodes', // hasRefId
         fields: [],
       }),
-      createDataFrame({
+      new MutableDataFrame({
         refId: 'hasValidNodesShape',
         fields: [{ name: 'id', type: FieldType.string }],
       }),
-      createDataFrame({
+      new MutableDataFrame({
         refId: 'hasValidEdgesShape',
         fields: [
           { name: 'id', type: FieldType.string },
@@ -111,7 +111,7 @@ describe('processNodes', () => {
       }),
     ];
     const invalidFrames = [
-      createDataFrame({
+      new MutableDataFrame({
         refId: 'invalidData',
         fields: [],
       }),
@@ -124,7 +124,7 @@ describe('processNodes', () => {
   });
 
   it('getting fields is case insensitive', () => {
-    const nodeFrame = createDataFrame({
+    const nodeFrame = new MutableDataFrame({
       refId: 'nodes',
       fields: [
         { name: 'id', type: FieldType.string, values: ['id'] },
@@ -142,7 +142,7 @@ describe('processNodes', () => {
     expect(nodeFields.mainStat).toBeDefined();
     expect(nodeFields.secondaryStat).toBeDefined();
 
-    const edgeFrame = createDataFrame({
+    const edgeFrame = new MutableDataFrame({
       refId: 'nodes',
       fields: [
         { name: 'id', type: FieldType.string, values: ['id'] },
@@ -162,7 +162,7 @@ describe('processNodes', () => {
 
   it('interpolates panel options correctly', () => {
     const frames = [
-      createDataFrame({
+      new MutableDataFrame({
         refId: 'nodes',
         fields: [
           { name: 'id', type: FieldType.string },
@@ -173,7 +173,7 @@ describe('processNodes', () => {
           { name: 'arc__tertiary', type: FieldType.string },
         ],
       }),
-      createDataFrame({
+      new MutableDataFrame({
         refId: 'edges',
         fields: [
           { name: 'id', type: FieldType.string },
@@ -265,7 +265,7 @@ function makeNodeDatum(options: Partial<NodeDatum> = {}) {
     index: 7,
     name: 'color',
     type: 'number',
-    values: [0.5, 0.5, 0.5],
+    values: new ArrayVector([0.5, 0.5, 0.5]),
   };
 
   return {
@@ -278,7 +278,7 @@ function makeNodeDatum(options: Partial<NodeDatum> = {}) {
         },
         name: 'arc__success',
         type: 'number',
-        values: [0.5, 0.5, 0.5],
+        values: new ArrayVector([0.5, 0.5, 0.5]),
       },
       {
         config: {
@@ -288,7 +288,7 @@ function makeNodeDatum(options: Partial<NodeDatum> = {}) {
         },
         name: 'arc__errors',
         type: 'number',
-        values: [0.5, 0.5, 0.5],
+        values: new ArrayVector([0.5, 0.5, 0.5]),
       },
     ],
     color: colorField,
@@ -300,14 +300,14 @@ function makeNodeDatum(options: Partial<NodeDatum> = {}) {
       index: 3,
       name: 'mainstat',
       type: 'number',
-      values: [0.1, 0.1, 0.1],
+      values: new ArrayVector([0.1, 0.1, 0.1]),
     },
     secondaryStat: {
       config: {},
       index: 4,
       name: 'secondarystat',
       type: 'number',
-      values: [2, 2, 2],
+      values: new ArrayVector([2, 2, 2]),
     },
     subTitle: 'service',
     title: 'service:0',

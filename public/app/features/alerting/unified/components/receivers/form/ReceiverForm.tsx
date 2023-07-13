@@ -1,6 +1,6 @@
 import { css } from '@emotion/css';
 import React, { useCallback } from 'react';
-import { FieldErrors, FormProvider, useForm, Validate } from 'react-hook-form';
+import { useForm, FormProvider, FieldErrors, Validate } from 'react-hook-form';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { Alert, Button, Field, Input, LinkButton, useStyles2 } from '@grafana/ui';
@@ -17,7 +17,6 @@ import { initialAsyncRequestState } from '../../../utils/redux';
 
 import { ChannelSubForm } from './ChannelSubForm';
 import { DeletedSubForm } from './fields/DeletedSubform';
-import { normalizeFormValues } from './util';
 
 interface Props<R extends ChannelValues> {
   config: AlertManagerCortexConfig;
@@ -49,10 +48,7 @@ export function ReceiverForm<R extends ChannelValues>({
   const notifyApp = useAppNotification();
   const styles = useStyles2(getStyles);
 
-  // normalize deprecated and new config values
-  const normalizedConfig = normalizeFormValues(initialValues);
-
-  const defaultValues = normalizedConfig ?? {
+  const defaultValues = initialValues || {
     name: '',
     items: [
       {
@@ -179,6 +175,7 @@ export function ReceiverForm<R extends ChannelValues>({
             )}
             <LinkButton
               disabled={loading}
+              fill="outline"
               variant="secondary"
               data-testid="cancel-button"
               href={makeAMLink('alerting/notifications', alertManagerSourceName)}

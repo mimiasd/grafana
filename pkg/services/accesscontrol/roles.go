@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/grafana/grafana/pkg/services/org"
-	"github.com/grafana/grafana/pkg/setting"
 )
 
 // Roles definition
@@ -172,27 +171,10 @@ var (
 			},
 		}),
 	}
-
-	authenticationConfigWriterRole = RoleDTO{
-		Name:        "fixed:authentication.config:writer",
-		DisplayName: "Authentication config writer",
-		Description: "Read and update authentication configuration and access configuration UI.",
-		Group:       "Settings",
-		Permissions: []Permission{
-			{
-				Action: ActionSettingsRead,
-				Scope:  ScopeSettingsSAML,
-			},
-			{
-				Action: ActionSettingsWrite,
-				Scope:  ScopeSettingsSAML,
-			},
-		},
-	}
 )
 
 // Declare OSS roles to the accesscontrol service
-func DeclareFixedRoles(service Service, cfg *setting.Cfg) error {
+func DeclareFixedRoles(service Service) error {
 	ldapReader := RoleRegistration{
 		Role:   ldapReaderRole,
 		Grants: []string{RoleGrafanaAdmin},
@@ -226,18 +208,8 @@ func DeclareFixedRoles(service Service, cfg *setting.Cfg) error {
 		Grants: []string{RoleGrafanaAdmin},
 	}
 
-	// TODO: Move to own service when implemented
-	authenticationConfigWriter := RoleRegistration{
-		Role:   authenticationConfigWriterRole,
-		Grants: []string{RoleGrafanaAdmin},
-	}
-
-	if cfg.AuthConfigUIAdminAccess {
-		authenticationConfigWriter.Grants = append(authenticationConfigWriter.Grants, string(org.RoleAdmin))
-	}
-
 	return service.DeclareFixedRoles(ldapReader, ldapWriter, orgUsersReader, orgUsersWriter,
-		settingsReader, statsReader, usersReader, usersWriter, authenticationConfigWriter)
+		settingsReader, statsReader, usersReader, usersWriter)
 }
 
 func ConcatPermissions(permissions ...[]Permission) []Permission {
@@ -264,9 +236,6 @@ func ValidateFixedRole(role RoleDTO) error {
 // ValidateBuiltInRoles errors when a built-in role does not match expected pattern
 func ValidateBuiltInRoles(builtInRoles []string) error {
 	for _, br := range builtInRoles {
-		if org.RoleType(br) == org.RoleNone {
-			return ErrNoneRoleAssignment
-		}
 		if !org.RoleType(br).IsValid() && br != RoleGrafanaAdmin {
 			return fmt.Errorf("'%s' %w", br, ErrInvalidBuiltinRole)
 		}
@@ -326,17 +295,6 @@ func BuildBasicRoleDefinitions() map[string]*RoleDTO {
 			Version:     1,
 			DisplayName: string(org.RoleViewer),
 			Description: "Viewer role",
-			Group:       "Basic",
-			Permissions: []Permission{},
-			Hidden:      true,
-		},
-		string(org.RoleNone): {
-			Name:        BasicRolePrefix + "none",
-			UID:         BasicRoleUIDPrefix + "none",
-			OrgID:       GlobalOrgID,
-			Version:     1,
-			DisplayName: string(org.RoleNone),
-			Description: "None role",
 			Group:       "Basic",
 			Permissions: []Permission{},
 			Hidden:      true,

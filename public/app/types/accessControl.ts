@@ -127,10 +127,6 @@ export enum AccessControlAction {
 
   PluginsInstall = 'plugins:install',
   PluginsWrite = 'plugins:write',
-
-  // Settings
-  SettingsRead = 'settings:read',
-  SettingsWrite = 'settings:write',
 }
 
 export interface Role {

@@ -4,6 +4,7 @@ import { map } from 'rxjs/operators';
 import { MutableDataFrame } from '../../dataframe';
 import { DataFrame, Field } from '../../types/dataFrame';
 import { DataTransformerInfo } from '../../types/transformations';
+import { ArrayVector } from '../../vector/ArrayVector';
 
 import { DataTransformerID } from './ids';
 
@@ -116,7 +117,7 @@ export const mergeTransformer: DataTransformerInfo<MergeTransformerOptions> = {
 const copyFieldStructure = (field: Field): Field => {
   return {
     ...omit(field, ['values', 'state', 'labels', 'config']),
-    values: [],
+    values: new ArrayVector(),
     config: {
       ...omit(field.config, 'displayName'),
     },
@@ -138,7 +139,7 @@ const createKeyFactory = (
 
   return (frameIndex: number, valueIndex: number): string => {
     return factoryIndex[frameIndex].reduce((key: string, fieldIndex: number) => {
-      return key + data[frameIndex].fields[fieldIndex].values[valueIndex];
+      return key + data[frameIndex].fields[fieldIndex].values.get(valueIndex);
     }, '');
   };
 };
@@ -173,7 +174,7 @@ const createValueMapper = (
         continue;
       }
 
-      value[fieldName] = field.values[valueIndex];
+      value[fieldName] = field.values.get(valueIndex);
     }
 
     return value;

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/grafana/grafana/pkg/components/simplejson"
-
 	"github.com/grafana/grafana/pkg/infra/log"
 	pluginDashboardsManager "github.com/grafana/grafana/pkg/plugins/manager/dashboards"
 	"github.com/grafana/grafana/pkg/services/dashboards"
@@ -116,7 +115,13 @@ func (s Service) LoadPluginDashboard(ctx context.Context, req *plugindashboards.
 		return nil, err
 	}
 
-	data, err := simplejson.NewJson(resp.Content)
+	defer func() {
+		if err = resp.Content.Close(); err != nil {
+			s.logger.Warn("Failed to close plugin dashboard file", "reference", req.Reference, "err", err)
+		}
+	}()
+
+	data, err := simplejson.NewFromReader(resp.Content)
 	if err != nil {
 		return nil, err
 	}

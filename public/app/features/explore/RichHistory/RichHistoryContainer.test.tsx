@@ -3,6 +3,8 @@ import React from 'react';
 
 import { SortOrder } from 'app/core/utils/richHistory';
 
+import { ExploreId } from '../../../types/explore';
+
 import { Tabs } from './RichHistory';
 import { RichHistoryContainer, Props } from './RichHistoryContainer';
 
@@ -21,7 +23,7 @@ jest.mock('@grafana/runtime', () => ({
 const setup = (propOverrides?: Partial<Props>) => {
   const props: Props = {
     width: 500,
-    exploreId: 'left',
+    exploreId: ExploreId.left,
     activeDatasourceInstance: 'Test datasource',
     richHistory: [],
     firstTab: Tabs.RichHistory,

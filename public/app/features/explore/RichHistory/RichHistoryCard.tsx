@@ -19,11 +19,11 @@ import { setQueries } from 'app/features/explore/state/query';
 import { dispatch } from 'app/store/store';
 import { StoreState } from 'app/types';
 import { ShowConfirmModalEvent } from 'app/types/events';
-import { RichHistoryQuery } from 'app/types/explore';
+import { RichHistoryQuery, ExploreId } from 'app/types/explore';
 
-function mapStateToProps(state: StoreState, { exploreId }: { exploreId: string }) {
+function mapStateToProps(state: StoreState, { exploreId }: { exploreId: ExploreId }) {
   const explore = state.explore;
-  const { datasourceInstance } = explore.panes[exploreId]!;
+  const { datasourceInstance } = explore[exploreId]!;
   return {
     exploreId,
     datasourceInstance,
@@ -108,7 +108,6 @@ const getStyles = (theme: GrafanaTheme2) => {
     `,
     commentButtonRow: css`
       > * {
-        margin-top: ${theme.spacing(1)};
         margin-right: ${theme.spacing(1)};
       }
     `,
@@ -304,18 +303,18 @@ export function RichHistoryCard(props: Props) {
       <IconButton
         name="comment-alt"
         onClick={toggleActiveUpdateComment}
-        tooltip={query.comment?.length > 0 ? 'Edit comment' : 'Add comment'}
+        title={query.comment?.length > 0 ? 'Edit comment' : 'Add comment'}
       />
-      <IconButton name="copy" onClick={onCopyQuery} tooltip="Copy query to clipboard" />
+      <IconButton name="copy" onClick={onCopyQuery} title="Copy query to clipboard" />
       {value?.dsInstance && (
-        <IconButton name="share-alt" onClick={onCreateShortLink} tooltip="Copy shortened link to clipboard" />
+        <IconButton name="share-alt" onClick={onCreateShortLink} title="Copy shortened link to clipboard" />
       )}
-      <IconButton name="trash-alt" title="Delete query" tooltip="Delete query" onClick={onDeleteQuery} />
+      <IconButton name="trash-alt" title={'Delete query'} onClick={onDeleteQuery} />
       <IconButton
         name={query.starred ? 'favorite' : 'star'}
         iconType={query.starred ? 'mono' : 'default'}
         onClick={onStarrQuery}
-        tooltip={query.starred ? 'Unstar query' : 'Star query'}
+        title={query.starred ? 'Unstar query' : 'Star query'}
       />
     </div>
   );

@@ -13,10 +13,12 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+
+	"github.com/grafana/grafana/pkg/services/featuremgmt"
 )
 
-func (s *Service) SubscribeStream(ctx context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
-	dsInfo, err := s.getDSInfo(ctx, req.PluginContext)
+func (s *Service) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
+	dsInfo, err := s.getDSInfo(req.PluginContext)
 	if err != nil {
 		return &backend.SubscribeStreamResponse{
 			Status: backend.SubscribeStreamStatusNotFound,
@@ -60,7 +62,7 @@ func (s *Service) SubscribeStream(ctx context.Context, req *backend.SubscribeStr
 
 // Single instance for each channel (results are shared with all listeners)
 func (s *Service) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {
-	dsInfo, err := s.getDSInfo(ctx, req.PluginContext)
+	dsInfo, err := s.getDSInfo(req.PluginContext)
 	if err != nil {
 		return err
 	}
@@ -82,9 +84,15 @@ func (s *Service) RunStream(ctx context.Context, req *backend.RunStreamRequest, 
 	params := url.Values{}
 	params.Add("query", query.Expr)
 
+	lokiDataframeApi := s.features.IsEnabled(featuremgmt.FlagLokiDataframeApi)
+
 	wsurl, _ := url.Parse(dsInfo.URL)
 
-	wsurl.Path = "/loki/api/v2alpha/tail"
+	if lokiDataframeApi {
+		wsurl.Path = "/loki/api/v2alpha/tail"
+	} else {
+		wsurl.Path = "/loki/api/v1/tail"
+	}
 
 	if wsurl.Scheme == "https" {
 		wsurl.Scheme = "wss"
@@ -125,7 +133,11 @@ func (s *Service) RunStream(ctx context.Context, req *backend.RunStreamRequest, 
 			}
 
 			frame := &data.Frame{}
-			err = json.Unmarshal(message, &frame)
+			if !lokiDataframeApi {
+				frame, err = lokiBytesToLabeledFrame(message)
+			} else {
+				err = json.Unmarshal(message, &frame)
+			}
 
 			if err == nil && frame != nil {
 				next, _ := data.FrameToJSONCache(frame)

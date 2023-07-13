@@ -1,14 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { TestProvider } from 'test/helpers/TestProvider';
+import { Provider } from 'react-redux';
 
-import { DataQueryError, LoadingState } from '@grafana/data';
+import { DataQueryError, LoadingState, getDefaultTimeRange } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
 
 import { configureStore } from '../../store/configureStore';
+import { ExploreId } from '../../types';
 
 import { ResponseErrorContainer } from './ResponseErrorContainer';
-import { createEmptyQueryResponse, makeExplorePaneState } from './state/utils';
 
 describe('ResponseErrorContainer', () => {
   it('shows error message if it does not contain refId', async () => {
@@ -46,20 +46,26 @@ describe('ResponseErrorContainer', () => {
 
 function setup(error: DataQueryError) {
   const store = configureStore();
-  store.getState().explore.panes = {
-    left: {
-      ...makeExplorePaneState(),
-      queryResponse: {
-        ...createEmptyQueryResponse(),
-        state: LoadingState.Error,
-        error,
-      },
-    },
+  store.getState().explore[ExploreId.left].queryResponse = {
+    timeRange: getDefaultTimeRange(),
+    series: [],
+    state: LoadingState.Error,
+    error,
+    graphFrames: [],
+    logsFrames: [],
+    tableFrames: [],
+    traceFrames: [],
+    nodeGraphFrames: [],
+    rawPrometheusFrames: [],
+    flameGraphFrames: [],
+    graphResult: null,
+    logsResult: null,
+    tableResult: null,
+    rawPrometheusResult: null,
   };
-
   render(
-    <TestProvider store={store}>
-      <ResponseErrorContainer exploreId="left" />
-    </TestProvider>
+    <Provider store={store}>
+      <ResponseErrorContainer exploreId={ExploreId.left} />
+    </Provider>
   );
 }

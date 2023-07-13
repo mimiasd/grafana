@@ -28,9 +28,7 @@ import (
 //
 // Returns all folders that the authenticated user has permission to view.
 // If nested folders are enabled, it expects an additional query parameter with the parent folder UID
-// and returns the immediate subfolders that the authenticated user has permission to view.
-// If the parameter is not supplied then it returns immediate subfolders under the root
-// that the authenticated user has permission to view.
+// and returns the immediate subfolders.
 //
 // Responses:
 // 200: getFoldersResponse
@@ -56,14 +54,23 @@ func (hs *HTTPServer) GetFolders(c *contextmodel.ReqContext) response.Response {
 		return apierrors.ToFolderErrorResponse(err)
 	}
 
+	uids := make(map[string]bool, len(folders))
 	result := make([]dtos.FolderSearchHit, 0)
 	for _, f := range folders {
+		uids[f.UID] = true
 		result = append(result, dtos.FolderSearchHit{
 			Id:        f.ID,
 			Uid:       f.UID,
 			Title:     f.Title,
 			ParentUID: f.ParentUID,
 		})
+	}
+
+	metadata := hs.getMultiAccessControlMetadata(c, c.OrgID, dashboards.ScopeFoldersPrefix, uids)
+	if len(metadata) > 0 {
+		for i := range result {
+			result[i].AccessControl = metadata[result[i].Uid]
+		}
 	}
 
 	return response.JSON(http.StatusOK, result)
@@ -98,10 +105,7 @@ func (hs *HTTPServer) GetFolderByUID(c *contextmodel.ReqContext) response.Respon
 //
 // Get folder by id.
 //
-// Returns the folder identified by id. This is deprecated.
-// Please refer to [updated API](#/folders/getFolderByUID) instead
-//
-// Deprecated: true
+// Returns the folder identified by id.
 //
 // Responses:
 // 200: folderResponse
@@ -158,7 +162,9 @@ func (hs *HTTPServer) CreateFolder(c *contextmodel.ReqContext) response.Response
 
 	// Clear permission cache for the user who's created the folder, so that new permissions are fetched for their next call
 	// Required for cases when caller wants to immediately interact with the newly created object
-	hs.accesscontrolService.ClearUserPermissionCache(c.SignedInUser)
+	if !hs.AccessControl.IsDisabled() {
+		hs.accesscontrolService.ClearUserPermissionCache(c.SignedInUser)
+	}
 
 	g, err := guardian.NewByUID(c.Req.Context(), folder.UID, c.OrgID, c.SignedInUser)
 	if err != nil {
@@ -170,56 +176,48 @@ func (hs *HTTPServer) CreateFolder(c *contextmodel.ReqContext) response.Response
 }
 
 func (hs *HTTPServer) setDefaultFolderPermissions(ctx context.Context, orgID int64, user *user.SignedInUser, folder *folder.Folder) error {
-	var permissions []accesscontrol.SetResourcePermissionCommand
-	if user.IsRealUser() && !user.IsAnonymous {
-		permissions = append(permissions, accesscontrol.SetResourcePermissionCommand{
-			UserID: user.UserID, Permission: dashboards.PERMISSION_ADMIN.String(),
-		})
-	}
-
 	isNested := folder.ParentUID != ""
-	if !isNested || !hs.Features.IsEnabled(featuremgmt.FlagNestedFolders) {
-		permissions = append(permissions, []accesscontrol.SetResourcePermissionCommand{
-			{BuiltinRole: string(org.RoleEditor), Permission: dashboards.PERMISSION_EDIT.String()},
-			{BuiltinRole: string(org.RoleViewer), Permission: dashboards.PERMISSION_VIEW.String()},
-		}...)
-	}
+	var permissionErr error
+	if !accesscontrol.IsDisabled(hs.Cfg) {
+		var permissions []accesscontrol.SetResourcePermissionCommand
+		if user.IsRealUser() && !user.IsAnonymous {
+			permissions = append(permissions, accesscontrol.SetResourcePermissionCommand{
+				UserID: user.UserID, Permission: dashboards.PERMISSION_ADMIN.String(),
+			})
+		}
 
-	_, err := hs.folderPermissionsService.SetPermissions(ctx, orgID, folder.UID, permissions...)
-	return err
+		if !isNested {
+			permissions = append(permissions, []accesscontrol.SetResourcePermissionCommand{
+				{BuiltinRole: string(org.RoleEditor), Permission: dashboards.PERMISSION_EDIT.String()},
+				{BuiltinRole: string(org.RoleViewer), Permission: dashboards.PERMISSION_VIEW.String()},
+			}...)
+		}
+
+		_, permissionErr = hs.folderPermissionsService.SetPermissions(ctx, orgID, folder.UID, permissions...)
+		return permissionErr
+	} else if hs.Cfg.EditorsCanAdmin && user.IsRealUser() && !user.IsAnonymous {
+		return hs.folderService.MakeUserAdmin(ctx, orgID, user.UserID, folder.ID, !isNested)
+	}
+	return nil
 }
 
-// swagger:route POST /folders/{folder_uid}/move folders moveFolder
-//
-// Move folder.
-//
-// Responses:
-// 200: folderResponse
-// 401: unauthorisedError
-// 403: forbiddenError
-// 404: notFoundError
-// 500: internalServerError
 func (hs *HTTPServer) MoveFolder(c *contextmodel.ReqContext) response.Response {
 	if hs.Features.IsEnabled(featuremgmt.FlagNestedFolders) {
 		cmd := folder.MoveFolderCommand{}
 		if err := web.Bind(c.Req, &cmd); err != nil {
 			return response.Error(http.StatusBadRequest, "bad request data", err)
 		}
+		var theFolder *folder.Folder
 		var err error
-
-		cmd.OrgID = c.OrgID
-		cmd.UID = web.Params(c.Req)[":uid"]
-		cmd.SignedInUser = c.SignedInUser
-		theFolder, err := hs.folderService.Move(c.Req.Context(), &cmd)
-		if err != nil {
-			return response.Error(http.StatusInternalServerError, "move folder failed", err)
+		if cmd.NewParentUID != "" {
+			cmd.OrgID = c.OrgID
+			cmd.UID = web.Params(c.Req)[":uid"]
+			theFolder, err = hs.folderService.Move(c.Req.Context(), &cmd)
+			if err != nil {
+				return response.Error(http.StatusInternalServerError, "update folder uid failed", err)
+			}
 		}
-
-		g, err := guardian.NewByUID(c.Req.Context(), cmd.UID, c.OrgID, c.SignedInUser)
-		if err != nil {
-			return response.Err(err)
-		}
-		return response.JSON(http.StatusOK, hs.newToFolderDto(c, g, theFolder))
+		return response.JSON(http.StatusOK, theFolder)
 	}
 	result := map[string]string{}
 	result["message"] = "To use this service, you need to activate nested folder feature."
@@ -229,6 +227,9 @@ func (hs *HTTPServer) MoveFolder(c *contextmodel.ReqContext) response.Response {
 // swagger:route PUT /folders/{folder_uid} folders updateFolder
 //
 // Update folder.
+//
+// If nested folders are enabled then it optionally expects a new parent folder UID that moves the folder and
+// includes it into the response.
 //
 // Responses:
 // 200: folderResponse
@@ -291,109 +292,39 @@ func (hs *HTTPServer) DeleteFolder(c *contextmodel.ReqContext) response.Response
 	return response.JSON(http.StatusOK, "")
 }
 
-// swagger:route GET /folders/{folder_uid}/counts folders getFolderDescendantCounts
-//
-// Gets the count of each descendant of a folder by kind. The folder is identified by UID.
-//
-// Responses:
-// 200: getFolderDescendantCountsResponse
-// 401: unauthorisedError
-// 403: forbiddenError
-// 404: notFoundError
-// 500: internalServerError
-func (hs *HTTPServer) GetFolderDescendantCounts(c *contextmodel.ReqContext) response.Response {
-	uid := web.Params(c.Req)[":uid"]
-	counts, err := hs.folderService.GetDescendantCounts(c.Req.Context(), &folder.GetDescendantCountsQuery{OrgID: c.OrgID, UID: &uid, SignedInUser: c.SignedInUser})
-	if err != nil {
-		return apierrors.ToFolderErrorResponse(err)
+func (hs *HTTPServer) newToFolderDto(c *contextmodel.ReqContext, g guardian.DashboardGuardian, folder *folder.Folder) dtos.Folder {
+	canEdit, _ := g.CanEdit()
+	canSave, _ := g.CanSave()
+	canAdmin, _ := g.CanAdmin()
+	canDelete, _ := g.CanDelete()
+
+	// Finding creator and last updater of the folder
+	updater, creator := anonString, anonString
+	if folder.CreatedBy > 0 {
+		creator = hs.getUserLogin(c.Req.Context(), folder.CreatedBy)
+	}
+	if folder.UpdatedBy > 0 {
+		updater = hs.getUserLogin(c.Req.Context(), folder.UpdatedBy)
 	}
 
-	return response.JSON(http.StatusOK, counts)
-}
-func (hs *HTTPServer) newToFolderDto(c *contextmodel.ReqContext, g guardian.DashboardGuardian, f *folder.Folder) dtos.Folder {
-	ctx := c.Req.Context()
-	toDTO := func(f *folder.Folder) dtos.Folder {
-		canEdit, _ := g.CanEdit()
-		canSave, _ := g.CanSave()
-		canAdmin, _ := g.CanAdmin()
-		canDelete, _ := g.CanDelete()
-
-		// Finding creator and last updater of the folder
-		updater, creator := anonString, anonString
-		if f.CreatedBy > 0 {
-			creator = hs.getUserLogin(ctx, f.CreatedBy)
-		}
-		if f.UpdatedBy > 0 {
-			updater = hs.getUserLogin(ctx, f.UpdatedBy)
-		}
-
-		acMetadata, _ := hs.getFolderACMetadata(c, f)
-
-		return dtos.Folder{
-			Id:            f.ID,
-			Uid:           f.UID,
-			Title:         f.Title,
-			Url:           f.URL,
-			HasACL:        f.HasACL,
-			CanSave:       canSave,
-			CanEdit:       canEdit,
-			CanAdmin:      canAdmin,
-			CanDelete:     canDelete,
-			CreatedBy:     creator,
-			Created:       f.Created,
-			UpdatedBy:     updater,
-			Updated:       f.Updated,
-			Version:       f.Version,
-			AccessControl: acMetadata,
-			ParentUID:     f.ParentUID,
-		}
+	return dtos.Folder{
+		Id:            folder.ID,
+		Uid:           folder.UID,
+		Title:         folder.Title,
+		Url:           folder.URL,
+		HasACL:        folder.HasACL,
+		CanSave:       canSave,
+		CanEdit:       canEdit,
+		CanAdmin:      canAdmin,
+		CanDelete:     canDelete,
+		CreatedBy:     creator,
+		Created:       folder.Created,
+		UpdatedBy:     updater,
+		Updated:       folder.Updated,
+		Version:       folder.Version,
+		AccessControl: hs.getAccessControlMetadata(c, c.OrgID, dashboards.ScopeFoldersPrefix, folder.UID),
+		ParentUID:     folder.ParentUID,
 	}
-
-	folderDTO := toDTO(f)
-
-	if !hs.Features.IsEnabled(featuremgmt.FlagNestedFolders) {
-		return folderDTO
-	}
-
-	parents, err := hs.folderService.GetParents(ctx, folder.GetParentsQuery{UID: f.UID, OrgID: f.OrgID})
-	if err != nil {
-		// log the error instead of failing
-		hs.log.Error("failed to fetch folder parents", "folder", f.UID, "org", f.OrgID, "error", err)
-	}
-
-	folderDTO.Parents = make([]dtos.Folder, 0, len(parents))
-	for _, f := range parents {
-		folderDTO.Parents = append(folderDTO.Parents, toDTO(f))
-	}
-
-	return folderDTO
-}
-
-func (hs *HTTPServer) getFolderACMetadata(c *contextmodel.ReqContext, f *folder.Folder) (accesscontrol.Metadata, error) {
-	if !c.QueryBool("accesscontrol") {
-		return nil, nil
-	}
-
-	parents, err := hs.folderService.GetParents(c.Req.Context(), folder.GetParentsQuery{UID: f.UID, OrgID: c.OrgID})
-	if err != nil {
-		return nil, err
-	}
-
-	folderIDs := map[string]bool{f.UID: true}
-	for _, p := range parents {
-		folderIDs[p.UID] = true
-	}
-
-	allMetadata := hs.getMultiAccessControlMetadata(c, c.OrgID, dashboards.ScopeFoldersPrefix, folderIDs)
-	metadata := allMetadata[f.UID]
-
-	// Flatten metadata - if any parent has a permission, the child folder inherits it
-	for _, md := range allMetadata {
-		for action := range md {
-			metadata[action] = true
-		}
-	}
-	return metadata, nil
 }
 
 func (hs *HTTPServer) searchFolders(c *contextmodel.ReqContext) ([]*folder.Folder, error) {
@@ -408,14 +339,13 @@ func (hs *HTTPServer) searchFolders(c *contextmodel.ReqContext) ([]*folder.Folde
 		Page:         c.QueryInt64("page"),
 	}
 
-	hits, err := hs.SearchService.SearchHandler(c.Req.Context(), &searchQuery)
-	if err != nil {
+	if err := hs.SearchService.SearchHandler(c.Req.Context(), &searchQuery); err != nil {
 		return nil, err
 	}
 
 	folders := make([]*folder.Folder, 0)
 
-	for _, hit := range hits {
+	for _, hit := range searchQuery.Result {
 		folders = append(folders, &folder.Folder{
 			ID:    hit.ID,
 			UID:   hit.UID,
@@ -479,16 +409,6 @@ type CreateFolderParams struct {
 	Body folder.CreateFolderCommand `json:"body"`
 }
 
-// swagger:parameters moveFolder
-type MoveFolderParams struct {
-	// in:path
-	// required:true
-	FolderUID string `json:"folder_uid"`
-	// in:body
-	// required:true
-	Body folder.MoveFolderCommand `json:"body"`
-}
-
 // swagger:parameters deleteFolder
 type DeleteFolderParams struct {
 	// in:path
@@ -536,18 +456,4 @@ type DeleteFolderResponse struct {
 		// example: Folder My Folder deleted
 		Message string `json:"message"`
 	} `json:"body"`
-}
-
-// swagger:parameters getFolderDescendantCounts
-type GetFolderDescendantCountsParams struct {
-	// in:path
-	// required:true
-	FolderUID string `json:"folder_uid"`
-}
-
-// swagger:response getFolderDescendantCountsResponse
-type GetFolderDescendantCountsResponse struct {
-	// The response message
-	// in: body
-	Body folder.DescendantCounts `json:"body"`
 }

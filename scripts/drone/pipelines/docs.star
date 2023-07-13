@@ -5,13 +5,11 @@ This module returns all the pipelines used in the event of documentation changes
 load(
     "scripts/drone/steps/lib.star",
     "build_docs_website_step",
+    "build_image",
     "codespell_step",
+    "download_grabpl_step",
     "identify_runner_step",
     "yarn_install_step",
-)
-load(
-    "scripts/drone/utils/images.star",
-    "images",
 )
 load(
     "scripts/drone/utils/utils.star",
@@ -30,6 +28,7 @@ docs_paths = {
 def docs_pipelines(ver_mode, trigger):
     environment = {"EDITION": "oss"}
     steps = [
+        download_grabpl_step(),
         identify_runner_step(),
         yarn_install_step(),
         codespell_step(),
@@ -49,7 +48,7 @@ def docs_pipelines(ver_mode, trigger):
 def lint_docs():
     return {
         "name": "lint-docs",
-        "image": images["build_image"],
+        "image": build_image,
         "depends_on": [
             "yarn-install",
         ],

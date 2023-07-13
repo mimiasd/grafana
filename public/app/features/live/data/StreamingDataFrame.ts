@@ -1,4 +1,5 @@
 import {
+  ArrayVector,
   DataFrame,
   DataFrameJSON,
   decodeFieldValueEntities,
@@ -59,7 +60,7 @@ export class StreamingDataFrame implements DataFrame {
   refId?: string;
   meta: QueryResultMeta = {};
 
-  fields: Field[] = [];
+  fields: Array<Field<any, ArrayVector<any>>> = [];
   length = 0;
 
   private schemaFields: FieldSchema[] = [];
@@ -145,11 +146,11 @@ export class StreamingDataFrame implements DataFrame {
       ...f,
       type: f.type ?? FieldType.other,
       config: f.config ?? {},
-      values: f.values ?? [],
+      values: Array.isArray(f.values) ? new ArrayVector(f.values) : new ArrayVector(),
     }));
 
     assureValuesAreWithinLengthLimit(
-      this.fields.map((f) => f.values),
+      this.fields.map((f) => f.values.buffer),
       this.options.maxLength,
       this.timeFieldIndex,
       this.options.maxDelta
@@ -255,8 +256,8 @@ export class StreamingDataFrame implements DataFrame {
             // transfer old values by type & name, unless we relied on labels to match fields
             values: isWide
               ? this.fields.find((of) => of.name === f.name && f.type === of.type)?.values ??
-                Array(this.length).fill(undefined)
-              : [],
+                new ArrayVector(Array(this.length).fill(undefined))
+              : new ArrayVector(),
           };
         });
       }
@@ -321,7 +322,7 @@ export class StreamingDataFrame implements DataFrame {
             name,
             type,
             config: {},
-            values: [],
+            values: new ArrayVector([]),
           };
         });
       }
@@ -335,14 +336,13 @@ export class StreamingDataFrame implements DataFrame {
         this.packetInfo.action = StreamingFrameAction.Append;
 
         // mutates appended
-        appended = this.fields.map((f) => f.values);
+        appended = this.fields.map((f) => f.values.buffer);
         circPush(appended, values, this.options.maxLength, this.timeFieldIndex, this.options.maxDelta);
       }
 
       appended.forEach((v, i) => {
-        const field = this.fields[i];
-        const { state } = field;
-        field.values = v;
+        const { state, values } = this.fields[i];
+        values.buffer = v;
         if (state) {
           state.calcs = undefined;
         }
@@ -369,7 +369,7 @@ export class StreamingDataFrame implements DataFrame {
 
     if (this.options.action === StreamingFrameAction.Append) {
       circPush(
-        this.fields.map((f) => f.values),
+        this.fields.map((f) => f.values.buffer),
         values,
         this.options.maxLength,
         this.timeFieldIndex,
@@ -377,19 +377,19 @@ export class StreamingDataFrame implements DataFrame {
       );
     } else {
       values.forEach((v, i) => {
-        if (this.fields[i]) {
-          this.fields[i].values = v;
+        if (this.fields[i]?.values) {
+          this.fields[i].values.buffer = v;
         }
       });
 
       assureValuesAreWithinLengthLimit(
-        this.fields.map((f) => f.values),
+        this.fields.map((f) => f.values.buffer),
         this.options.maxLength,
         this.timeFieldIndex,
         this.options.maxDelta
       );
     }
-    const newLength = this.fields?.[0]?.values.length;
+    const newLength = this.fields?.[0]?.values?.buffer?.length;
     if (newLength !== undefined) {
       this.length = newLength;
     }
@@ -412,7 +412,7 @@ export class StreamingDataFrame implements DataFrame {
 
   getValuesFromLastPacket = (): unknown[][] =>
     this.fields.map((f) => {
-      const values = f.values;
+      const values = f.values.buffer;
       return values.slice(Math.max(values.length - this.packetInfo.length));
     });
 
@@ -449,7 +449,7 @@ export class StreamingDataFrame implements DataFrame {
           ...proto,
           config,
           labels: parsedLabels,
-          values: Array(this.length).fill(undefined),
+          values: new ArrayVector(Array(this.length).fill(undefined)),
         });
       }
     }

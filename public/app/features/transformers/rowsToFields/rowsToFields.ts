@@ -1,13 +1,21 @@
 import { map } from 'rxjs/operators';
 
-import { DataFrame, DataTransformerID, DataTransformerInfo, Field, getFieldDisplayName, Labels } from '@grafana/data';
+import {
+  ArrayVector,
+  DataFrame,
+  DataTransformerID,
+  DataTransformerInfo,
+  Field,
+  getFieldDisplayName,
+  Labels,
+} from '@grafana/data';
 
 import {
-  EvaluatedMappingResult,
-  evaluteFieldMappings,
-  FieldConfigHandlerKey,
-  FieldToConfigMapping,
   getFieldConfigFromFrame,
+  FieldToConfigMapping,
+  evaluteFieldMappings,
+  EvaluatedMappingResult,
+  FieldConfigHandlerKey,
 } from '../fieldToConfigMapping/fieldToConfigMapping';
 
 export interface RowToFieldsTransformOptions {
@@ -19,11 +27,11 @@ export interface RowToFieldsTransformOptions {
 export const rowsToFieldsTransformer: DataTransformerInfo<RowToFieldsTransformOptions> = {
   id: DataTransformerID.rowsToFields,
   name: 'Rows to fields',
-  description: 'Convert each row into a field with dynamic config.',
+  description: 'Convert each row into a field with dynamic config',
   defaultOptions: {},
 
   /**
-   * Return a modified copy of the series. If the transform is not or should not
+   * Return a modified copy of the series.  If the transform is not or should not
    * be applied, just return the input series
    */
   operator: (options) => (source) =>
@@ -45,15 +53,15 @@ export function rowsToFields(options: RowToFieldsTransformOptions, data: DataFra
   const outFields: Field[] = [];
 
   for (let index = 0; index < nameField.values.length; index++) {
-    const name = nameField.values[index];
-    const value = valueField.values[index];
+    const name = nameField.values.get(index);
+    const value = valueField.values.get(index);
     const config = getFieldConfigFromFrame(data, index, mappingResult);
     const labels = getLabelsFromRow(data, index, mappingResult);
 
     const field: Field = {
       name: `${name}`,
       type: valueField.type,
-      values: [value],
+      values: new ArrayVector([value]),
       config: config,
       labels,
     };
@@ -79,7 +87,7 @@ function getLabelsFromRow(frame: DataFrame, index: number, mappingResult: Evalua
       continue;
     }
 
-    const value = field.values[index];
+    const value = field.values.get(index);
     if (value != null) {
       labels[fieldName] = value;
     }

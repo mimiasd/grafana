@@ -23,8 +23,6 @@ export interface SelectCommonProps<T> {
   /** Focus is set to the Select when rendered*/
   autoFocus?: boolean;
   backspaceRemovesValue?: boolean;
-  blurInputOnSelect?: boolean;
-  captureMenuScroll?: boolean;
   className?: string;
   closeMenuOnSelect?: boolean;
   /** Used for custom components. For more information, see `react-select` */
@@ -38,8 +36,7 @@ export interface SelectCommonProps<T> {
   /** Function for formatting the text that is displayed when creating a new value*/
   formatCreateLabel?: (input: string) => string;
   getOptionLabel?: (item: SelectableValue<T>) => React.ReactNode;
-  getOptionValue?: (item: SelectableValue<T>) => T | undefined;
-  hideSelectedOptions?: boolean;
+  getOptionValue?: (item: SelectableValue<T>) => string;
   inputValue?: string;
   invalid?: boolean;
   isClearable?: boolean;
@@ -71,10 +68,6 @@ export interface SelectCommonProps<T> {
   onCreateOption?: (value: string) => void;
   onInputChange?: (value: string, actionMeta: InputActionMeta) => void;
   onKeyDown?: (event: React.KeyboardEvent) => void;
-  /** Callback which fires when the user scrolls to the bottom of the menu */
-  onMenuScrollToBottom?: (event: WheelEvent | TouchEvent) => void;
-  /** Callback which fires when the user scrolls to the top of the menu */
-  onMenuScrollToTop?: (event: WheelEvent | TouchEvent) => void;
   onOpenMenu?: () => void;
   onFocus?: () => void;
   openMenuOnFocus?: boolean;
@@ -90,7 +83,7 @@ export interface SelectCommonProps<T> {
   virtualized?: boolean;
   /** Sets the width to a multiple of 8px. Should only be used with inline forms. Setting width of the container is preferred in other cases.*/
   width?: number | 'auto';
-  isOptionDisabled?: (option: SelectableValue<T>) => boolean;
+  isOptionDisabled?: () => boolean;
   /** allowCustomValue must be enabled. Determines whether the "create new" option should be displayed based on the current input value, select value and options array. */
   isValidNewOption?: (
     inputValue: string,

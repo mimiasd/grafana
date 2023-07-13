@@ -9,12 +9,11 @@ import {
   RawTimeRange,
   TimeRange,
   toUtc,
-  IntervalValues,
 } from '@grafana/data';
 import { locationService } from '@grafana/runtime';
 import appEvents from 'app/core/app_events';
 import { config } from 'app/core/config';
-import { AutoRefreshInterval, contextSrv, ContextSrv } from 'app/core/services/context_srv';
+import { contextSrv, ContextSrv } from 'app/core/services/context_srv';
 import { getShiftedTimeRange, getZoomedTimeRange } from 'app/core/utils/timePicker';
 import { getTimeRange } from 'app/features/dashboard/utils/timeRange';
 
@@ -23,19 +22,18 @@ import { TimeModel } from '../state/TimeModel';
 import { getRefreshFromUrl } from '../utils/getRefreshFromUrl';
 
 export class TimeSrv {
-  time: RawTimeRange;
-  refreshTimer: number | undefined;
-  refresh?: string | false;
-  oldRefresh?: string;
+  time: any;
+  refreshTimer: any;
+  refresh: any;
+  autoRefreshPaused = false;
+  oldRefresh: string | null | undefined;
   timeModel?: TimeModel;
-  timeAtLoad: RawTimeRange;
-  refreshMS?: number;
+  timeAtLoad: any;
   private autoRefreshBlocked?: boolean;
 
   constructor(private contextSrv: ContextSrv) {
     // default time
     this.time = getDefaultTimeRange().raw;
-    this.timeAtLoad = getDefaultTimeRange().raw;
     this.refreshTimeModel = this.refreshTimeModel.bind(this);
 
     appEvents.subscribe(ZoomOutEvent, (e) => {
@@ -91,10 +89,11 @@ export class TimeSrv {
   }
 
   getValidIntervals(intervals: string[]): string[] {
-    if (this.contextSrv.minRefreshInterval) {
-      return intervals.filter((str) => str !== '').filter(this.contextSrv.isAllowedInterval);
+    if (!this.contextSrv.minRefreshInterval) {
+      return intervals;
     }
-    return intervals;
+
+    return intervals.filter((str) => str !== '').filter(this.contextSrv.isAllowedInterval);
   }
 
   private parseTime() {
@@ -107,7 +106,7 @@ export class TimeSrv {
     }
   }
 
-  private parseUrlParam(value: string) {
+  private parseUrlParam(value: any) {
     if (value.indexOf('now') !== -1) {
       return value;
     }
@@ -123,7 +122,7 @@ export class TimeSrv {
       }
     }
 
-    if (!isNaN(Number(value))) {
+    if (!isNaN(value)) {
       const epoch = parseInt(value, 10);
       return toUtc(epoch);
     }
@@ -215,7 +214,7 @@ export class TimeSrv {
     return this.timeAtLoad && (this.timeAtLoad.from !== this.time.from || this.timeAtLoad.to !== this.time.to);
   }
 
-  setAutoRefresh(interval: string | false) {
+  setAutoRefresh(interval: any) {
     if (this.timeModel) {
       this.timeModel.refresh = interval;
     }
@@ -233,33 +232,19 @@ export class TimeSrv {
       return;
     }
 
-    let refresh = interval;
-    let intervalMs = 60 * 1000;
-    if (interval === AutoRefreshInterval) {
-      intervalMs = this.getAutoRefreshInteval().intervalMs;
-    } else {
-      refresh = this.contextSrv.getValidInterval(interval as string);
-      intervalMs = rangeUtil.intervalToMs(refresh);
-    }
+    const validInterval = this.contextSrv.getValidInterval(interval);
+    const intervalMs = rangeUtil.intervalToMs(validInterval);
 
-    this.refreshMS = intervalMs;
-    this.refreshTimer = window.setTimeout(() => {
+    this.refreshTimer = setTimeout(() => {
       this.startNextRefreshTimer(intervalMs);
-      this.refreshTimeModel();
+      !this.autoRefreshPaused && this.refreshTimeModel();
     }, intervalMs);
+
+    const refresh = this.contextSrv.getValidInterval(interval);
 
     if (currentUrlState.refresh !== refresh) {
       locationService.partial({ refresh }, true);
     }
-  }
-
-  getAutoRefreshInteval(): IntervalValues {
-    const resolution = window?.innerWidth ?? 2000;
-    return rangeUtil.calculateInterval(
-      this.timeRange(),
-      resolution, // the max pixels possibles
-      config.minRefreshInterval
-    );
   }
 
   refreshTimeModel() {
@@ -267,10 +252,10 @@ export class TimeSrv {
   }
 
   private startNextRefreshTimer(afterMs: number) {
-    this.refreshTimer = window.setTimeout(() => {
+    this.refreshTimer = setTimeout(() => {
       this.startNextRefreshTimer(afterMs);
       if (this.contextSrv.isGrafanaVisible()) {
-        this.refreshTimeModel();
+        !this.autoRefreshPaused && this.refreshTimeModel();
       } else {
         this.autoRefreshBlocked = true;
       }
@@ -279,15 +264,18 @@ export class TimeSrv {
 
   stopAutoRefresh() {
     clearTimeout(this.refreshTimer);
-    this.refreshTimer = undefined;
-    this.refreshMS = undefined;
+  }
+
+  // store timeModel refresh value and pause auto-refresh in some places
+  // i.e panel edit
+  pauseAutoRefresh() {
+    this.autoRefreshPaused = true;
   }
 
   // resume auto-refresh based on old dashboard refresh property
   resumeAutoRefresh() {
-    if (this.timeModel?.refresh) {
-      this.setAutoRefresh(this.timeModel.refresh);
-    }
+    this.autoRefreshPaused = false;
+    this.refreshTimeModel();
   }
 
   setTime(time: RawTimeRange, updateUrl = true) {
@@ -299,7 +287,7 @@ export class TimeSrv {
       this.setAutoRefresh(false);
     } else if (this.oldRefresh && this.oldRefresh !== this.timeModel?.refresh) {
       this.setAutoRefresh(this.oldRefresh);
-      this.oldRefresh = undefined;
+      this.oldRefresh = null;
     }
 
     if (updateUrl === true) {
@@ -314,14 +302,6 @@ export class TimeSrv {
       urlParams.to = urlRange.to.toString();
 
       locationService.partial(urlParams);
-    }
-
-    // Check if the auto refresh interval has changed
-    if (this.timeModel?.refresh === AutoRefreshInterval) {
-      const v = this.getAutoRefreshInteval().intervalMs;
-      if (v !== this.refreshMS) {
-        this.setAutoRefresh(AutoRefreshInterval);
-      }
     }
 
     this.refreshTimeModel();

@@ -1,4 +1,5 @@
 import {
+  ArrayVector,
   DataFrame,
   Field,
   FieldType,
@@ -12,7 +13,7 @@ import { findField } from 'app/features/dimensions';
 
 import { prepareGraphableFields } from '../timeseries/utils';
 
-import { Options, CandlestickFieldMap, VizDisplayMode } from './types';
+import { CandlestickOptions, CandlestickFieldMap, VizDisplayMode } from './models.gen';
 
 export interface FieldPickerInfo {
   /** property name */
@@ -96,7 +97,7 @@ function findFieldOrAuto(frame: DataFrame, info: FieldPickerInfo, options: Candl
 
 export function prepareCandlestickFields(
   series: DataFrame[] | undefined,
-  options: Partial<Options>,
+  options: CandlestickOptions,
   theme: GrafanaTheme2,
   timeRange?: TimeRange
 ): CandlestickData | null {
@@ -119,7 +120,7 @@ export function prepareCandlestickFields(
 
   const data: CandlestickData = { aligned, frame: aligned, names: {} };
 
-  // Apply same filter as everything else in timeseries
+  // Apply same filter as everythign else in timeseries
   const timeSeriesFrames = prepareGraphableFields([aligned], theme, timeRange);
   if (!timeSeriesFrames) {
     return null;
@@ -152,11 +153,11 @@ export function prepareCandlestickFields(
 
   // Use next open as 'close' value
   if (data.open && !data.close && !fieldMap.close) {
-    const values = data.open.values.slice(1);
+    const values = data.open.values.toArray().slice(1);
     values.push(values[values.length - 1]); // duplicate last value
     data.close = {
       ...data.open,
-      values: values,
+      values: new ArrayVector(values),
       name: 'Next open',
       state: undefined,
     };
@@ -167,12 +168,12 @@ export function prepareCandlestickFields(
 
   // Use previous close as 'open' value
   if (data.close && !data.open && !fieldMap.open) {
-    const values = data.close.values.slice();
+    const values = data.close.values.toArray().slice();
     values.unshift(values[0]); // duplicate first value
     values.length = frame.length;
     data.open = {
       ...data.close,
-      values: values,
+      values: new ArrayVector(values),
       name: 'Previous close',
       state: undefined,
     };

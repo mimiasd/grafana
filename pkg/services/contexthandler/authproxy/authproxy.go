@@ -164,7 +164,7 @@ func (auth *AuthProxy) Login(reqCtx *contextmodel.ReqContext, ignoreCache bool) 
 		}
 	}
 
-	if auth.cfg.LDAPAuthEnabled {
+	if auth.cfg.LDAPEnabled {
 		id, err := auth.LoginViaLDAP(reqCtx)
 		if err != nil {
 			if errors.Is(err, ldap.ErrInvalidCredentials) {
@@ -191,7 +191,7 @@ func (auth *AuthProxy) getUserViaCache(reqCtx *contextmodel.ReqContext) (int64, 
 		return 0, err
 	}
 	auth.logger.Debug("Getting user ID via auth cache", "cacheKey", cacheKey)
-	cachedValue, err := auth.remoteCache.Get(reqCtx.Req.Context(), cacheKey)
+	cachedValue, err := auth.remoteCache.GetByteArray(reqCtx.Req.Context(), cacheKey)
 	if err != nil {
 		return 0, err
 	}
@@ -241,12 +241,11 @@ func (auth *AuthProxy) LoginViaLDAP(reqCtx *contextmodel.ReqContext) (int64, err
 			UserID: nil,
 		},
 	}
-	u, err := auth.loginService.UpsertUser(reqCtx.Req.Context(), upsert)
-	if err != nil {
+	if err := auth.loginService.UpsertUser(reqCtx.Req.Context(), upsert); err != nil {
 		return 0, err
 	}
 
-	return u.ID, nil
+	return upsert.Result.ID, nil
 }
 
 // loginViaHeader logs in user from the header only
@@ -305,12 +304,12 @@ func (auth *AuthProxy) loginViaHeader(reqCtx *contextmodel.ReqContext) (int64, e
 		},
 	}
 
-	result, err := auth.loginService.UpsertUser(reqCtx.Req.Context(), upsert)
+	err := auth.loginService.UpsertUser(reqCtx.Req.Context(), upsert)
 	if err != nil {
 		return 0, err
 	}
 
-	return result.ID, nil
+	return upsert.Result.ID, nil
 }
 
 // getDecodedHeader gets decoded value of a header with given headerName
@@ -354,7 +353,7 @@ func (auth *AuthProxy) Remember(reqCtx *contextmodel.ReqContext, id int64) error
 	}
 
 	// Check if user already in cache
-	cachedValue, err := auth.remoteCache.Get(reqCtx.Req.Context(), key)
+	cachedValue, err := auth.remoteCache.GetByteArray(reqCtx.Req.Context(), key)
 	if err == nil && len(cachedValue) != 0 {
 		return nil
 	}
@@ -362,7 +361,7 @@ func (auth *AuthProxy) Remember(reqCtx *contextmodel.ReqContext, id int64) error
 	expiration := time.Duration(auth.cfg.AuthProxySyncTTL) * time.Minute
 
 	userIdPayload := []byte(strconv.FormatInt(id, 10))
-	if err := auth.remoteCache.Set(reqCtx.Req.Context(), key, userIdPayload, expiration); err != nil {
+	if err := auth.remoteCache.SetByteArray(reqCtx.Req.Context(), key, userIdPayload, expiration); err != nil {
 		return err
 	}
 

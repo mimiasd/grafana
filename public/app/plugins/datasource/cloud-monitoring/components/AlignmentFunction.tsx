@@ -1,11 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { FC, useMemo } from 'react';
 
 import { SelectableValue } from '@grafana/data';
 import { Select } from '@grafana/ui';
 
 import { getAlignmentPickerData } from '../functions';
-import { PreprocessorType, SLOQuery, TimeSeriesList } from '../types/query';
-import { MetricDescriptor } from '../types/types';
+import { MetricDescriptor, PreprocessorType, SLOQuery, TimeSeriesList } from '../types';
 
 export interface Props {
   inputId: string;
@@ -16,14 +15,14 @@ export interface Props {
   preprocessor?: PreprocessorType;
 }
 
-export const AlignmentFunction = ({
+export const AlignmentFunction: FC<Props> = ({
   inputId,
   query,
   templateVariableOptions,
   onChange,
   metricDescriptor,
   preprocessor,
-}: Props) => {
+}) => {
   const { perSeriesAligner: psa } = query;
   let { valueType, metricKind } = metricDescriptor || {};
 

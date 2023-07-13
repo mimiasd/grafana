@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { FC, useMemo } from 'react';
 
 import { dateTime } from '@grafana/data';
 import { Alert, PaginationProps } from 'app/types/unified-alerting';
@@ -19,7 +19,7 @@ interface Props {
 type AlertTableColumnProps = DynamicTableColumnProps<Alert>;
 type AlertTableItemProps = DynamicTableItemProps<Alert>;
 
-export const AlertInstancesTable = ({ instances, pagination, footerRow }: Props) => {
+export const AlertInstancesTable: FC<Props> = ({ instances, pagination, footerRow }) => {
   const items = useMemo(
     (): AlertTableItemProps[] =>
       instances.map((instance) => ({
@@ -53,7 +53,7 @@ const columns: AlertTableColumnProps[] = [
     id: 'labels',
     label: 'Labels',
     // eslint-disable-next-line react/display-name
-    renderCell: ({ data: { labels } }) => <AlertLabels labels={labels} size="sm" />,
+    renderCell: ({ data: { labels } }) => <AlertLabels labels={labels} />,
   },
   {
     id: 'created',

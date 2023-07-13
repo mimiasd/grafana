@@ -74,7 +74,7 @@ var config = {
         "click element button[aria-label='Login button']",
         "wait for element [aria-label='Skip change password button'] to be visible",
       ],
-      threshold: 15,
+      threshold: 14,
       rootElement: '.main-view',
     },
     {
@@ -107,7 +107,7 @@ var config = {
       url: '${HOST}/datasources',
       wait: 500,
       rootElement: '.main-view',
-      threshold: 3,
+      threshold: 1,
     },
     {
       url: '${HOST}/org/users',
@@ -125,7 +125,7 @@ var config = {
       url: '${HOST}/plugins',
       wait: 500,
       rootElement: '.main-view',
-      threshold: 3,
+      threshold: 1,
     },
     {
       url: '${HOST}/org',

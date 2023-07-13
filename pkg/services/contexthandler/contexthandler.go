@@ -13,15 +13,15 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
-	"github.com/grafana/grafana/pkg/api/response"
 	"github.com/grafana/grafana/pkg/components/apikeygen"
-	"github.com/grafana/grafana/pkg/components/satokengen"
+	apikeygenprefix "github.com/grafana/grafana/pkg/components/apikeygenprefixed"
 	"github.com/grafana/grafana/pkg/infra/db"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/infra/network"
 	"github.com/grafana/grafana/pkg/infra/remotecache"
 	"github.com/grafana/grafana/pkg/infra/tracing"
 	loginpkg "github.com/grafana/grafana/pkg/login"
+	"github.com/grafana/grafana/pkg/middleware/cookies"
 	"github.com/grafana/grafana/pkg/services/anonymous"
 	"github.com/grafana/grafana/pkg/services/apikey"
 	"github.com/grafana/grafana/pkg/services/auth"
@@ -46,6 +46,8 @@ const (
 	/* #nosec */
 	InvalidAPIKey = "invalid API key"
 )
+
+const ServiceName = "ContextHandler"
 
 func ProvideService(cfg *setting.Cfg, tokenService auth.UserTokenService, jwtService jwt.JWTService,
 	remoteCache *remotecache.RemoteCache, renderService rendering.Service, sqlStore db.DB,
@@ -111,36 +113,6 @@ func FromContext(c context.Context) *contextmodel.ReqContext {
 	return nil
 }
 
-// CopyWithReqContext returns a copy of the parent context with a semi-shallow copy of the ReqContext as a value.
-// The ReqContexts's *web.Context is deep copied so that headers are thread-safe; additional properties are shallow copied and should be treated as read-only.
-func CopyWithReqContext(ctx context.Context) context.Context {
-	origReqCtx := FromContext(ctx)
-	if origReqCtx == nil {
-		return ctx
-	}
-
-	webCtx := &web.Context{
-		Req:  origReqCtx.Req.Clone(ctx),
-		Resp: web.NewResponseWriter(origReqCtx.Req.Method, response.CreateNormalResponse(http.Header{}, []byte{}, 0)),
-	}
-	reqCtx := &contextmodel.ReqContext{
-		Context:               webCtx,
-		SignedInUser:          origReqCtx.SignedInUser,
-		UserToken:             origReqCtx.UserToken,
-		IsSignedIn:            origReqCtx.IsSignedIn,
-		IsRenderCall:          origReqCtx.IsRenderCall,
-		AllowAnonymous:        origReqCtx.AllowAnonymous,
-		SkipDSCache:           origReqCtx.SkipDSCache,
-		SkipQueryCache:        origReqCtx.SkipQueryCache,
-		Logger:                origReqCtx.Logger,
-		Error:                 origReqCtx.Error,
-		RequestNonce:          origReqCtx.RequestNonce,
-		IsPublicDashboardView: origReqCtx.IsPublicDashboardView,
-		LookupTokenErr:        origReqCtx.LookupTokenErr,
-	}
-	return context.WithValue(ctx, reqContextKey{}, reqCtx)
-}
-
 // Middleware provides a middleware to initialize the request context.
 func (h *ContextHandler) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -150,13 +122,11 @@ func (h *ContextHandler) Middleware(next http.Handler) http.Handler {
 		defer span.End()
 
 		reqContext := &contextmodel.ReqContext{
-			Context: mContext,
-			SignedInUser: &user.SignedInUser{
-				Permissions: map[int64]map[string][]string{},
-			},
+			Context:        mContext,
+			SignedInUser:   &user.SignedInUser{},
 			IsSignedIn:     false,
 			AllowAnonymous: false,
-			SkipDSCache:    false,
+			SkipCache:      false,
 			Logger:         log.New("context"),
 		}
 
@@ -170,22 +140,21 @@ func (h *ContextHandler) Middleware(next http.Handler) http.Handler {
 			reqContext.Logger = reqContext.Logger.New("traceID", traceID)
 		}
 
-		if h.Cfg.AuthBrokerEnabled {
+		if h.features.IsEnabled(featuremgmt.FlagAuthnService) {
 			identity, err := h.authnService.Authenticate(ctx, &authn.Request{HTTPRequest: reqContext.Req, Resp: reqContext.Resp})
 			if err != nil {
-				if errors.Is(err, auth.ErrInvalidSessionToken) {
+				if errors.Is(err, auth.ErrUserTokenNotFound) || errors.Is(err, auth.ErrInvalidSessionToken) {
 					// Burn the cookie in case of invalid, expired or missing token
 					reqContext.Resp.Before(h.deleteInvalidCookieEndOfRequestFunc(reqContext))
 				}
-
 				// Hack: set all errors on LookupTokenErr, so we can check it in auth middlewares
 				reqContext.LookupTokenErr = err
 			} else {
-				reqContext.SignedInUser = identity.SignedInUser()
 				reqContext.UserToken = identity.SessionToken
+				reqContext.SignedInUser = identity.SignedInUser()
 				reqContext.IsSignedIn = !identity.IsAnonymous
 				reqContext.AllowAnonymous = identity.IsAnonymous
-				reqContext.IsRenderCall = identity.AuthenticatedBy == login.RenderModule
+				reqContext.IsRenderCall = identity.AuthModule == login.RenderModule
 			}
 		} else {
 			const headerName = "X-Grafana-Org-Id"
@@ -238,7 +207,7 @@ func (h *ContextHandler) Middleware(next http.Handler) http.Handler {
 		)
 
 		// when using authn service this is implemented as a post auth hook
-		if !h.Cfg.AuthBrokerEnabled {
+		if !h.features.IsEnabled(featuremgmt.FlagAuthnService) {
 			// update last seen every 5min
 			if reqContext.ShouldUpdateLastSeenAt() {
 				reqContext.Logger.Debug("Updating last user_seen_at", "user_id", reqContext.UserID)
@@ -268,20 +237,13 @@ func (h *ContextHandler) initContextWithAnonymousUser(reqContext *contextmodel.R
 		return false
 	}
 
-	httpReqCopy := &http.Request{}
-	if reqContext.Req != nil && reqContext.Req.Header != nil {
-		// avoid r.HTTPRequest.Clone(context.Background()) as we do not require a full clone
-		httpReqCopy.Header = reqContext.Req.Header.Clone()
-		httpReqCopy.RemoteAddr = reqContext.Req.RemoteAddr
-	}
-
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
 				reqContext.Logger.Warn("tag anon session panic", "err", err)
 			}
 		}()
-		if err := h.anonSessionService.TagSession(context.Background(), httpReqCopy); err != nil {
+		if err := h.anonSessionService.TagSession(context.Background(), reqContext.Req); err != nil {
 			reqContext.Logger.Warn("Failed to tag anonymous session", "error", err)
 		}
 	}()
@@ -297,7 +259,7 @@ func (h *ContextHandler) initContextWithAnonymousUser(reqContext *contextmodel.R
 
 func (h *ContextHandler) getPrefixedAPIKey(ctx context.Context, keyString string) (*apikey.APIKey, error) {
 	// prefixed decode key
-	decoded, err := satokengen.Decode(keyString)
+	decoded, err := apikeygenprefix.Decode(keyString)
 	if err != nil {
 		return nil, err
 	}
@@ -318,13 +280,12 @@ func (h *ContextHandler) getAPIKey(ctx context.Context, keyString string) (*apik
 
 	// fetch key
 	keyQuery := apikey.GetByNameQuery{KeyName: decoded.Name, OrgID: decoded.OrgId}
-	key, err := h.apiKeyService.GetApiKeyByName(ctx, &keyQuery)
-	if err != nil {
+	if err := h.apiKeyService.GetApiKeyByName(ctx, &keyQuery); err != nil {
 		return nil, err
 	}
 
 	// validate api key
-	isValid, err := apikeygen.IsValid(decoded, key.Key)
+	isValid, err := apikeygen.IsValid(decoded, keyQuery.Result.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +293,7 @@ func (h *ContextHandler) getAPIKey(ctx context.Context, keyString string) (*apik
 		return nil, apikeygen.ErrInvalidApiKey
 	}
 
-	return key, nil
+	return keyQuery.Result, nil
 }
 
 func (h *ContextHandler) initContextWithAPIKey(reqContext *contextmodel.ReqContext) bool {
@@ -359,7 +320,7 @@ func (h *ContextHandler) initContextWithAPIKey(reqContext *contextmodel.ReqConte
 		apiKey *apikey.APIKey
 		errKey error
 	)
-	if strings.HasPrefix(keyString, satokengen.GrafanaPrefix) {
+	if strings.HasPrefix(keyString, apikeygenprefix.GrafanaPrefix) {
 		apiKey, errKey = h.getPrefixedAPIKey(reqContext.Req.Context(), keyString) // decode prefixed key
 	} else {
 		apiKey, errKey = h.getAPIKey(reqContext.Req.Context(), keyString) // decode legacy api key
@@ -519,21 +480,14 @@ func (h *ContextHandler) initContextWithToken(reqContext *contextmodel.ReqContex
 	token, err := h.AuthTokenService.LookupToken(ctx, rawToken)
 	if err != nil {
 		reqContext.Logger.Warn("failed to look up session from cookie", "error", err)
-		if errors.Is(err, auth.ErrInvalidSessionToken) {
-			// Burn the cookie in case of invalid or revoked token
+		if errors.Is(err, auth.ErrUserTokenNotFound) || errors.Is(err, auth.ErrInvalidSessionToken) {
+			// Burn the cookie in case of invalid, expired or missing token
 			reqContext.Resp.Before(h.deleteInvalidCookieEndOfRequestFunc(reqContext))
 		}
 
 		reqContext.LookupTokenErr = err
 
 		return false
-	}
-
-	if h.features.IsEnabled(featuremgmt.FlagClientTokenRotation) {
-		if token.NeedsRotation(time.Duration(h.Cfg.TokenRotationIntervalMinutes) * time.Minute) {
-			reqContext.LookupTokenErr = authn.ErrTokenNeedsRotation.Errorf("token needs rotation")
-			return true
-		}
 	}
 
 	query := user.GetSignedInUserQuery{UserID: token.UserId, OrgID: orgID}
@@ -584,25 +538,18 @@ func (h *ContextHandler) initContextWithToken(reqContext *contextmodel.ReqContex
 
 func (h *ContextHandler) deleteInvalidCookieEndOfRequestFunc(reqContext *contextmodel.ReqContext) web.BeforeFunc {
 	return func(w web.ResponseWriter) {
-		if h.features.IsEnabled(featuremgmt.FlagClientTokenRotation) {
-			return
-		}
-
 		if w.Written() {
 			reqContext.Logger.Debug("Response written, skipping invalid cookie delete")
 			return
 		}
 
 		reqContext.Logger.Debug("Expiring invalid cookie")
-		authn.DeleteSessionCookie(reqContext.Resp, h.Cfg)
+		cookies.DeleteCookie(reqContext.Resp, h.Cfg.LoginCookieName, nil)
 	}
 }
 
 func (h *ContextHandler) rotateEndOfRequestFunc(reqContext *contextmodel.ReqContext) web.BeforeFunc {
 	return func(w web.ResponseWriter) {
-		if h.features.IsEnabled(featuremgmt.FlagClientTokenRotation) {
-			return
-		}
 		// if response has already been written, skip.
 		if w.Written() {
 			return
@@ -637,7 +584,7 @@ func (h *ContextHandler) rotateEndOfRequestFunc(reqContext *contextmodel.ReqCont
 
 		if rotated {
 			reqContext.UserToken = newToken
-			authn.WriteSessionCookie(reqContext.Resp, h.Cfg, newToken)
+			cookies.WriteSessionCookie(reqContext, h.Cfg, newToken.UnhashedToken, h.Cfg.LoginMaxLifetime)
 		}
 	}
 }

@@ -171,13 +171,13 @@ export const photosLayer: MapLayerRegistryItem<PhotoConfig> = {
           if (config.src) {
             const srcField: Field | undefined = findField(frame, config.src);
             if (srcField) {
-              images = srcField?.values;
+              images = srcField?.values.toArray();
             }
           } else {
             for (let i = 0; i < frame.fields.length; i++) {
               const field = frame.fields[i];
               if (field.type === FieldType.string) {
-                images = field.values;
+                images = field.values.toArray();
                 break;
               }
             }

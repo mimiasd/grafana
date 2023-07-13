@@ -10,12 +10,12 @@ import {
   RichHistorySearchFilters,
   RichHistorySettings,
 } from 'app/core/utils/richHistory';
-import { RichHistoryQuery } from 'app/types/explore';
+import { RichHistoryQuery, ExploreId } from 'app/types/explore';
 
 import { getSortOrderOptions } from './RichHistory';
 import RichHistoryCard from './RichHistoryCard';
 
-export interface RichHistoryStarredTabProps {
+export interface Props {
   queries: RichHistoryQuery[];
   totalQueries: number;
   loading: boolean;
@@ -25,10 +25,11 @@ export interface RichHistoryStarredTabProps {
   loadMoreRichHistory: () => void;
   richHistorySearchFilters?: RichHistorySearchFilters;
   richHistorySettings: RichHistorySettings;
-  exploreId: string;
+  exploreId: ExploreId;
 }
 
 const getStyles = (theme: GrafanaTheme2) => {
+  const bgColor = theme.isLight ? theme.v1.palette.gray5 : theme.v1.palette.dark4;
   return {
     container: css`
       display: flex;
@@ -44,6 +45,11 @@ const getStyles = (theme: GrafanaTheme2) => {
     multiselect: css`
       width: 100%;
       margin-bottom: ${theme.spacing(1)};
+      .gf-form-select-box__multi-value {
+        background-color: ${bgColor};
+        padding: ${theme.spacing(0.25, 0.5, 0.25, 1)};
+        border-radius: ${theme.shape.borderRadius(1)};
+      }
     `,
     filterInput: css`
       margin-bottom: ${theme.spacing(1)};
@@ -66,7 +72,7 @@ const getStyles = (theme: GrafanaTheme2) => {
   };
 };
 
-export function RichHistoryStarredTab(props: RichHistoryStarredTabProps) {
+export function RichHistoryStarredTab(props: Props) {
   const {
     updateFilters,
     clearRichHistoryResults,
@@ -130,7 +136,6 @@ export function RichHistoryStarredTab(props: RichHistoryStarredTabProps) {
           )}
           <div className={styles.filterInput}>
             <FilterInput
-              escapeRegex={false}
               placeholder="Search queries"
               value={richHistorySearchFilters.search}
               onChange={(search: string) => updateFilters({ search })}

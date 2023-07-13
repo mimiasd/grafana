@@ -6,9 +6,9 @@ import { EditorFieldGroup, EditorRow, EditorRows } from '@grafana/experimental';
 import Datasource from '../../datasource';
 import { selectors } from '../../e2e/selectors';
 import { AzureMonitorErrorish, AzureMonitorOption, AzureMonitorQuery } from '../../types';
+import SubscriptionField from '../SubscriptionField';
 
 import QueryField from './QueryField';
-import SubscriptionField from './SubscriptionField';
 
 interface ArgQueryEditorProps {
   query: AzureMonitorQuery;
@@ -44,14 +44,14 @@ function selectSubscriptions(
   return querySubscriptions;
 }
 
-const ArgQueryEditor = ({
+const ArgQueryEditor: React.FC<ArgQueryEditorProps> = ({
   query,
   datasource,
   subscriptionId,
   variableOptionGroup,
   onChange,
   setError,
-}: ArgQueryEditorProps) => {
+}) => {
   const [subscriptions, setSubscriptions] = useState<AzureMonitorOption[]>([]);
   useMemo(() => {
     datasource
@@ -81,6 +81,7 @@ const ArgQueryEditor = ({
         <EditorRow>
           <EditorFieldGroup>
             <SubscriptionField
+              multiSelect
               subscriptions={subscriptions}
               query={query}
               datasource={datasource}

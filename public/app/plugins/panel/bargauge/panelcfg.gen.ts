@@ -10,18 +10,18 @@
 
 import * as common from '@grafana/schema';
 
-export interface Options extends common.SingleStatBaseOptions {
+export const PanelCfgModelVersion = Object.freeze([0, 0]);
+
+export interface PanelOptions extends common.SingleStatBaseOptions {
   displayMode: common.BarGaugeDisplayMode;
   minVizHeight: number;
   minVizWidth: number;
   showUnfilled: boolean;
-  valueMode: common.BarGaugeValueMode;
 }
 
-export const defaultOptions: Partial<Options> = {
+export const defaultPanelOptions: Partial<PanelOptions> = {
   displayMode: common.BarGaugeDisplayMode.Gradient,
   minVizHeight: 10,
   minVizWidth: 0,
   showUnfilled: true,
-  valueMode: common.BarGaugeValueMode.Color,
 };

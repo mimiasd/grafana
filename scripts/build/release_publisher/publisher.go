@@ -252,7 +252,7 @@ func (p *publisher) postRequest(url string, obj interface{}, desc string) error 
 	}
 
 	if p.dryRun {
-		log.Printf("POST to %s:\n", p.apiURL(url))
+		log.Println(fmt.Sprintf("POST to %s:", p.apiURL(url)))
 		log.Println(string(jsonBytes))
 		return nil
 	}

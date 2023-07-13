@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react-hooks';
 
 import { useAsyncState } from './useAsyncState';
 
@@ -36,11 +36,10 @@ describe('useAsyncState', () => {
     const apiCall = () => Promise.resolve(['a', 'b', 'c']);
     const setError = jest.fn();
 
-    const { result } = renderHook(() => useAsyncState(apiCall, setError, []));
+    const { result, waitForNextUpdate } = renderHook(() => useAsyncState(apiCall, setError, []));
+    await waitForNextUpdate();
 
-    await waitFor(() => {
-      expect(result.current).toEqual(['a', 'b', 'c']);
-    });
+    expect(result.current).toEqual(['a', 'b', 'c']);
   });
 
   it('should report errors through setError', async () => {
@@ -48,22 +47,20 @@ describe('useAsyncState', () => {
     const apiCall = () => Promise.reject(error);
     const setError = createWaitableMock();
 
-    const { result } = renderHook(() => useAsyncState(apiCall, setError, []));
+    const { result, waitForNextUpdate } = renderHook(() => useAsyncState(apiCall, setError, []));
+    await Promise.race([waitForNextUpdate(), setError.waitToBeCalled()]);
 
-    await waitFor(() => {
-      expect(result.current).toEqual([]);
-      expect(setError).toHaveBeenCalledWith(MOCKED_RANDOM_VALUE, error);
-    });
+    expect(result.current).toEqual([]);
+    expect(setError).toHaveBeenCalledWith(MOCKED_RANDOM_VALUE, error);
   });
 
   it('should clear the error once the request is successful', async () => {
     const apiCall = () => Promise.resolve(['a', 'b', 'c']);
     const setError = createWaitableMock();
 
-    renderHook(() => useAsyncState(apiCall, setError, []));
+    const { waitForNextUpdate } = renderHook(() => useAsyncState(apiCall, setError, []));
+    await Promise.race([waitForNextUpdate(), setError.waitToBeCalled()]);
 
-    await waitFor(() => {
-      expect(setError).toHaveBeenCalledWith(MOCKED_RANDOM_VALUE, undefined);
-    });
+    expect(setError).toHaveBeenCalledWith(MOCKED_RANDOM_VALUE, undefined);
   });
 });

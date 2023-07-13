@@ -43,7 +43,7 @@ type Implementation struct {
 }
 
 // UpsertUser updates an existing user, or if it doesn't exist, inserts a new one.
-func (ls *Implementation) UpsertUser(ctx context.Context, cmd *login.UpsertUserCommand) (result *user.User, err error) {
+func (ls *Implementation) UpsertUser(ctx context.Context, cmd *login.UpsertUserCommand) error {
 	var logger log.Logger = logger
 	if cmd.ReqContext != nil && cmd.ReqContext.Logger != nil {
 		logger = cmd.ReqContext.Logger
@@ -58,12 +58,12 @@ func (ls *Implementation) UpsertUser(ctx context.Context, cmd *login.UpsertUserC
 	})
 	if errAuthLookup != nil {
 		if !errors.Is(errAuthLookup, user.ErrUserNotFound) {
-			return nil, errAuthLookup
+			return errAuthLookup
 		}
 
 		if !cmd.SignupAllowed {
 			logger.Warn("Not allowing login, user not found in internal user database and allow signup = false", "authmode", extUser.AuthModule)
-			return nil, login.ErrSignupNotAllowed
+			return login.ErrSignupNotAllowed
 		}
 
 		// quota check (FIXME: (jguer) this should be done in the user service)
@@ -73,67 +73,67 @@ func (ls *Implementation) UpsertUser(ctx context.Context, cmd *login.UpsertUserC
 			limitReached, errLimit := ls.QuotaService.CheckQuotaReached(ctx, quota.TargetSrv(srv), nil)
 			if errLimit != nil {
 				logger.Warn("Error getting user quota.", "error", errLimit)
-				return nil, login.ErrGettingUserQuota
+				return login.ErrGettingUserQuota
 			}
 			if limitReached {
-				return nil, login.ErrUsersQuotaReached
+				return login.ErrUsersQuotaReached
 			}
 		}
 
-		createdUser, errCreateUser := ls.userService.Create(ctx, &user.CreateUserCommand{
+		result, errCreateUser := ls.userService.Create(ctx, &user.CreateUserCommand{
 			Login:        extUser.Login,
 			Email:        extUser.Email,
 			Name:         extUser.Name,
 			SkipOrgSetup: len(extUser.OrgRoles) > 0,
 		})
 		if errCreateUser != nil {
-			return nil, errCreateUser
+			return errCreateUser
 		}
 
-		result = &user.User{
-			ID:               createdUser.ID,
-			Version:          createdUser.Version,
-			Email:            createdUser.Email,
-			Name:             createdUser.Name,
-			Login:            createdUser.Login,
-			Password:         createdUser.Password,
-			Salt:             createdUser.Salt,
-			Rands:            createdUser.Rands,
-			Company:          createdUser.Company,
-			EmailVerified:    createdUser.EmailVerified,
-			Theme:            createdUser.Theme,
-			HelpFlags1:       createdUser.HelpFlags1,
-			IsDisabled:       createdUser.IsDisabled,
-			IsAdmin:          createdUser.IsAdmin,
-			IsServiceAccount: createdUser.IsServiceAccount,
-			OrgID:            createdUser.OrgID,
-			Created:          createdUser.Created,
-			Updated:          createdUser.Updated,
-			LastSeenAt:       createdUser.LastSeenAt,
+		cmd.Result = &user.User{
+			ID:               result.ID,
+			Version:          result.Version,
+			Email:            result.Email,
+			Name:             result.Name,
+			Login:            result.Login,
+			Password:         result.Password,
+			Salt:             result.Salt,
+			Rands:            result.Rands,
+			Company:          result.Company,
+			EmailVerified:    result.EmailVerified,
+			Theme:            result.Theme,
+			HelpFlags1:       result.HelpFlags1,
+			IsDisabled:       result.IsDisabled,
+			IsAdmin:          result.IsAdmin,
+			IsServiceAccount: result.IsServiceAccount,
+			OrgID:            result.OrgID,
+			Created:          result.Created,
+			Updated:          result.Updated,
+			LastSeenAt:       result.LastSeenAt,
 		}
 
 		if extUser.AuthModule != "" {
 			cmd2 := &login.SetAuthInfoCommand{
-				UserId:     result.ID,
+				UserId:     cmd.Result.ID,
 				AuthModule: extUser.AuthModule,
 				AuthId:     extUser.AuthId,
 				OAuthToken: extUser.OAuthToken,
 			}
 			if errSetAuth := ls.AuthInfoService.SetAuthInfo(ctx, cmd2); errSetAuth != nil {
-				return nil, errSetAuth
+				return errSetAuth
 			}
 		}
 	} else {
-		result = usr
+		cmd.Result = usr
 
-		if errUserMod := ls.updateUser(ctx, result, extUser); errUserMod != nil {
-			return nil, errUserMod
+		if errUserMod := ls.updateUser(ctx, cmd.Result, extUser); errUserMod != nil {
+			return errUserMod
 		}
 
 		// Always persist the latest token at log-in
 		if extUser.AuthModule != "" && extUser.OAuthToken != nil {
-			if errAuthMod := ls.updateUserAuth(ctx, result, extUser); errAuthMod != nil {
-				return nil, errAuthMod
+			if errAuthMod := ls.updateUserAuth(ctx, cmd.Result, extUser); errAuthMod != nil {
+				return errAuthMod
 			}
 		}
 
@@ -141,31 +141,31 @@ func (ls *Implementation) UpsertUser(ctx context.Context, cmd *login.UpsertUserC
 			// Re-enable user when it found in LDAP
 			if errDisableUser := ls.userService.Disable(ctx,
 				&user.DisableUserCommand{
-					UserID: result.ID, IsDisabled: false}); errDisableUser != nil {
-				return nil, errDisableUser
+					UserID: cmd.Result.ID, IsDisabled: false}); errDisableUser != nil {
+				return errDisableUser
 			}
 		}
 	}
 
-	if errSyncRole := ls.syncOrgRoles(ctx, result, extUser); errSyncRole != nil {
-		return nil, errSyncRole
+	if errSyncRole := ls.syncOrgRoles(ctx, cmd.Result, extUser); errSyncRole != nil {
+		return errSyncRole
 	}
 
 	// Sync isGrafanaAdmin permission
-	if extUser.IsGrafanaAdmin != nil && *extUser.IsGrafanaAdmin != result.IsAdmin {
-		if errPerms := ls.userService.UpdatePermissions(ctx, result.ID, *extUser.IsGrafanaAdmin); errPerms != nil {
-			return nil, errPerms
+	if extUser.IsGrafanaAdmin != nil && *extUser.IsGrafanaAdmin != cmd.Result.IsAdmin {
+		if errPerms := ls.userService.UpdatePermissions(ctx, cmd.Result.ID, *extUser.IsGrafanaAdmin); errPerms != nil {
+			return errPerms
 		}
 	}
 
 	// There are external providers where we want to completely skip team synchronization see - https://github.com/grafana/grafana/issues/62175
 	if ls.TeamSync != nil && !extUser.SkipTeamSync {
-		if errTeamSync := ls.TeamSync(result, extUser); errTeamSync != nil {
-			return nil, errTeamSync
+		if errTeamSync := ls.TeamSync(cmd.Result, extUser); errTeamSync != nil {
+			return errTeamSync
 		}
 	}
 
-	return result, nil
+	return nil
 }
 
 func (ls *Implementation) DisableExternalUser(ctx context.Context, username string) error {
@@ -174,11 +174,11 @@ func (ls *Implementation) DisableExternalUser(ctx context.Context, username stri
 		LoginOrEmail: username,
 	}
 
-	userInfo, err := ls.AuthInfoService.GetExternalUserInfoByLogin(ctx, userQuery)
-	if err != nil {
+	if err := ls.AuthInfoService.GetExternalUserInfoByLogin(ctx, userQuery); err != nil {
 		return err
 	}
 
+	userInfo := userQuery.Result
 	if userInfo.IsDisabled {
 		return nil
 	}
@@ -186,12 +186,12 @@ func (ls *Implementation) DisableExternalUser(ctx context.Context, username stri
 	logger.Debug(
 		"Disabling external user",
 		"user",
-		userInfo.Login,
+		userQuery.Result.Login,
 	)
 
 	// Mark user as disabled in grafana db
 	disableUserCmd := &user.DisableUserCommand{
-		UserID:     userInfo.UserId,
+		UserID:     userQuery.Result.UserId,
 		IsDisabled: true,
 	}
 
@@ -199,7 +199,7 @@ func (ls *Implementation) DisableExternalUser(ctx context.Context, username stri
 		logger.Debug(
 			"Error disabling external user",
 			"user",
-			userInfo.Login,
+			userQuery.Result.Login,
 			"message",
 			err.Error(),
 		)

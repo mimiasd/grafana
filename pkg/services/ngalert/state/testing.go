@@ -21,17 +21,19 @@ type FakeInstanceStoreOp struct {
 	Args []interface{}
 }
 
-func (f *FakeInstanceStore) ListAlertInstances(_ context.Context, q *models.ListAlertInstancesQuery) ([]*models.AlertInstance, error) {
+func (f *FakeInstanceStore) ListAlertInstances(_ context.Context, q *models.ListAlertInstancesQuery) error {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 	f.RecordedOps = append(f.RecordedOps, *q)
-	return nil, nil
+	return nil
 }
 
-func (f *FakeInstanceStore) SaveAlertInstance(_ context.Context, q models.AlertInstance) error {
+func (f *FakeInstanceStore) SaveAlertInstances(_ context.Context, q ...models.AlertInstance) error {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
-	f.RecordedOps = append(f.RecordedOps, q)
+	for _, inst := range q {
+		f.RecordedOps = append(f.RecordedOps, inst)
+	}
 	return nil
 }
 
@@ -55,15 +57,15 @@ func (f *FakeInstanceStore) DeleteAlertInstancesByRule(ctx context.Context, key 
 
 type FakeRuleReader struct{}
 
-func (f *FakeRuleReader) ListAlertRules(_ context.Context, q *models.ListAlertRulesQuery) (models.RulesGroup, error) {
-	return nil, nil
+func (f *FakeRuleReader) ListAlertRules(_ context.Context, q *models.ListAlertRulesQuery) error {
+	return nil
 }
 
 type FakeHistorian struct {
 	StateTransitions []StateTransition
 }
 
-func (f *FakeHistorian) Record(ctx context.Context, rule history_model.RuleMeta, states []StateTransition) <-chan error {
+func (f *FakeHistorian) RecordStatesAsync(ctx context.Context, rule history_model.RuleMeta, states []StateTransition) <-chan error {
 	f.StateTransitions = append(f.StateTransitions, states...)
 	errCh := make(chan error)
 	close(errCh)

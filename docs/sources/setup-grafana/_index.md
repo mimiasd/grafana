@@ -1,11 +1,10 @@
 ---
 description: Includes topics for setting up a Grafana instance.
-title: Set up Grafana
-menuTitle: Set up
+title: Setup
 weight: 10
 ---
 
-# Set up Grafana
+# Setup
 
 This section includes information that helps you get Grafana up and running.
 

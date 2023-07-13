@@ -28,8 +28,9 @@ export const TagItem = ({ name, disabled, onRemove }: Props) => {
         name="times"
         size="lg"
         disabled={disabled}
-        tooltip={`Remove "${name}" tag`}
+        ariaLabel={`Remove "${name}" tag`}
         onClick={() => onRemove(name)}
+        type="button"
         className={styles.buttonStyles}
       />
     </li>
@@ -49,7 +50,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       color: '#fff',
       borderWidth: '1px',
       borderStyle: 'solid',
-      borderRadius: theme.shape.radius.default,
+      borderRadius: '3px',
       padding: `0 ${theme.spacing(0.5)}`,
       whiteSpace: 'nowrap',
       textShadow: 'none',

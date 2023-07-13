@@ -1,7 +1,8 @@
 import intersect from 'fast_array_intersect';
 
 import { getTimeField, sortDataFrame } from '../../dataframe';
-import { DataFrame, Field, FieldMatcher, FieldType, TIME_SERIES_VALUE_FIELD_NAME } from '../../types';
+import { DataFrame, Field, FieldMatcher, FieldType, Vector } from '../../types';
+import { ArrayVector } from '../../vector';
 import { fieldMatchers } from '../matchers';
 import { FieldMatcherID } from '../matchers/ids';
 
@@ -42,7 +43,7 @@ export interface JoinOptions {
   frames: DataFrame[];
 
   /**
-   * The field to join -- frames that do not have this field will be dropped
+   * The field to join -- frames that do not have this field will be droppped
    */
   joinBy?: FieldMatcher;
 
@@ -180,18 +181,12 @@ export function joinDataFrames(options: JoinOptions): DataFrame | undefined {
         nullModesFrame.push(spanNulls === true ? NULL_REMOVE : spanNulls === -1 ? NULL_RETAIN : NULL_EXPAND);
 
         let labels = field.labels ?? {};
-        let name = field.name;
         if (frame.name) {
-          if (field.name === TIME_SERIES_VALUE_FIELD_NAME) {
-            name = frame.name;
-          } else {
-            labels = { ...labels, name: frame.name };
-          }
+          labels = { ...labels, name: frame.name };
         }
 
         fields.push({
           ...field,
-          name,
           labels, // add the name label from frame
         });
       }
@@ -213,10 +208,10 @@ export function joinDataFrames(options: JoinOptions): DataFrame | undefined {
     }
 
     nullModes.push(nullModesFrame);
-    const a: AlignedData = [join.values]; //
+    const a: AlignedData = [join.values.toArray()]; //
 
     for (const field of fields) {
-      a.push(field.values);
+      a.push(field.values.toArray());
       originalFields.push(field);
       // clear field displayName state
       delete field.state?.displayName;
@@ -232,7 +227,7 @@ export function joinDataFrames(options: JoinOptions): DataFrame | undefined {
     length: joined[0].length,
     fields: originalFields.map((f, index) => ({
       ...f,
-      values: joined[index],
+      values: new ArrayVector(joined[index]),
     })),
   };
 }
@@ -357,7 +352,7 @@ export function join(tables: AlignedData[], nullModes?: number[][], mode: JoinMo
 
 // Test a few samples to see if the values are ascending
 // Only exported for tests
-export function isLikelyAscendingVector(data: any[], samples = 50) {
+export function isLikelyAscendingVector(data: Vector, samples = 50) {
   const len = data.length;
 
   // empty or single value
@@ -369,11 +364,11 @@ export function isLikelyAscendingVector(data: any[], samples = 50) {
   let firstIdx = 0;
   let lastIdx = len - 1;
 
-  while (firstIdx <= lastIdx && data[firstIdx] == null) {
+  while (firstIdx <= lastIdx && data.get(firstIdx) == null) {
     firstIdx++;
   }
 
-  while (lastIdx >= firstIdx && data[lastIdx] == null) {
+  while (lastIdx >= firstIdx && data.get(lastIdx) == null) {
     lastIdx--;
   }
 
@@ -384,8 +379,8 @@ export function isLikelyAscendingVector(data: any[], samples = 50) {
 
   const stride = Math.max(1, Math.floor((lastIdx - firstIdx + 1) / samples));
 
-  for (let prevVal = data[firstIdx], i = firstIdx + stride; i <= lastIdx; i += stride) {
-    const v = data[i];
+  for (let prevVal = data.get(firstIdx), i = firstIdx + stride; i <= lastIdx; i += stride) {
+    const v = data.get(i);
 
     if (v != null) {
       if (v <= prevVal) {

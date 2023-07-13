@@ -1,33 +1,35 @@
 import { Geometry, GeometryCollection, LineString, Point } from 'ol/geom';
 import { fromLonLat } from 'ol/proj';
 
-import { Field, FieldConfig, FieldType } from '@grafana/data';
+import { ArrayVector, Field, FieldConfig, FieldType } from '@grafana/data';
 import { getCenterPoint } from 'app/features/transformers/spatial/utils';
 
 import { Gazetteer } from '../gazetteer/gazetteer';
 
 import { decodeGeohash } from './geohash';
 
-export function pointFieldFromGeohash(geohash: Field<string>): Field<Geometry | undefined> {
+export function pointFieldFromGeohash(geohash: Field<string>): Field<Point> {
   return {
     name: geohash.name ?? 'Point',
     type: FieldType.geo,
-    values: geohash.values.map((v) => {
-      const coords = decodeGeohash(v);
-      if (coords) {
-        return new Point(fromLonLat(coords));
-      }
-      return undefined;
-    }),
+    values: new ArrayVector<any>(
+      geohash.values.toArray().map((v) => {
+        const coords = decodeGeohash(v);
+        if (coords) {
+          return new Point(fromLonLat(coords));
+        }
+        return undefined;
+      })
+    ),
     config: hiddenTooltipField,
   };
 }
 
-export function pointFieldFromLonLat(lon: Field, lat: Field): Field<Geometry | undefined> {
+export function pointFieldFromLonLat(lon: Field, lat: Field): Field<Point> {
   const buffer = new Array<Point>(lon.values.length);
   for (let i = 0; i < lon.values.length; i++) {
-    const longitude = lon.values[i];
-    const latitude = lat.values[i];
+    const longitude = lon.values.get(i);
+    const latitude = lat.values.get(i);
 
     // TODO: Add unit tests to thoroughly test out edge cases
     // If longitude or latitude are null, don't add them to buffer
@@ -41,7 +43,7 @@ export function pointFieldFromLonLat(lon: Field, lat: Field): Field<Geometry | u
   return {
     name: 'Point',
     type: FieldType.geo,
-    values: buffer,
+    values: new ArrayVector(buffer),
     config: hiddenTooltipField,
   };
 }
@@ -50,12 +52,12 @@ export function getGeoFieldFromGazetteer(gaz: Gazetteer, field: Field<string>): 
   const count = field.values.length;
   const geo = new Array<Geometry | undefined>(count);
   for (let i = 0; i < count; i++) {
-    geo[i] = gaz.find(field.values[i])?.geometry();
+    geo[i] = gaz.find(field.values.get(i))?.geometry();
   }
   return {
     name: 'Geometry',
     type: FieldType.geo,
-    values: geo,
+    values: new ArrayVector(geo),
     config: hiddenTooltipField,
   };
 }
@@ -64,8 +66,8 @@ export function createGeometryCollection(
   src: Field<Geometry | undefined>,
   dest: Field<Geometry | undefined>
 ): Field<Geometry | undefined> {
-  const v0 = src.values;
-  const v1 = dest.values;
+  const v0 = src.values.toArray();
+  const v1 = dest.values.toArray();
   if (!v0 || !v1) {
     throw 'missing src/dest';
   }
@@ -89,7 +91,7 @@ export function createGeometryCollection(
   return {
     name: 'Geometry',
     type: FieldType.geo,
-    values: geo,
+    values: new ArrayVector(geo),
     config: hiddenTooltipField,
   };
 }
@@ -98,8 +100,8 @@ export function createLineBetween(
   src: Field<Geometry | undefined>,
   dest: Field<Geometry | undefined>
 ): Field<Geometry | undefined> {
-  const v0 = src.values;
-  const v1 = dest.values;
+  const v0 = src.values.toArray();
+  const v1 = dest.values.toArray();
   if (!v0 || !v1) {
     throw 'missing src/dest';
   }
@@ -119,7 +121,7 @@ export function createLineBetween(
   return {
     name: 'Geometry',
     type: FieldType.geo,
-    values: geo,
+    values: new ArrayVector(geo),
     config: hiddenTooltipField,
   };
 }

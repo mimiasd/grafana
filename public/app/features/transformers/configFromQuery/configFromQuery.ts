@@ -1,6 +1,7 @@
 import { map } from 'rxjs/operators';
 
 import {
+  ArrayVector,
   DataFrame,
   DataTransformerID,
   DataTransformerInfo,
@@ -12,9 +13,9 @@ import {
 } from '@grafana/data';
 
 import {
-  evaluteFieldMappings,
-  FieldToConfigMapping,
   getFieldConfigFromFrame,
+  FieldToConfigMapping,
+  evaluteFieldMappings,
 } from '../fieldToConfigMapping/fieldToConfigMapping';
 
 export interface ConfigFromQueryTransformOptions {
@@ -50,7 +51,7 @@ export function extractConfigFromQuery(options: ConfigFromQueryTransformOptions,
     const fieldName = getFieldDisplayName(field, configFrame);
     const fieldMapping = mappingResult.index[fieldName];
     const result = reduceField({ field, reducers: [fieldMapping.reducerId] });
-    newField.values = [result[fieldMapping.reducerId]];
+    newField.values = new ArrayVector([result[fieldMapping.reducerId]]);
     reducedConfigFrame.fields.push(newField);
   }
 
@@ -66,7 +67,6 @@ export function extractConfigFromQuery(options: ConfigFromQueryTransformOptions,
     const outputFrame: DataFrame = {
       fields: [],
       length: frame.length,
-      refId: frame.refId,
     };
 
     for (const field of frame.fields) {
@@ -86,20 +86,21 @@ export function extractConfigFromQuery(options: ConfigFromQueryTransformOptions,
 
     output.push(outputFrame);
   }
+
   return output;
 }
 
 export const configFromDataTransformer: DataTransformerInfo<ConfigFromQueryTransformOptions> = {
   id: DataTransformerID.configFromData,
   name: 'Config from query results',
-  description: 'Set unit, min, max and more from data.',
+  description: 'Set unit, min, max and more from data',
   defaultOptions: {
     configRefId: 'config',
     mappings: [],
   },
 
   /**
-   * Return a modified copy of the series. If the transform is not or should not
+   * Return a modified copy of the series.  If the transform is not or should not
    * be applied, just return the input series
    */
   operator: (options) => (source) => source.pipe(map((data) => extractConfigFromQuery(options, data))),

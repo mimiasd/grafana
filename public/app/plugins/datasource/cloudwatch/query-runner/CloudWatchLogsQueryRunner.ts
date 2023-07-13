@@ -24,8 +24,6 @@ import {
   DataQueryResponse,
   DataSourceInstanceSettings,
   LoadingState,
-  LogRowContextOptions,
-  LogRowContextQueryDirection,
   LogRowModel,
   rangeUtil,
 } from '@grafana/data';
@@ -33,6 +31,7 @@ import { BackendDataSourceResponse, config, FetchError, FetchResponse, toDataQue
 import { TimeSrv } from 'app/features/dashboard/services/TimeSrv';
 import { TemplateSrv } from 'app/features/templating/template_srv';
 
+import { RowContextOptions } from '../../../../features/logs/components/LogRowContextProvider';
 import {
   CloudWatchJsonData,
   CloudWatchLogsQuery,
@@ -86,15 +85,13 @@ export class CloudWatchLogsQueryRunner extends CloudWatchRequest {
     const startQueryRequests: StartQueryRequest[] = validLogQueries.map((target: CloudWatchLogsQuery) => {
       const interpolatedLogGroupArns = interpolateStringArrayUsingSingleOrMultiValuedVariable(
         this.templateSrv,
-        (target.logGroups || this.instanceSettings.jsonData.logGroups || []).map((lg) => lg.arn),
-        options.scopedVars
+        (target.logGroups || this.instanceSettings.jsonData.logGroups || []).map((lg) => lg.arn)
       );
 
       // need to support legacy format variables too
       const interpolatedLogGroupNames = interpolateStringArrayUsingSingleOrMultiValuedVariable(
         this.templateSrv,
         target.logGroupNames || this.instanceSettings.jsonData.defaultLogGroups || [],
-        options.scopedVars,
         'text'
       );
 
@@ -106,7 +103,7 @@ export class CloudWatchLogsQueryRunner extends CloudWatchRequest {
       return {
         refId: target.refId,
         region: this.templateSrv.replace(this.getActualRegion(target.region)),
-        queryString: this.templateSrv.replace(target.expression || '', options.scopedVars),
+        queryString: this.templateSrv.replace(target.expression || ''),
         logGroups,
         logGroupNames,
       };
@@ -119,7 +116,7 @@ export class CloudWatchLogsQueryRunner extends CloudWatchRequest {
 
     return runWithRetry(
       (targets: StartQueryRequest[]) => {
-        return this.makeLogActionRequest('StartQuery', targets, options);
+        return this.makeLogActionRequest('StartQuery', targets);
       },
       startQueryRequests,
       timeoutFunc
@@ -128,7 +125,7 @@ export class CloudWatchLogsQueryRunner extends CloudWatchRequest {
         // This queries for the results
         this.logsQuery(
           frames.map((dataFrame) => ({
-            queryId: dataFrame.fields[0].values[0],
+            queryId: dataFrame.fields[0].values.get(0),
             region: dataFrame.meta?.custom?.['Region'] ?? 'default',
             refId: dataFrame.refId!,
             statsGroups: logQueries.find((target) => target.refId === dataFrame.refId)?.statsGroups,
@@ -270,12 +267,8 @@ export class CloudWatchLogsQueryRunner extends CloudWatchRequest {
     }
   }
 
-  makeLogActionRequest(
-    subtype: LogAction,
-    queryParams: CloudWatchLogsRequest[],
-    options?: DataQueryRequest<CloudWatchQuery>
-  ): Observable<DataFrame[]> {
-    const range = options?.range || this.timeSrv.timeRange();
+  makeLogActionRequest(subtype: LogAction, queryParams: CloudWatchLogsRequest[]): Observable<DataFrame[]> {
+    const range = this.timeSrv.timeRange();
 
     const requestParams = {
       from: range.from.valueOf().toString(),
@@ -302,7 +295,7 @@ export class CloudWatchLogsQueryRunner extends CloudWatchRequest {
     return this.awsRequest(this.dsQueryEndpoint, requestParams, {
       'X-Cache-Skip': 'true',
     }).pipe(
-      map((response) => resultsToDataFrames(response)),
+      map((response) => resultsToDataFrames({ data: response })),
       catchError((err: FetchError) => {
         if (config.featureToggles.datasourceQueryMultiStatus && err.status === 207) {
           throw err;
@@ -326,7 +319,7 @@ export class CloudWatchLogsQueryRunner extends CloudWatchRequest {
 
   getLogRowContext = async (
     row: LogRowModel,
-    { limit = 10, direction = LogRowContextQueryDirection.Backward }: LogRowContextOptions = {},
+    { limit = 10, direction = 'BACKWARD' }: RowContextOptions = {},
     query?: CloudWatchLogsQuery
   ): Promise<{ data: DataFrame[] }> => {
     let logStreamField = null;
@@ -348,13 +341,13 @@ export class CloudWatchLogsQueryRunner extends CloudWatchRequest {
 
     const requestParams: GetLogEventsRequest = {
       limit,
-      startFromHead: direction !== LogRowContextQueryDirection.Backward,
+      startFromHead: direction !== 'BACKWARD',
       region: query?.region,
-      logGroupName: parseLogGroupName(logField!.values[row.rowIndex]),
-      logStreamName: logStreamField!.values[row.rowIndex],
+      logGroupName: parseLogGroupName(logField!.values.get(row.rowIndex)),
+      logStreamName: logStreamField!.values.get(row.rowIndex),
     };
 
-    if (direction === LogRowContextQueryDirection.Backward) {
+    if (direction === 'BACKWARD') {
       requestParams.endTime = row.timeEpochMs;
     } else {
       requestParams.startTime = row.timeEpochMs;

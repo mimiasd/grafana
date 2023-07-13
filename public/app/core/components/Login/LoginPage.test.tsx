@@ -8,7 +8,6 @@ import { LoginPage } from './LoginPage';
 
 const postMock = jest.fn();
 jest.mock('@grafana/runtime', () => ({
-  ...jest.requireActual('@grafana/runtime'),
   __esModule: true,
   getBackendSrv: () => ({
     post: postMock,
@@ -52,7 +51,6 @@ describe('Login Page', () => {
     expect(screen.getByRole('link', { name: 'Sign up' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Sign up' })).toHaveAttribute('href', '/signup');
   });
-
   it('should pass validation checks for username field', async () => {
     render(<LoginPage />);
 
@@ -62,7 +60,6 @@ describe('Login Page', () => {
     await userEvent.type(screen.getByRole('textbox', { name: 'Username input field' }), 'admin');
     await waitFor(() => expect(screen.queryByText('Email or username is required')).not.toBeInTheDocument());
   });
-
   it('should pass validation checks for password field', async () => {
     render(<LoginPage />);
 
@@ -72,7 +69,6 @@ describe('Login Page', () => {
     await userEvent.type(screen.getByLabelText('Password input field'), 'admin');
     await waitFor(() => expect(screen.queryByText('Password is required')).not.toBeInTheDocument());
   });
-
   it('should navigate to default url if credentials is valid', async () => {
     Object.defineProperty(window, 'location', {
       value: {
@@ -86,12 +82,9 @@ describe('Login Page', () => {
     await userEvent.type(screen.getByLabelText('Password input field'), 'test');
     fireEvent.click(screen.getByLabelText('Login button'));
 
-    await waitFor(() =>
-      expect(postMock).toHaveBeenCalledWith('/login', { password: 'test', user: 'admin' }, { showErrorAlert: false })
-    );
+    await waitFor(() => expect(postMock).toHaveBeenCalledWith('/login', { password: 'test', user: 'admin' }));
     expect(window.location.assign).toHaveBeenCalledWith('/');
   });
-
   it('renders social logins correctly', () => {
     runtimeMock.config.oauth = {
       okta: {
@@ -103,49 +96,5 @@ describe('Login Page', () => {
     render(<LoginPage />);
 
     expect(screen.getByRole('link', { name: 'Sign in with Okta Test' })).toBeInTheDocument();
-  });
-
-  it('shows an error with incorrect password', async () => {
-    postMock.mockRejectedValueOnce({
-      data: {
-        message: 'Invalid username or password',
-        messageId: 'password-auth.failed',
-        statusCode: 400,
-      },
-      status: 400,
-      statusText: 'Bad Request',
-    });
-
-    render(<LoginPage />);
-
-    await userEvent.type(screen.getByLabelText('Username input field'), 'admin');
-    await userEvent.type(screen.getByLabelText('Password input field'), 'test');
-    await userEvent.click(screen.getByRole('button', { name: 'Login button' }));
-
-    expect(await screen.findByRole('alert', { name: 'Invalid username or password' })).toBeInTheDocument();
-  });
-
-  it('shows a different error with failed login attempts', async () => {
-    postMock.mockRejectedValueOnce({
-      data: {
-        message: 'Invalid username or password',
-        messageId: 'login-attempt.blocked',
-        statusCode: 401,
-      },
-      status: 401,
-      statusText: 'Unauthorized',
-    });
-
-    render(<LoginPage />);
-
-    await userEvent.type(screen.getByLabelText('Username input field'), 'admin');
-    await userEvent.type(screen.getByLabelText('Password input field'), 'test');
-    await userEvent.click(screen.getByRole('button', { name: 'Login button' }));
-
-    expect(
-      await screen.findByRole('alert', {
-        name: 'You have exceeded the number of login attempts for this user. Please try again later.',
-      })
-    ).toBeInTheDocument();
   });
 });

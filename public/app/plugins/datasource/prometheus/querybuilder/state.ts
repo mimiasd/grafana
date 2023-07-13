@@ -36,7 +36,7 @@ function getDefaultEditorMode(expr: string, defaultEditor: QueryEditorMode = Que
  * Returns query with defaults, and boolean true/false depending on change was required
  */
 export function getQueryWithDefaults(
-  query: PromQuery & { expr?: string },
+  query: PromQuery,
   app: CoreApp | undefined,
   defaultEditor?: QueryEditorMode
 ): PromQuery {
@@ -46,9 +46,7 @@ export function getQueryWithDefaults(
     result = { ...query, editorMode: getDefaultEditorMode(query.expr, defaultEditor) };
   }
 
-  // default query expr is now empty string, set in getDefaultQuery
-  // While expr is required in the types, it is not always defined at runtime, so we need to check for undefined and default to an empty string to prevent runtime errors
-  if (!query.expr) {
+  if (query.expr == null) {
     result = { ...result, expr: '', legendFormat: LegendFormatMode.Auto };
   }
 

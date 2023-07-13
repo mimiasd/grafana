@@ -184,32 +184,30 @@ func signRPMPackages(edition config.Edition, cfg config.Config, grafanaDir strin
 		return err
 	}
 
-	if len(rpms) > 0 {
-		rpmArgs := append([]string{"--addsign"}, rpms...)
-		log.Printf("Invoking rpm with args: %+v", rpmArgs)
+	rpmArgs := append([]string{"--addsign"}, rpms...)
+	log.Printf("Invoking rpm with args: %+v", rpmArgs)
+	//nolint:gosec
+	cmd := exec.Command("rpm", rpmArgs...)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to sign RPM packages: %s", output)
+	}
+	if err := os.Remove(cfg.GPGPassPath); err != nil {
+		return fmt.Errorf("failed to remove %q: %w", cfg.GPGPassPath, err)
+	}
+
+	log.Printf("Verifying %s RPM packages...", edition)
+	// The output changed between rpm versions
+	reOutput := regexp.MustCompile("(?:digests signatures OK)|(?:pgp.+OK)")
+	for _, p := range rpms {
 		//nolint:gosec
-		cmd := exec.Command("rpm", rpmArgs...)
-		if output, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("failed to sign RPM packages: %s", output)
-		}
-		if err := os.Remove(cfg.GPGPassPath); err != nil {
-			return fmt.Errorf("failed to remove %q: %w", cfg.GPGPassPath, err)
+		cmd := exec.Command("rpm", "-K", p)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("failed to verify RPM signature: %w", err)
 		}
 
-		log.Printf("Verifying %s RPM packages...", edition)
-		// The output changed between rpm versions
-		reOutput := regexp.MustCompile("(?:digests signatures OK)|(?:pgp.+OK)")
-		for _, p := range rpms {
-			//nolint:gosec
-			cmd := exec.Command("rpm", "-K", p)
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				return fmt.Errorf("failed to verify RPM signature: %w", err)
-			}
-
-			if !reOutput.Match(output) {
-				return fmt.Errorf("RPM package %q not verified: %s", p, output)
-			}
+		if !reOutput.Match(output) {
+			return fmt.Errorf("RPM package %q not verified: %s", p, output)
 		}
 	}
 
@@ -771,7 +769,8 @@ func realPackageVariant(ctx context.Context, v config.Variant, edition config.Ed
 		defaultFileSrc:         filepath.Join(grafanaDir, "packaging", "rpm", "sysconfig", "grafana-server"),
 		systemdFileSrc:         filepath.Join(grafanaDir, "packaging", "rpm", "systemd", "grafana-server.service"),
 		wrapperFilePath:        filepath.Join(grafanaDir, "packaging", "wrappers"),
-		depends:                []string{"/sbin/service", "fontconfig", "freetype", "urw-fonts"},
+		// chkconfig is depended on since our systemd service wraps a SysV init script, and that requires chkconfig
+		depends: []string{"/sbin/service", "chkconfig", "fontconfig", "freetype", "urw-fonts"},
 	}); err != nil {
 		return err
 	}

@@ -21,7 +21,6 @@ export interface RadioButtonGroupProps<T> {
   fullWidth?: boolean;
   className?: string;
   autoFocus?: boolean;
-  invalid?: boolean;
 }
 
 export function RadioButtonGroup<T>({
@@ -36,7 +35,6 @@ export function RadioButtonGroup<T>({
   className,
   fullWidth = false,
   autoFocus = false,
-  invalid = false,
 }: RadioButtonGroupProps<T>) {
   const handleOnChange = useCallback(
     (option: SelectableValue) => {
@@ -71,11 +69,10 @@ export function RadioButtonGroup<T>({
   }, [autoFocus]);
 
   return (
-    <div className={cx(styles.radioGroup, fullWidth && styles.fullWidth, invalid && styles.invalid, className)}>
+    <div className={cx(styles.radioGroup, fullWidth && styles.fullWidth, className)}>
       {options.map((opt, i) => {
         const isItemDisabled = disabledOptions && opt.value && disabledOptions.includes(opt.value);
         const icon = opt.icon ? toIconName(opt.icon) : undefined;
-        const hasNonIconPart = Boolean(opt.imgUrl || opt.label || opt.component);
 
         return (
           <RadioButton
@@ -92,7 +89,7 @@ export function RadioButtonGroup<T>({
             fullWidth={fullWidth}
             ref={value === opt.value ? activeButtonRef : undefined}
           >
-            {icon && <Icon name={icon} className={cx(hasNonIconPart && styles.icon)} />}
+            {icon && <Icon name={icon} className={styles.icon} />}
             {opt.imgUrl && <img src={opt.imgUrl} alt={opt.label} className={styles.img} />}
             {opt.label} {opt.component ? <opt.component /> : null}
           </RadioButton>
@@ -125,8 +122,5 @@ const getStyles = (theme: GrafanaTheme2) => {
       height: ${theme.spacing(2)};
       margin-right: ${theme.spacing(1)};
     `,
-    invalid: css({
-      border: `1px solid ${theme.colors.error.border}`,
-    }),
   };
 };

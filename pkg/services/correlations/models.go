@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
-	"github.com/grafana/grafana/pkg/services/quota"
 )
 
 var (
@@ -19,13 +17,6 @@ var (
 	ErrInvalidTransformationType          = errors.New("invalid transformation type")
 	ErrTransformationNotNested            = errors.New("transformations must be nested under config")
 	ErrTransformationRegexReqExp          = errors.New("regex transformations require expression")
-	ErrCorrelationsQuotaFailed            = errors.New("error getting correlations quota")
-	ErrCorrelationsQuotaReached           = errors.New("correlations quota reached")
-)
-
-const (
-	QuotaTargetSrv quota.TargetSrv = "correlations"
-	QuotaTarget    quota.Target    = "correlations"
 )
 
 type CorrelationConfigType string
@@ -73,11 +64,11 @@ type CorrelationConfig struct {
 	Type CorrelationConfigType `json:"type" binding:"Required"`
 	// Target data query
 	// required:true
-	// example: {"prop1":"value1","prop2":"value"}
+	// example: { "expr": "job=app" }
 	Target map[string]interface{} `json:"target" binding:"Required"`
 	// Source data transformations
 	// required:false
-	// example: [{"type":"logfmt"}]
+	// example: [{"type": "logfmt"}]
 	Transformations Transformations `json:"transformations,omitempty"`
 }
 
@@ -107,10 +98,10 @@ type Correlation struct {
 	// example: 50xhMlg9k
 	UID string `json:"uid" xorm:"pk 'uid'"`
 	// UID of the data source the correlation originates from
-	// example: d0oxYRg4z
+	// example:d0oxYRg4z
 	SourceUID string `json:"sourceUID" xorm:"pk 'source_uid'"`
 	// UID of the data source the correlation points to
-	// example: PE1C5CBDA0504A6A3
+	// example:PE1C5CBDA0504A6A3
 	TargetUID *string `json:"targetUID" xorm:"target_uid"`
 	// Label identifying the correlation
 	// example: My Label
@@ -120,13 +111,6 @@ type Correlation struct {
 	Description string `json:"description" xorm:"description"`
 	// Correlation Configuration
 	Config CorrelationConfig `json:"config" xorm:"jsonb config"`
-}
-
-type GetCorrelationsResponseBody struct {
-	Correlations []Correlation `json:"correlations"`
-	TotalCount   int64         `json:"totalCount"`
-	Page         int64         `json:"page"`
-	Limit        int64         `json:"limit"`
 }
 
 // CreateCorrelationResponse is the response struct for CreateCorrelationCommand
@@ -145,7 +129,7 @@ type CreateCorrelationCommand struct {
 	OrgId             int64  `json:"-"`
 	SkipReadOnlyCheck bool   `json:"-"`
 	// Target data source UID to which the correlation is created. required if config.type = query
-	// example: PE1C5CBDA0504A6A3
+	// example:PE1C5CBDA0504A6A3
 	TargetUID *string `json:"targetUID"`
 	// Optional label identifying the correlation
 	// example: My label
@@ -200,7 +184,7 @@ type CorrelationConfigUpdateDTO struct {
 	// Target type
 	Type *CorrelationConfigType `json:"type"`
 	// Target data query
-	// example: {"prop1":"value1","prop2":"value"}
+	// example: { "expr": "job=app" }
 	Target *map[string]interface{} `json:"target"`
 	// Source data transformations
 	// example: [{"type": "logfmt"},{"type":"regex","expression":"(Superman|Batman)", "variable":"name"}]
@@ -267,21 +251,6 @@ type GetCorrelationsBySourceUIDQuery struct {
 // GetCorrelationsQuery is the query to retrieve all correlations
 type GetCorrelationsQuery struct {
 	OrgId int64 `json:"-"`
-	// Limit the maximum number of correlations to return per page
-	// in:query
-	// required:false
-	// default:100
-	Limit int64 `json:"limit"`
-	// Page index for starting fetching correlations
-	// in:query
-	// required:false
-	// default:1
-	Page int64 `json:"page"`
-
-	// Source datasource UID filter to be applied to correlations
-	// in:query
-	// required:false
-	SourceUIDs []string `json:"sourceuid"`
 }
 
 type DeleteCorrelationsBySourceUIDCommand struct {

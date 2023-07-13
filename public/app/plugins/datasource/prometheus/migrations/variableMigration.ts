@@ -1,13 +1,9 @@
-import { promQueryModeller } from '../querybuilder/PromQueryModeller';
-import { buildVisualQueryFromString } from '../querybuilder/parsing';
 import { PromVariableQuery, PromVariableQueryType as QueryType } from '../types';
 
-export const PrometheusLabelNamesRegex = /^label_names\(\)\s*$/;
-// Note that this regex is different from the one in metric_find_query.ts because this is used pre-interpolation
-export const PrometheusLabelValuesRegex = /^label_values\((?:(.+),\s*)?([a-zA-Z_$][a-zA-Z0-9_]*)\)\s*$/;
-export const PrometheusMetricNamesRegex = /^metrics\((.+)\)\s*$/;
-export const PrometheusQueryResultRegex = /^query_result\((.+)\)\s*$/;
-export const PrometheusLabelNamesRegexWithMatch = /^label_names\((.+)\)\s*$/;
+const labelNamesRegex = /^label_names\(\)\s*$/;
+const labelValuesRegex = /^label_values\((?:(.+),\s*)?([a-zA-Z_][a-zA-Z0-9_]*)\)\s*$/;
+const metricNamesRegex = /^metrics\((.+)\)\s*$/;
+const queryResultRegex = /^query_result\((.+)\)\s*$/;
 
 export function migrateVariableQueryToEditor(rawQuery: string | PromVariableQuery): PromVariableQuery {
   // If not string, we assume PromVariableQuery
@@ -20,17 +16,7 @@ export function migrateVariableQueryToEditor(rawQuery: string | PromVariableQuer
     qryType: QueryType.LabelNames,
   };
 
-  const labelNamesMatchQuery = rawQuery.match(PrometheusLabelNamesRegexWithMatch);
-
-  if (labelNamesMatchQuery) {
-    return {
-      ...queryBase,
-      qryType: QueryType.LabelNames,
-      match: labelNamesMatchQuery[1],
-    };
-  }
-
-  const labelNames = rawQuery.match(PrometheusLabelNamesRegex);
+  const labelNames = rawQuery.match(labelNamesRegex);
   if (labelNames) {
     return {
       ...queryBase,
@@ -38,20 +24,17 @@ export function migrateVariableQueryToEditor(rawQuery: string | PromVariableQuer
     };
   }
 
-  const labelValues = rawQuery.match(PrometheusLabelValuesRegex);
+  const labelValues = rawQuery.match(labelValuesRegex);
 
   if (labelValues) {
     const label = labelValues[2];
     const metric = labelValues[1];
-
     if (metric) {
-      const visQuery = buildVisualQueryFromString(metric);
       return {
         ...queryBase,
         qryType: QueryType.LabelValues,
         label,
-        metric: visQuery.query.metric,
-        labelFilters: visQuery.query.labels,
+        metric,
       };
     } else {
       return {
@@ -62,7 +45,7 @@ export function migrateVariableQueryToEditor(rawQuery: string | PromVariableQuer
     }
   }
 
-  const metricNames = rawQuery.match(PrometheusMetricNamesRegex);
+  const metricNames = rawQuery.match(metricNamesRegex);
   if (metricNames) {
     return {
       ...queryBase,
@@ -71,7 +54,7 @@ export function migrateVariableQueryToEditor(rawQuery: string | PromVariableQuer
     };
   }
 
-  const queryResult = rawQuery.match(PrometheusQueryResultRegex);
+  const queryResult = rawQuery.match(queryResultRegex);
   if (queryResult) {
     return {
       ...queryBase,
@@ -96,20 +79,10 @@ export function migrateVariableQueryToEditor(rawQuery: string | PromVariableQuer
 export function migrateVariableEditorBackToVariableSupport(QueryVariable: PromVariableQuery): string {
   switch (QueryVariable.qryType) {
     case QueryType.LabelNames:
-      if (QueryVariable.match) {
-        return `label_names(${QueryVariable.match})`;
-      }
       return 'label_names()';
     case QueryType.LabelValues:
       if (QueryVariable.metric) {
-        const visualQueryQuery = {
-          metric: QueryVariable.metric,
-          labels: QueryVariable.labelFilters ?? [],
-          operations: [],
-        };
-
-        const metric = promQueryModeller.renderQuery(visualQueryQuery);
-        return `label_values(${metric},${QueryVariable.label})`;
+        return `label_values(${QueryVariable.metric},${QueryVariable.label})`;
       } else {
         return `label_values(${QueryVariable.label})`;
       }

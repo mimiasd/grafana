@@ -9,16 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/benbjohnson/clock"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/grafana/grafana/pkg/infra/log"
-	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/grafana/grafana/pkg/services/annotations"
 	"github.com/grafana/grafana/pkg/services/dashboards"
 	"github.com/grafana/grafana/pkg/services/ngalert/eval"
-	"github.com/grafana/grafana/pkg/services/ngalert/metrics"
 	ngmodels "github.com/grafana/grafana/pkg/services/ngalert/models"
 	"github.com/grafana/grafana/pkg/services/ngalert/state"
 	history_model "github.com/grafana/grafana/pkg/services/ngalert/state/historian/model"
@@ -26,70 +23,40 @@ import (
 
 // AnnotationBackend is an implementation of state.Historian that uses Grafana Annotations as the backing datastore.
 type AnnotationBackend struct {
-	annotations AnnotationStore
+	annotations annotations.Repository
 	dashboards  *dashboardResolver
 	rules       RuleStore
-	clock       clock.Clock
-	metrics     *metrics.Historian
 	log         log.Logger
 }
 
 type RuleStore interface {
-	GetAlertRuleByUID(ctx context.Context, query *ngmodels.GetAlertRuleByUIDQuery) (*ngmodels.AlertRule, error)
+	GetAlertRuleByUID(ctx context.Context, query *ngmodels.GetAlertRuleByUIDQuery) error
 }
 
-type AnnotationStore interface {
-	Find(ctx context.Context, query *annotations.ItemQuery) ([]*annotations.ItemDTO, error)
-	SaveMany(ctx context.Context, items []annotations.Item) error
-}
-
-func NewAnnotationBackend(annotations AnnotationStore, dashboards dashboards.DashboardService, rules RuleStore, metrics *metrics.Historian) *AnnotationBackend {
-	logger := log.New("ngalert.state.historian", "backend", "annotations")
+func NewAnnotationBackend(annotations annotations.Repository, dashboards dashboards.DashboardService, rules RuleStore) *AnnotationBackend {
 	return &AnnotationBackend{
 		annotations: annotations,
 		dashboards:  newDashboardResolver(dashboards, defaultDashboardCacheExpiry),
 		rules:       rules,
-		clock:       clock.New(),
-		metrics:     metrics,
-		log:         logger,
+		log:         log.New("ngalert.state.historian"),
 	}
 }
 
-// Record writes a number of state transitions for a given rule to state history.
-func (h *AnnotationBackend) Record(ctx context.Context, rule history_model.RuleMeta, states []state.StateTransition) <-chan error {
+// RecordStates writes a number of state transitions for a given rule to state history.
+func (h *AnnotationBackend) RecordStatesAsync(ctx context.Context, rule history_model.RuleMeta, states []state.StateTransition) <-chan error {
 	logger := h.log.FromContext(ctx)
 	// Build annotations before starting goroutine, to make sure all data is copied and won't mutate underneath us.
 	annotations := buildAnnotations(rule, states, logger)
 	panel := parsePanelKey(rule, logger)
-
 	errCh := make(chan error, 1)
-	if len(annotations) == 0 {
-		close(errCh)
-		return errCh
-	}
-
-	// This is a new background job, so let's create a brand new context for it.
-	// We want it to be isolated, i.e. we don't want grafana shutdowns to interrupt this work
-	// immediately but rather try to flush writes.
-	// This also prevents timeouts or other lingering objects (like transactions) from being
-	// incorrectly propagated here from other areas.
-	writeCtx := context.Background()
-	writeCtx, cancel := context.WithTimeout(writeCtx, StateHistoryWriteTimeout)
-	writeCtx = history_model.WithRuleData(writeCtx, rule)
-	writeCtx = tracing.ContextWithSpan(writeCtx, tracing.SpanFromContext(ctx))
-
-	go func(ctx context.Context) {
-		defer cancel()
+	go func() {
 		defer close(errCh)
-		logger := h.log.FromContext(ctx)
-
-		errCh <- h.recordAnnotations(ctx, panel, annotations, rule.OrgID, logger)
-	}(writeCtx)
+		errCh <- h.recordAnnotationsSync(ctx, panel, annotations, logger)
+	}()
 	return errCh
 }
 
-// Query filters state history annotations and formats them into a dataframe.
-func (h *AnnotationBackend) Query(ctx context.Context, query ngmodels.HistoryQuery) (*data.Frame, error) {
+func (h *AnnotationBackend) QueryStates(ctx context.Context, query ngmodels.HistoryQuery) (*data.Frame, error) {
 	logger := h.log.FromContext(ctx)
 	if query.RuleUID == "" {
 		return nil, fmt.Errorf("ruleUID is required to query annotations")
@@ -103,16 +70,16 @@ func (h *AnnotationBackend) Query(ctx context.Context, query ngmodels.HistoryQue
 		UID:   query.RuleUID,
 		OrgID: query.OrgID,
 	}
-	rule, err := h.rules.GetAlertRuleByUID(ctx, &rq)
+	err := h.rules.GetAlertRuleByUID(ctx, &rq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to look up the requested rule")
 	}
-	if rule == nil {
+	if rq.Result == nil {
 		return nil, fmt.Errorf("no such rule exists")
 	}
 
 	q := annotations.ItemQuery{
-		AlertID:      rule.ID,
+		AlertID:      rq.Result.ID,
 		OrgID:        query.OrgID,
 		From:         query.From.Unix(),
 		To:           query.To.Unix(),
@@ -198,7 +165,7 @@ func buildAnnotations(rule history_model.RuleMeta, states []state.StateTransitio
 	return items
 }
 
-func (h *AnnotationBackend) recordAnnotations(ctx context.Context, panel *panelKey, annotations []annotations.Item, orgID int64, logger log.Logger) error {
+func (h *AnnotationBackend) recordAnnotationsSync(ctx context.Context, panel *panelKey, annotations []annotations.Item, logger log.Logger) error {
 	if panel != nil {
 		dashID, err := h.dashboards.getID(ctx, panel.orgID, panel.dashUID)
 		if err != nil {
@@ -212,13 +179,8 @@ func (h *AnnotationBackend) recordAnnotations(ctx context.Context, panel *panelK
 		}
 	}
 
-	org := fmt.Sprint(orgID)
-	h.metrics.WritesTotal.WithLabelValues(org, "annotations").Inc()
-	h.metrics.TransitionsTotal.WithLabelValues(org).Add(float64(len(annotations)))
 	if err := h.annotations.SaveMany(ctx, annotations); err != nil {
 		logger.Error("Error saving alert annotation batch", "error", err)
-		h.metrics.WritesFailed.WithLabelValues(org, "annotations").Inc()
-		h.metrics.TransitionsFailed.WithLabelValues(org).Add(float64(len(annotations)))
 		return fmt.Errorf("error saving alert annotation batch: %w", err)
 	}
 

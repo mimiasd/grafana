@@ -8,7 +8,6 @@ import {
   standardTransformers,
   TransformerRegistryItem,
   TransformerUIProps,
-  TransformerCategory,
 } from '@grafana/data';
 import { createOrderFieldsComparer } from '@grafana/data/src/transformations/transformers/order';
 import { OrganizeFieldsTransformerOptions } from '@grafana/data/src/transformations/transformers/organize';
@@ -146,7 +145,6 @@ const DraggableFieldName = ({
                 size="md"
                 name={visible ? 'eye' : 'eye-slash'}
                 onClick={() => onToggleVisibility(fieldName, visible)}
-                tooltip={visible ? 'Disable' : 'Enable'}
               />
               <span className={styles.name} title={fieldName}>
                 {fieldName}
@@ -213,5 +211,4 @@ export const organizeFieldsTransformRegistryItem: TransformerRegistryItem<Organi
   name: 'Organize fields',
   description:
     "Allows the user to re-order, hide, or rename fields / columns. Useful when data source doesn't allow overrides for visualizing data.",
-  categories: new Set([TransformerCategory.ReorderAndRename]),
 };

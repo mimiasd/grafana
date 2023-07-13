@@ -14,26 +14,15 @@ export function importPanelPlugin(id: string): Promise<PanelPlugin> {
     return loaded;
   }
 
-  const meta = getPanelPluginMeta(id);
+  const meta = config.panels[id];
 
   if (!meta) {
     throw new Error(`Plugin ${id} not found`);
   }
 
   promiseCache[id] = getPanelPlugin(meta);
-  if (id !== meta.type) {
-    promiseCache[meta.type] = promiseCache[id];
-  }
 
   return promiseCache[id];
-}
-
-export function hasPanelPlugin(id: string): boolean {
-  return !!getPanelPluginMeta(id);
-}
-
-export function getPanelPluginMeta(id: string): PanelPluginMeta {
-  return config.panels[id] || Object.values(config.panels).find((p) => p.alias === id);
 }
 
 export function importPanelPluginFromMeta(meta: PanelPluginMeta): Promise<PanelPlugin> {
@@ -45,12 +34,7 @@ export function syncGetPanelPlugin(id: string): PanelPlugin | undefined {
 }
 
 function getPanelPlugin(meta: PanelPluginMeta): Promise<PanelPlugin> {
-  return importPluginModule({
-    path: meta.module,
-    version: meta.info?.version,
-    isAngular: meta.angularDetected,
-    pluginId: meta.id,
-  })
+  return importPluginModule(meta.module, meta.info?.version)
     .then((pluginExports) => {
       if (pluginExports.plugin) {
         return pluginExports.plugin as PanelPlugin;

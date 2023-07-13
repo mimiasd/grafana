@@ -52,9 +52,8 @@ func (hs *HTTPServer) populateDashboardsByTag(ctx context.Context, orgID int64, 
 			OrgId:        orgID,
 		}
 
-		hits, err := hs.SearchService.SearchHandler(ctx, &searchQuery)
-		if err == nil {
-			for _, item := range hits {
+		if err := hs.SearchService.SearchHandler(ctx, &searchQuery); err == nil {
+			for _, item := range searchQuery.Result {
 				result = append(result, dtos.PlaylistDashboard{
 					Id:    item.ID,
 					Slug:  item.Slug,

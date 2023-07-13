@@ -2,8 +2,8 @@ import { dateTime } from '../datetime/moment_wrapper';
 import { DataFrameDTO, FieldType, TableData, TimeSeries } from '../types/index';
 
 import { ArrayDataFrame } from './ArrayDataFrame';
+import { MutableDataFrame } from './MutableDataFrame';
 import {
-  createDataFrame,
   guessFieldTypeFromValue,
   guessFieldTypes,
   isDataFrame,
@@ -83,9 +83,10 @@ describe('toDataFrame', () => {
       { a: 1, b: 2 },
       { a: 3, b: 4 },
     ];
-    const array = new ArrayDataFrame(orig); // will return a simple DataFrame
+    const array = new ArrayDataFrame(orig);
     const frame = toDataFrame(array);
     expect(frame).toEqual(array);
+    expect(frame instanceof ArrayDataFrame).toEqual(true);
     expect(frame.length).toEqual(orig.length);
     expect(frame.fields.map((f) => f.name)).toEqual(['a', 'b']);
   });
@@ -130,7 +131,7 @@ describe('toDataFrame', () => {
   });
 
   it('Guess Column Types from series', () => {
-    const series = createDataFrame({
+    const series = new MutableDataFrame({
       fields: [
         { name: 'A (number)', values: [123, null] },
         { name: 'B (strings)', values: [null, 'Hello'] },
@@ -197,7 +198,7 @@ describe('toDataFrame', () => {
       },
     };
     const dataFrame = toDataFrame(msg);
-    expect(dataFrame.fields.map((f) => ({ [f.name]: f.values }))).toMatchInlineSnapshot(`
+    expect(dataFrame.fields.map((f) => ({ [f.name]: f.values.toArray() }))).toMatchInlineSnapshot(`
       [
         {
           "First": [
@@ -365,14 +366,14 @@ describe('sorted DataFrame', () => {
   it('Should sort numbers', () => {
     const sorted = sortDataFrame(frame, 0, true);
     expect(sorted.length).toEqual(3);
-    expect(sorted.fields[0].values).toEqual([3, 2, 1]);
-    expect(sorted.fields[1].values).toEqual(['c', 'b', 'a']);
+    expect(sorted.fields[0].values.toArray()).toEqual([3, 2, 1]);
+    expect(sorted.fields[1].values.toArray()).toEqual(['c', 'b', 'a']);
   });
 
   it('Should sort strings', () => {
     const sorted = sortDataFrame(frame, 1, true);
     expect(sorted.length).toEqual(3);
-    expect(sorted.fields[0].values).toEqual([3, 2, 1]);
-    expect(sorted.fields[1].values).toEqual(['c', 'b', 'a']);
+    expect(sorted.fields[0].values.toArray()).toEqual([3, 2, 1]);
+    expect(sorted.fields[1].values.toArray()).toEqual(['c', 'b', 'a']);
   });
 });

@@ -7,7 +7,7 @@ import { Menu, Dropdown, useStyles2, useTheme2, ToolbarButton } from '@grafana/u
 import { useMediaQueryChange } from 'app/core/hooks/useMediaQueryChange';
 import { useSelector } from 'app/types';
 
-import { NavToolbarSeparator } from '../NavToolbar/NavToolbarSeparator';
+import { NavToolbarSeparator } from '../NavToolbarSeparator';
 
 import { findCreateActions } from './utils';
 
@@ -19,7 +19,6 @@ export const QuickAdd = ({}: Props) => {
   const navBarTree = useSelector((state) => state.navBarTree);
   const breakpoint = theme.breakpoints.values.sm;
 
-  const [isOpen, setIsOpen] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(!window.matchMedia(`(min-width: ${breakpoint}px)`).matches);
   const createActions = useMemo(() => findCreateActions(navBarTree), [navBarTree]);
 
@@ -47,13 +46,14 @@ export const QuickAdd = ({}: Props) => {
 
   return createActions.length > 0 ? (
     <>
-      <Dropdown overlay={MenuActions} placement="bottom-end" onVisibleChange={setIsOpen}>
-        <ToolbarButton
-          iconOnly
-          icon={isSmallScreen ? 'plus-circle' : 'plus'}
-          isOpen={isSmallScreen ? undefined : isOpen}
-          aria-label="New"
-        />
+      <Dropdown overlay={MenuActions} placement="bottom-end">
+        {(isOpen) =>
+          isSmallScreen ? (
+            <ToolbarButton iconOnly icon="plus-circle" aria-label="New" />
+          ) : (
+            <ToolbarButton iconOnly icon="plus" isOpen={isOpen} aria-label="New" />
+          )
+        }
       </Dropdown>
       <NavToolbarSeparator className={styles.separator} />
     </>

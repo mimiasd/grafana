@@ -182,7 +182,7 @@ function getTransformsRow(saveModel: any): string {
     return '';
   }
   return `<tr>
-      <th>Transform</th>
+      <th>Transforms (${saveModel.transformations.length})</th>
       <td>${saveModel.transformations.map((t: DataTransformerConfig) => t.id).join(', ')}</td>
   </tr>`;
 }

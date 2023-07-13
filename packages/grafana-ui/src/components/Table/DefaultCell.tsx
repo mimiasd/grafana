@@ -1,5 +1,5 @@
 import { cx } from '@emotion/css';
-import React, { ReactElement } from 'react';
+import React, { FC, ReactElement } from 'react';
 import tinycolor from 'tinycolor2';
 
 import { DisplayValue, formattedValueToString } from '@grafana/data';
@@ -7,7 +7,7 @@ import { TableCellBackgroundDisplayMode, TableCellOptions } from '@grafana/schem
 
 import { useStyles2 } from '../../themes';
 import { getCellLinks, getTextColorForAlphaBackground } from '../../utils';
-import { clearLinkButtonStyles } from '../Button';
+import { Button, clearLinkButtonStyles } from '../Button';
 import { DataLinksContextMenu } from '../DataLinks/DataLinksContextMenu';
 
 import { CellActions } from './CellActions';
@@ -15,7 +15,7 @@ import { TableStyles } from './styles';
 import { TableCellDisplayMode, TableCellProps, TableFieldOptions } from './types';
 import { getCellOptions } from './utils';
 
-export const DefaultCell = (props: TableCellProps) => {
+export const DefaultCell: FC<TableCellProps> = (props) => {
   const { field, cell, tableStyles, row, cellProps } = props;
 
   const inspectEnabled = Boolean((field.config.custom as TableFieldOptions)?.inspect);
@@ -42,17 +42,15 @@ export const DefaultCell = (props: TableCellProps) => {
       {hasLinks && (
         <DataLinksContextMenu links={() => getCellLinks(field, row) || []}>
           {(api) => {
+            const content = <div className={getLinkStyle(tableStyles, cellOptions, api.targetClassName)}>{value}</div>;
             if (api.openMenu) {
               return (
-                <button
-                  className={cx(clearButtonStyle, getLinkStyle(tableStyles, cellOptions, api.targetClassName))}
-                  onClick={api.openMenu}
-                >
-                  {value}
-                </button>
+                <Button className={cx(clearButtonStyle)} onClick={api.openMenu}>
+                  {content}
+                </Button>
               );
             } else {
-              return <div className={getLinkStyle(tableStyles, cellOptions, api.targetClassName)}>{value}</div>;
+              return content;
             }
           }}
         </DataLinksContextMenu>
@@ -79,12 +77,10 @@ function getCellStyle(
   if (cellOptions.type === TableCellDisplayMode.ColorText) {
     textColor = displayValue.color;
   } else if (cellOptions.type === TableCellDisplayMode.ColorBackground) {
-    const mode = cellOptions.mode ?? TableCellBackgroundDisplayMode.Gradient;
-
-    if (mode === TableCellBackgroundDisplayMode.Basic) {
+    if (cellOptions.mode === TableCellBackgroundDisplayMode.Basic) {
       textColor = getTextColorForAlphaBackground(displayValue.color!, tableStyles.theme.isDark);
       bgColor = tinycolor(displayValue.color).toRgbString();
-    } else if (mode === TableCellBackgroundDisplayMode.Gradient) {
+    } else if (cellOptions.mode === TableCellBackgroundDisplayMode.Gradient) {
       const bgColor2 = tinycolor(displayValue.color)
         .darken(10 * darkeningFactor)
         .spin(5);

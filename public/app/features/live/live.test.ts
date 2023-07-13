@@ -99,19 +99,25 @@ describe('GrafanaLiveService', () => {
         config: {},
         name: 'time',
         type: FieldType.time,
-        values: [100, 101],
+        values: {
+          buffer: [100, 101],
+        },
       },
       {
         config: {},
         name: 'a',
         type: FieldType.string,
-        values: ['a', 'b'],
+        values: {
+          buffer: ['a', 'b'],
+        },
       },
       {
         config: {},
         name: 'b',
         type: FieldType.number,
-        values: [1, 2],
+        values: {
+          buffer: [1, 2],
+        },
       },
     ]);
   });

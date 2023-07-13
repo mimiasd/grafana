@@ -14,8 +14,6 @@ export interface TokenTypes {
   Number: string;
   String: string;
   Variable: string;
-  Comment: string;
-  Regexp: string;
 }
 
 export enum StatementPosition {

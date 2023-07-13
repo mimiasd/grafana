@@ -82,7 +82,7 @@ describe('Read GeoJSON', () => {
     expect(
       frame.fields.reduce<Record<string, unknown[]>>((acc, v, idx, arr) => {
         if (v.type !== FieldType.geo) {
-          acc[v.name] = v.values;
+          acc[v.name] = v.values.toArray();
         }
         return acc;
       }, {})

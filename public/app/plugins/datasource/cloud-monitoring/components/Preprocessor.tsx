@@ -1,12 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { FunctionComponent, useMemo } from 'react';
 
 import { SelectableValue } from '@grafana/data';
 import { EditorField } from '@grafana/experimental';
 import { RadioButtonGroup } from '@grafana/ui';
 
 import { getAlignmentPickerData } from '../functions';
-import { PreprocessorType, TimeSeriesList, MetricKind, ValueTypes } from '../types/query';
-import { MetricDescriptor } from '../types/types';
+import { MetricDescriptor, MetricKind, PreprocessorType, TimeSeriesList, ValueTypes } from '../types';
 
 const NONE_OPTION = { label: 'None', value: PreprocessorType.None };
 
@@ -16,7 +15,7 @@ export interface Props {
   query: TimeSeriesList;
 }
 
-export const Preprocessor = ({ query, metricDescriptor, onChange }: Props) => {
+export const Preprocessor: FunctionComponent<Props> = ({ query, metricDescriptor, onChange }) => {
   const options = useOptions(metricDescriptor);
 
   return (

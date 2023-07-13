@@ -111,11 +111,6 @@ export const CustomScrollbar = ({
   }, []);
 
   const renderView = useCallback((passedProps: JSX.IntrinsicElements['div']) => {
-    // fixes issues of visibility on safari and ios devices
-    if (passedProps.style && passedProps.style['WebkitOverflowScrolling'] === 'touch') {
-      passedProps.style['WebkitOverflowScrolling'] = 'auto';
-    }
-
     return <div {...passedProps} className="scrollbar-view" />;
   }, []);
 

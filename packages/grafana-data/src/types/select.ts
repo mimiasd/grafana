@@ -12,7 +12,6 @@ export interface SelectableValue<T = any> {
   // Adds a simple native title attribute to each option.
   title?: string;
   // Optional component that will be shown together with other options. Does not get past any props.
-  component?: React.ComponentType;
-  isDisabled?: boolean;
+  component?: React.ComponentType<any>;
   [key: string]: any;
 }

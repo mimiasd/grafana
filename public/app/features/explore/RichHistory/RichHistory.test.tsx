@@ -4,6 +4,8 @@ import React from 'react';
 import { GrafanaTheme2 } from '@grafana/data';
 import { SortOrder } from 'app/core/utils/richHistory';
 
+import { ExploreId } from '../../../types/explore';
+
 import { RichHistory, RichHistoryProps, Tabs } from './RichHistory';
 
 jest.mock('../state/selectors', () => ({ getExploreDatasources: jest.fn() }));
@@ -22,7 +24,7 @@ jest.mock('@grafana/runtime', () => ({
 const setup = (propOverrides?: Partial<RichHistoryProps>) => {
   const props: RichHistoryProps = {
     theme: {} as GrafanaTheme2,
-    exploreId: 'left',
+    exploreId: ExploreId.left,
     height: 100,
     activeDatasourceInstance: 'Test datasource',
     richHistory: [],

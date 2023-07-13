@@ -2,11 +2,12 @@ import React, { PureComponent } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 
 // Utils
-import { InlineField, InlineSwitch, VerticalGroup, Modal, Button } from '@grafana/ui';
+import { locationService } from '@grafana/runtime';
+import { InlineField, InlineSwitch, VerticalGroup } from '@grafana/ui';
 import { Page } from 'app/core/components/Page/Page';
 import { contextSrv } from 'app/core/core';
 import { getTimeZone } from 'app/features/profile/state/selectors';
-import { AccessControlAction, ApiKey, ApikeyMigrationResult, StoreState } from 'app/types';
+import { AccessControlAction, ApiKey, StoreState } from 'app/types';
 
 import { ApiKeysActionBar } from './ApiKeysActionBar';
 import { ApiKeysTable } from './ApiKeysTable';
@@ -17,6 +18,7 @@ import { getApiKeys, getApiKeysCount, getIncludeExpired, getIncludeExpiredDisabl
 
 function mapStateToProps(state: StoreState) {
   const canCreate = contextSrv.hasAccess(AccessControlAction.ActionAPIKeysCreate, true);
+
   return {
     apiKeys: getApiKeys(state.apiKeys),
     searchQuery: state.apiKeys.searchQuery,
@@ -26,7 +28,6 @@ function mapStateToProps(state: StoreState) {
     includeExpired: getIncludeExpired(state.apiKeys),
     includeExpiredDisabled: getIncludeExpiredDisabled(state.apiKeys),
     canCreate: canCreate,
-    migrationResult: state.apiKeys.migrationResult,
   };
 }
 
@@ -50,15 +51,12 @@ interface OwnProps {}
 export type Props = OwnProps & ConnectedProps<typeof connector>;
 
 interface State {
-  showMigrationResult: boolean;
+  isAdding: boolean;
 }
 
 export class ApiKeysPageUnconnected extends PureComponent<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = {
-      showMigrationResult: false,
-    };
   }
 
   componentDidMount() {
@@ -71,6 +69,10 @@ export class ApiKeysPageUnconnected extends PureComponent<Props, State> {
 
   onDeleteApiKey = (key: ApiKey) => {
     this.props.deleteApiKey(key.id!);
+  };
+
+  onMigrateAll = () => {
+    this.props.migrateAll();
   };
 
   onMigrateApiKey = (key: ApiKey) => {
@@ -87,17 +89,13 @@ export class ApiKeysPageUnconnected extends PureComponent<Props, State> {
 
   onMigrateApiKeys = async () => {
     try {
-      await this.props.migrateAll();
-      this.setState({
-        showMigrationResult: true,
-      });
+      this.onMigrateAll();
+      let serviceAccountsUrl = '/org/serviceaccounts';
+      locationService.push(serviceAccountsUrl);
+      window.location.reload();
     } catch (err) {
       console.error(err);
     }
-  };
-
-  dismissModal = async () => {
-    this.setState({ showMigrationResult: false });
   };
 
   render() {
@@ -110,7 +108,6 @@ export class ApiKeysPageUnconnected extends PureComponent<Props, State> {
       includeExpired,
       includeExpiredDisabled,
       canCreate,
-      migrationResult,
     } = this.props;
 
     if (!hasFetched) {
@@ -149,91 +146,10 @@ export class ApiKeysPageUnconnected extends PureComponent<Props, State> {
             ) : null}
           </>
         </Page.Contents>
-        {migrationResult && (
-          <MigrationSummary
-            visible={this.state.showMigrationResult}
-            data={migrationResult}
-            onDismiss={this.dismissModal}
-          />
-        )}
       </Page>
     );
   }
 }
-export type MigrationSummaryProps = {
-  visible: boolean;
-  data: ApikeyMigrationResult;
-  onDismiss: () => void;
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  migrationSummary: {
-    padding: '20px',
-  },
-  infoText: {
-    color: '#007bff',
-  },
-  summaryDetails: {
-    marginTop: '20px',
-  },
-  summaryParagraph: {
-    margin: '10px 0',
-  },
-};
-
-export const MigrationSummary: React.FC<MigrationSummaryProps> = ({ visible, data, onDismiss }) => {
-  return (
-    <Modal title="Migration summary" isOpen={visible} closeOnBackdropClick={true} onDismiss={onDismiss}>
-      {data.failedApikeyIDs.length === 0 && (
-        <div style={styles.migrationSummary}>
-          <p>Migration Successful!</p>
-          <p>
-            <strong>Total: </strong>
-            {data.total}
-          </p>
-          <p>
-            <strong>Migrated: </strong>
-            {data.migrated}
-          </p>
-        </div>
-      )}
-      {data.failedApikeyIDs.length !== 0 && (
-        <div style={styles.migrationSummary}>
-          <p>
-            Migration Complete! Please note, while there might be a few API keys flagged as `failed migrations`, rest
-            assured, all of your API keys are fully functional and operational. Please try again or contact support.
-          </p>
-          <hr />
-          <p>
-            <strong>Total: </strong>
-            {data.total}
-          </p>
-          <p>
-            <strong>Migrated: </strong>
-            {data.migrated}
-          </p>
-          <p>
-            <strong>Failed: </strong>
-            {data.failed}
-          </p>
-          <p>
-            <strong>Failed Api Key IDs: </strong>
-            {data.failedApikeyIDs.join(', ')}
-          </p>
-          <p>
-            <strong>Failed Details: </strong>
-            {data.failedDetails.join(', ')}
-          </p>
-        </div>
-      )}
-      <Modal.ButtonRow>
-        <Button variant="secondary" onClick={onDismiss}>
-          Close
-        </Button>
-      </Modal.ButtonRow>
-    </Modal>
-  );
-};
 
 const ApiKeysPage = connector(ApiKeysPageUnconnected);
 export default ApiKeysPage;

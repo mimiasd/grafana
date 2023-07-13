@@ -1,13 +1,10 @@
-import { css } from '@emotion/css';
 import React from 'react';
 
 import { PanelData, QueryResultMetaStat, TimeZone } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
-import { config } from '@grafana/runtime';
 import { t } from 'app/core/internationalization';
 
 import { InspectStatsTable } from './InspectStatsTable';
-import { InspectStatsTraceIdsTable } from './InspectStatsTraceIdsTable';
 
 interface InspectStatsTabProps {
   data: PanelData;
@@ -18,6 +15,7 @@ export const InspectStatsTab = ({ data, timeZone }: InspectStatsTabProps) => {
   if (!data.request) {
     return null;
   }
+
   let stats: QueryResultMetaStat[] = [];
 
   const requestTime = data.request.endTime ? data.request.endTime - data.request.startTime : -1;
@@ -44,7 +42,7 @@ export const InspectStatsTab = ({ data, timeZone }: InspectStatsTabProps) => {
   }
   stats.push({
     displayName: t('dashboard.inspect-stats.queries', 'Number of queries'),
-    value: data.request.targets?.length ?? 0,
+    value: data.request.targets.length,
   });
   stats.push({
     displayName: t('dashboard.inspect-stats.rows', 'Total number rows'),
@@ -61,20 +59,11 @@ export const InspectStatsTab = ({ data, timeZone }: InspectStatsTabProps) => {
 
   const statsTableName = t('dashboard.inspect-stats.table-title', 'Stats');
   const dataStatsTableName = t('dashboard.inspect-stats.data-title', 'Data source stats');
-  const traceIdsStatsTableName = t('dashboard.inspect-stats.data-traceids', 'Trace IDs');
 
   return (
-    <div aria-label={selectors.components.PanelInspector.Stats.content} className={containerStyles}>
+    <div aria-label={selectors.components.PanelInspector.Stats.content}>
       <InspectStatsTable timeZone={timeZone} name={statsTableName} stats={stats} />
       <InspectStatsTable timeZone={timeZone} name={dataStatsTableName} stats={dataStats} />
-      {config.featureToggles.showTraceId && (
-        <InspectStatsTraceIdsTable name={traceIdsStatsTableName} traceIds={data.traceIds ?? []} />
-      )}
     </div>
   );
 };
-
-const containerStyles = css`
-  height: 100%;
-  overflow-y: scroll;
-`;

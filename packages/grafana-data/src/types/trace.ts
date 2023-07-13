@@ -40,12 +40,6 @@ export interface TraceSpanRow {
   references?: TraceSpanReference[];
   // Note: To mark spen as having error add tag error: true
   tags?: TraceKeyValuePair[];
-  kind?: string;
-  statusCode?: number;
-  statusMessage?: string;
-  instrumentationLibraryName?: string;
-  instrumentationLibraryVersion?: string;
-  traceState?: string;
   warnings?: string[];
   stackTraces?: string[];
 

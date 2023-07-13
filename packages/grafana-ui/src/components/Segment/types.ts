@@ -1,6 +1,6 @@
 import { ReactElement } from 'react';
 
-export interface SegmentProps {
+export interface SegmentProps<T> {
   Component?: ReactElement;
   className?: string;
   allowCustomValue?: boolean;

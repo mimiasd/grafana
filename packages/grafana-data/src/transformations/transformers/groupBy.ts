@@ -1,9 +1,11 @@
 import { map } from 'rxjs/operators';
 
+import { MutableField } from '../../dataframe/MutableDataFrame';
 import { guessFieldTypeForField } from '../../dataframe/processDataFrame';
 import { getFieldDisplayName } from '../../field/fieldState';
 import { DataFrame, Field, FieldType } from '../../types/dataFrame';
 import { DataTransformerInfo } from '../../types/transformations';
+import { ArrayVector } from '../../vector/ArrayVector';
 import { reduceField, ReducerID } from '../fieldReducer';
 
 import { DataTransformerID } from './ids';
@@ -25,13 +27,13 @@ export interface GroupByTransformerOptions {
 export const groupByTransformer: DataTransformerInfo<GroupByTransformerOptions> = {
   id: DataTransformerID.groupBy,
   name: 'Group by',
-  description: 'Group the data by a field values then process calculations for each group.',
+  description: 'Group the data by a field values then process calculations for each group',
   defaultOptions: {
     fields: {},
   },
 
   /**
-   * Return a modified copy of the series. If the transform is not or should not
+   * Return a modified copy of the series.  If the transform is not or should not
    * be applied, just return the input series
    */
   operator: (options) => (source) =>
@@ -62,9 +64,9 @@ export const groupByTransformer: DataTransformerInfo<GroupByTransformerOptions> 
 
           // Group the values by fields and groups so we can get all values for a
           // group for a given field.
-          const valuesByGroupKey = new Map<string, Record<string, Field>>();
+          const valuesByGroupKey = new Map<string, Record<string, MutableField>>();
           for (let rowIndex = 0; rowIndex < frame.length; rowIndex++) {
-            const groupKey = String(groupByFields.map((field) => field.values[rowIndex]));
+            const groupKey = String(groupByFields.map((field) => field.values.get(rowIndex)));
             const valuesByField = valuesByGroupKey.get(groupKey) ?? {};
 
             if (!valuesByGroupKey.has(groupKey)) {
@@ -79,22 +81,22 @@ export const groupByTransformer: DataTransformerInfo<GroupByTransformerOptions> 
                   name: fieldName,
                   type: field.type,
                   config: { ...field.config },
-                  values: [],
+                  values: new ArrayVector(),
                 };
               }
 
-              valuesByField[fieldName].values.push(field.values[rowIndex]);
+              valuesByField[fieldName].values.add(field.values.get(rowIndex));
             }
           }
 
           const fields: Field[] = [];
 
           for (const field of groupByFields) {
-            const values: any[] = [];
+            const values = new ArrayVector();
             const fieldName = getFieldDisplayName(field);
 
             valuesByGroupKey.forEach((value) => {
-              values.push(value[fieldName].values[0]);
+              values.add(value[fieldName].values.get(0));
             });
 
             fields.push({
@@ -135,7 +137,7 @@ export const groupByTransformer: DataTransformerInfo<GroupByTransformerOptions> 
             for (const aggregation of aggregations) {
               const aggregationField: Field = {
                 name: `${fieldName} (${aggregation})`,
-                values: valuesByAggregation[aggregation],
+                values: new ArrayVector(valuesByAggregation[aggregation]),
                 type: FieldType.other,
                 config: {},
               };

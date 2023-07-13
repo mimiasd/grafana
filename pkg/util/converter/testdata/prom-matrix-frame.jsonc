@@ -2,10 +2,6 @@
 //  
 //  Frame[0] {
 //      "type": "timeseries-multi",
-//      "typeVersion": [
-//          0,
-//          0
-//      ],
 //      "custom": {
 //          "resultType": "matrix"
 //      }
@@ -26,10 +22,6 @@
 //  
 //  Frame[1] {
 //      "type": "timeseries-multi",
-//      "typeVersion": [
-//          0,
-//          0
-//      ],
 //      "custom": {
 //          "resultType": "matrix"
 //      }
@@ -55,10 +47,6 @@
       "schema": {
         "meta": {
           "type": "timeseries-multi",
-          "typeVersion": [
-            0,
-            0
-          ],
           "custom": {
             "resultType": "matrix"
           }
@@ -104,10 +92,6 @@
       "schema": {
         "meta": {
           "type": "timeseries-multi",
-          "typeVersion": [
-            0,
-            0
-          ],
           "custom": {
             "resultType": "matrix"
           }

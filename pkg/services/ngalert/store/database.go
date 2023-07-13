@@ -22,14 +22,12 @@ const AlertDefinitionMaxTitleLength = 190
 
 // AlertingStore is the database interface used by the Alertmanager service.
 type AlertingStore interface {
-	GetLatestAlertmanagerConfiguration(ctx context.Context, query *models.GetLatestAlertmanagerConfigurationQuery) (*models.AlertConfiguration, error)
+	GetLatestAlertmanagerConfiguration(ctx context.Context, query *models.GetLatestAlertmanagerConfigurationQuery) error
 	GetAllLatestAlertmanagerConfiguration(ctx context.Context) ([]*models.AlertConfiguration, error)
 	SaveAlertmanagerConfiguration(ctx context.Context, cmd *models.SaveAlertmanagerConfigurationCmd) error
 	SaveAlertmanagerConfigurationWithCallback(ctx context.Context, cmd *models.SaveAlertmanagerConfigurationCmd, callback SaveCallback) error
 	UpdateAlertmanagerConfiguration(ctx context.Context, cmd *models.SaveAlertmanagerConfigurationCmd) error
 	MarkConfigurationAsApplied(ctx context.Context, cmd *models.MarkConfigurationAsAppliedCmd) error
-	GetAppliedConfigurations(ctx context.Context, orgID int64, limit int) ([]*models.HistoricAlertConfiguration, error)
-	GetHistoricalConfiguration(ctx context.Context, orgID int64, id int64) (*models.HistoricAlertConfiguration, error)
 }
 
 // DBstore stores the alert definitions and instances in the database.
@@ -45,18 +43,14 @@ type DBstore struct {
 
 func ProvideDBStore(
 	cfg *setting.Cfg, featureToggles featuremgmt.FeatureToggles, sqlstore db.DB, folderService folder.Service,
-	access accesscontrol.AccessControl, dashboards dashboards.DashboardService) (*DBstore, error) {
-	store := DBstore{
+	access accesscontrol.AccessControl, dashboards dashboards.DashboardService) *DBstore {
+	return &DBstore{
 		Cfg:              cfg.UnifiedAlerting,
 		FeatureToggles:   featureToggles,
 		SQLStore:         sqlstore,
-		Logger:           log.New("ngalert.dbstore"),
+		Logger:           log.New("dbstore"),
 		FolderService:    folderService,
 		AccessControl:    access,
 		DashboardService: dashboards,
 	}
-	if err := folderService.RegisterService(store); err != nil {
-		return nil, err
-	}
-	return &store, nil
 }

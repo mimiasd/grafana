@@ -1,6 +1,7 @@
 import { e2e } from '..';
 import { getScenarioContext } from '../support/scenarioContext';
 
+import { selectOption } from './selectOption';
 import { setDashboardTimeRange } from './setDashboardTimeRange';
 import { TimeRangeConfig } from './setTimeRange';
 
@@ -33,7 +34,6 @@ interface ConfigurePanelOptional {
   panelTitle?: string;
   timeRange?: TimeRangeConfig;
   visualizationName?: string;
-  timeout?: number;
 }
 
 interface ConfigurePanelRequired {
@@ -80,7 +80,6 @@ export const configurePanel = (config: PartialAddPanelConfig | PartialEditPanelC
       timeRange,
       visitDashboardAtStart,
       visualizationName,
-      timeout,
     } = fullConfig;
 
     if (visitDashboardAtStart) {
@@ -92,15 +91,13 @@ export const configurePanel = (config: PartialAddPanelConfig | PartialEditPanelC
       e2e.components.Panels.Panel.headerItems('Edit').click();
     } else {
       try {
-        e2e.components.PageToolbar.itemButton('Add button').should('be.visible');
-        e2e.components.PageToolbar.itemButton('Add button').click();
+        e2e.components.PageToolbar.item('Add panel').click();
       } catch (e) {
-        // Depending on the screen size, the "Add" button might be hidden
+        // Depending on the screen size, the "Add panel" button might be hidden
         e2e.components.PageToolbar.item('Show more items').click();
-        e2e.components.PageToolbar.item('Add button').last().click();
+        e2e.components.PageToolbar.item('Add panel').last().click();
       }
-      e2e.pages.AddDashboard.itemButton('Add new visualization menu item').should('be.visible');
-      e2e.pages.AddDashboard.itemButton('Add new visualization menu item').click();
+      e2e.pages.AddDashboard.addNewPanel().click();
     }
 
     if (timeRange) {
@@ -112,7 +109,10 @@ export const configurePanel = (config: PartialAddPanelConfig | PartialEditPanelC
     e2e().intercept(chartData.method, chartData.route).as('chartData');
 
     if (dataSourceName) {
-      e2e.components.DataSourcePicker.container().click().type(`${dataSourceName}{downArrow}{enter}`);
+      selectOption({
+        container: e2e.components.DataSourcePicker.container(),
+        optionText: dataSourceName,
+      });
     }
 
     // @todo instead wait for '@pluginModule' if not already loaded
@@ -139,6 +139,7 @@ export const configurePanel = (config: PartialAddPanelConfig | PartialEditPanelC
 
     if (queriesForm) {
       queriesForm(fullConfig);
+      e2e().wait('@chartData');
 
       // Wait for a possible complex visualization to render (or something related, as this isn't necessary on the dashboard page)
       // Can't assert that its HTML changed because a new query could produce the same results
@@ -155,8 +156,10 @@ export const configurePanel = (config: PartialAddPanelConfig | PartialEditPanelC
     // Avoid annotations flakiness
     e2e.components.RefreshPicker.runButtonV2().first().click({ force: true });
 
+    e2e().wait('@chartData');
+
     // Wait for RxJS
-    e2e().wait(timeout ?? e2e.config().defaultCommandTimeout);
+    e2e().wait(500);
 
     if (matchScreenshot) {
       let visualization;

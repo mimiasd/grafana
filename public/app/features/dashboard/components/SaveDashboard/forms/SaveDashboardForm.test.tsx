@@ -34,7 +34,6 @@ const prepareDashboardMock = (
 const renderAndSubmitForm = async (dashboard: DashboardModel, submitSpy: jest.Mock) => {
   render(
     <SaveDashboardForm
-      isLoading={false}
       dashboard={dashboard}
       onCancel={() => {}}
       onSuccess={() => {}}
@@ -63,7 +62,6 @@ describe('SaveDashboardAsForm', () => {
     it('renders switches when variables or timerange', () => {
       render(
         <SaveDashboardForm
-          isLoading={false}
           dashboard={prepareDashboardMock(true, true, jest.fn(), jest.fn())}
           onCancel={() => {}}
           onSuccess={() => {}}
@@ -126,7 +124,6 @@ describe('SaveDashboardAsForm', () => {
     it('renders saved message draft if it was filled before', () => {
       render(
         <SaveDashboardForm
-          isLoading={false}
           dashboard={createDashboardModelFixture()}
           onCancel={() => {}}
           onSuccess={() => {}}

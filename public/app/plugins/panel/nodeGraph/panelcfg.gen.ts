@@ -8,6 +8,8 @@
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
+export const PanelCfgModelVersion = Object.freeze([0, 0]);
+
 export interface ArcOption {
   /**
    * The color of the arc.
@@ -19,7 +21,7 @@ export interface ArcOption {
   field?: string;
 }
 
-export interface Options {
+export interface PanelOptions {
   edges?: {
     /**
      * Unit for the main stat to override what ever is set in the data frame.

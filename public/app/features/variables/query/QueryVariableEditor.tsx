@@ -152,7 +152,6 @@ export class QueryVariableEditorUnConnected extends PureComponent<Props, State> 
       return (
         <Field label="Query">
           <VariableQueryEditor
-            key={datasource.uid}
             datasource={datasource}
             query={query}
             templateSrv={getTemplateSrv()}
@@ -168,7 +167,6 @@ export class QueryVariableEditorUnConnected extends PureComponent<Props, State> 
       return (
         <Field label="Query">
           <VariableQueryEditor
-            key={datasource.uid}
             datasource={datasource}
             query={query}
             onChange={this.onQueryChange}

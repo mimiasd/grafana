@@ -1,4 +1,4 @@
-import { Meta, StoryFn } from '@storybook/react';
+import { ComponentMeta, ComponentStory } from '@storybook/react';
 import { merge } from 'lodash';
 import React from 'react';
 
@@ -15,14 +15,13 @@ import {
 import { Table } from '@grafana/ui';
 
 import { useTheme2 } from '../../themes';
-import { DashboardStoryCanvas } from '../../utils/storybook/DashboardStoryCanvas';
 import { prepDataForStorybook } from '../../utils/storybook/data';
 import { withCenteredStory } from '../../utils/storybook/withCenteredStory';
 
 import mdx from './Table.mdx';
 import { FooterItem } from './types';
 
-const meta: Meta<typeof Table> = {
+const meta: ComponentMeta<typeof Table> = {
   title: 'Visualizations/Table',
   component: Table,
   decorators: [withCenteredStory],
@@ -155,7 +154,7 @@ function buildSubTablesData(theme: GrafanaTheme2, config: Record<string, FieldCo
 }
 
 function buildFooterData(data: DataFrame): FooterItem[] {
-  const values = data.fields[3].values;
+  const values = data.fields[3].values.toArray();
   const valueSum = values.reduce((prev, curr) => {
     return prev + curr;
   }, 0);
@@ -185,40 +184,37 @@ const defaultThresholds: ThresholdsConfig = {
   mode: ThresholdsMode.Absolute,
 };
 
-export const Basic: StoryFn<typeof Table> = (args) => {
+export const Basic: ComponentStory<typeof Table> = (args) => {
   const theme = useTheme2();
   const data = buildData(theme, {});
 
   return (
-    <DashboardStoryCanvas>
+    <div className="panel-container" style={{ width: 'auto' }}>
       <Table {...args} data={data} />
-    </DashboardStoryCanvas>
+    </div>
   );
 };
 
-export const BarGaugeCell: StoryFn<typeof Table> = (args) => {
+export const BarGaugeCell: ComponentStory<typeof Table> = (args) => {
   const theme = useTheme2();
   const data = buildData(theme, {
     Progress: {
       custom: {
         width: 200,
-        cellOptions: {
-          type: 'gauge',
-          mode: 'gradient',
-        },
+        displayMode: 'gradient-gauge',
       },
       thresholds: defaultThresholds,
     },
   });
 
   return (
-    <DashboardStoryCanvas>
+    <div className="panel-container" style={{ width: 'auto' }}>
       <Table {...args} data={data} />
-    </DashboardStoryCanvas>
+    </div>
   );
 };
 
-export const ColoredCells: StoryFn<typeof Table> = (args) => {
+export const ColoredCells: ComponentStory<typeof Table> = (args) => {
   const theme = useTheme2();
   const data = buildData(theme, {
     Progress: {
@@ -231,30 +227,30 @@ export const ColoredCells: StoryFn<typeof Table> = (args) => {
   });
 
   return (
-    <DashboardStoryCanvas>
+    <div className="panel-container" style={{ width: 'auto' }}>
       <Table {...args} data={data} />
-    </DashboardStoryCanvas>
+    </div>
   );
 };
 
-export const Footer: StoryFn<typeof Table> = (args) => {
+export const Footer: ComponentStory<typeof Table> = (args) => {
   const theme = useTheme2();
   const data = buildData(theme, {});
   const footer = buildFooterData(data);
 
   return (
-    <DashboardStoryCanvas>
+    <div className="panel-container" style={{ width: 'auto', height: 'unset' }}>
       <Table {...args} data={data} footerValues={footer} />
-    </DashboardStoryCanvas>
+    </div>
   );
 };
 
-export const Pagination: StoryFn<typeof Table> = (args) => <Basic {...args} />;
+export const Pagination: ComponentStory<typeof Table> = (args) => <Basic {...args} />;
 Pagination.args = {
   enablePagination: true,
 };
 
-export const SubTables: StoryFn<typeof Table> = (args) => {
+export const SubTables: ComponentStory<typeof Table> = (args) => {
   const theme = useTheme2();
   const data = buildData(theme, {});
   const subData = buildSubTablesData(theme, {
@@ -267,9 +263,9 @@ export const SubTables: StoryFn<typeof Table> = (args) => {
   });
 
   return (
-    <DashboardStoryCanvas>
+    <div className="panel-container" style={{ width: 'auto', height: 'unset' }}>
       <Table {...args} data={data} subData={subData} />
-    </DashboardStoryCanvas>
+    </div>
   );
 };
 

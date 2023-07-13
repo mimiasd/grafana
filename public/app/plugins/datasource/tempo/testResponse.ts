@@ -1836,42 +1836,6 @@ export const otlpDataFrameFromResponse = new MutableDataFrame({
       values: ['db'],
     },
     {
-      name: 'kind',
-      type: 'string',
-      config: {},
-      values: ['client'],
-    },
-    {
-      name: 'statusCode',
-      type: 'number',
-      config: {},
-      values: [2],
-    },
-    {
-      name: 'statusMessage',
-      type: 'string',
-      config: {},
-      values: ['message'],
-    },
-    {
-      name: 'instrumentationLibraryName',
-      type: 'string',
-      config: {},
-      values: ['libraryName'],
-    },
-    {
-      name: 'instrumentationLibraryVersion',
-      type: 'string',
-      config: {},
-      values: ['libraryVersion'],
-    },
-    {
-      name: 'traceState',
-      type: 'string',
-      config: {},
-      values: ['traceState'],
-    },
-    {
       name: 'serviceTags',
       type: 'other',
       config: {},
@@ -1966,6 +1930,10 @@ export const otlpDataFrameFromResponse = new MutableDataFrame({
             key: 'component',
             value: 'net/http',
           },
+          {
+            key: 'span.kind',
+            value: 'client',
+          },
         ],
       ],
     },
@@ -2024,60 +1992,6 @@ export const otlpDataFrameToResponse = new MutableDataFrame({
       values: ['db'],
       state: {
         displayName: 'serviceName',
-      },
-    },
-    {
-      name: 'kind',
-      type: 'string',
-      config: {},
-      values: ['client'],
-      state: {
-        displayName: 'kind',
-      },
-    },
-    {
-      name: 'statusCode',
-      type: 'number',
-      config: {},
-      values: [2],
-      state: {
-        displayName: 'statusCode',
-      },
-    },
-    {
-      name: 'statusMessage',
-      type: 'string',
-      config: {},
-      values: ['message'],
-      state: {
-        displayName: 'statusMessage',
-      },
-    },
-    {
-      name: 'instrumentationLibraryName',
-      type: 'string',
-      config: {},
-      values: ['libraryName'],
-      state: {
-        displayName: 'instrumentationLibraryName',
-      },
-    },
-    {
-      name: 'instrumentationLibraryVersion',
-      type: 'string',
-      config: {},
-      values: ['libraryVersion'],
-      state: {
-        displayName: 'instrumentationLibraryVersion',
-      },
-    },
-    {
-      name: 'traceState',
-      type: 'string',
-      config: {},
-      values: ['traceState'],
-      state: {
-        displayName: 'traceState',
       },
     },
     {
@@ -2165,6 +2079,10 @@ export const otlpDataFrameToResponse = new MutableDataFrame({
             key: 'component',
             value: 'net/http',
           },
+          {
+            key: 'span.kind',
+            value: 'client',
+          },
         ],
       ],
       state: {
@@ -2217,22 +2135,13 @@ export const otlpResponse = {
       },
       instrumentationLibrarySpans: [
         {
-          instrumentationLibrary: {
-            name: 'libraryName',
-            version: 'libraryVersion',
-          },
           spans: [
             {
-              traceId: '000000000000000060ba2abb44f13eae',
-              spanId: '726b5e30102fc0d0',
-              parentSpanId: '398f0f21a3db99ae',
+              traceId: 'AAAAAAAAAABguiq7RPE+rg==',
+              spanId: 'cmteMBAvwNA=',
+              parentSpanId: 'OY8PIaPbma4=',
               name: 'HTTP GET - root',
               kind: 'SPAN_KIND_CLIENT',
-              status: {
-                code: 2,
-                message: 'message',
-              },
-              traceState: 'traceState',
               startTimeUnixNano: 1627471657255809000,
               endTimeUnixNano: 1627471657256268000,
               attributes: [

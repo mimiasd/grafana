@@ -1,5 +1,6 @@
 import { createTheme } from '../themes';
 import { ThresholdsMode, Field, FieldType, FieldColorModeId } from '../types';
+import { ArrayVector } from '../vector/ArrayVector';
 
 import { getScaleCalculator } from './scale';
 import { sortThresholds } from './thresholds';
@@ -16,7 +17,7 @@ describe('getScaleCalculator', () => {
       name: 'test',
       config: { thresholds: { mode: ThresholdsMode.Absolute, steps: sortThresholds(thresholds) } },
       type: FieldType.number,
-      values: [0, 50, 100],
+      values: new ArrayVector([0, 50, 100]),
     };
 
     const calc = getScaleCalculator(field, createTheme());
@@ -32,7 +33,7 @@ describe('getScaleCalculator', () => {
       name: 'test',
       config: {},
       type: FieldType.boolean,
-      values: [true, false, true],
+      values: new ArrayVector([true, false, true]),
     };
 
     const theme = createTheme();
@@ -54,7 +55,7 @@ describe('getScaleCalculator', () => {
       name: 'test',
       config: { color: { mode: FieldColorModeId.ContinuousGrYlRd } },
       type: FieldType.number,
-      values: [1],
+      values: new ArrayVector([1]),
     };
 
     const theme = createTheme();

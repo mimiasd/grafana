@@ -7,11 +7,10 @@ import (
 	"time"
 
 	"github.com/grafana/grafana/pkg/components/apikeygen"
-	"github.com/grafana/grafana/pkg/components/satokengen"
+	apikeygenprefix "github.com/grafana/grafana/pkg/components/apikeygenprefixed"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/services/apikey"
 	"github.com/grafana/grafana/pkg/services/authn"
-	"github.com/grafana/grafana/pkg/services/login"
 	"github.com/grafana/grafana/pkg/services/org"
 	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/util"
@@ -65,11 +64,9 @@ func (s *APIKey) Authenticate(ctx context.Context, r *authn.Request) (*authn.Ide
 	// if the api key don't belong to a service account construct the identity and return it
 	if apiKey.ServiceAccountId == nil || *apiKey.ServiceAccountId < 1 {
 		return &authn.Identity{
-			ID:              authn.NamespacedID(authn.NamespaceAPIKey, apiKey.ID),
-			OrgID:           apiKey.OrgID,
-			OrgRoles:        map[int64]org.RoleType{apiKey.OrgID: apiKey.Role},
-			ClientParams:    authn.ClientParams{SyncPermissions: true},
-			AuthenticatedBy: login.APIKeyAuthModule,
+			ID:       authn.NamespacedID(authn.NamespaceAPIKey, apiKey.ID),
+			OrgID:    apiKey.OrgID,
+			OrgRoles: map[int64]org.RoleType{apiKey.OrgID: apiKey.Role},
 		}, nil
 	}
 
@@ -82,12 +79,12 @@ func (s *APIKey) Authenticate(ctx context.Context, r *authn.Request) (*authn.Ide
 		return nil, err
 	}
 
-	return authn.IdentityFromSignedInUser(authn.NamespacedID(authn.NamespaceServiceAccount, usr.UserID), usr, authn.ClientParams{SyncPermissions: true}, login.APIKeyAuthModule), nil
+	return authn.IdentityFromSignedInUser(authn.NamespacedID(authn.NamespaceServiceAccount, usr.UserID), usr, authn.ClientParams{}), nil
 }
 
 func (s *APIKey) getAPIKey(ctx context.Context, token string) (*apikey.APIKey, error) {
 	fn := s.getFromToken
-	if !strings.HasPrefix(token, satokengen.GrafanaPrefix) {
+	if !strings.HasPrefix(token, apikeygenprefix.GrafanaPrefix) {
 		fn = s.getFromTokenLegacy
 	}
 
@@ -100,7 +97,7 @@ func (s *APIKey) getAPIKey(ctx context.Context, token string) (*apikey.APIKey, e
 }
 
 func (s *APIKey) getFromToken(ctx context.Context, token string) (*apikey.APIKey, error) {
-	decoded, err := satokengen.Decode(token)
+	decoded, err := apikeygenprefix.Decode(token)
 	if err != nil {
 		return nil, err
 	}
@@ -121,13 +118,12 @@ func (s *APIKey) getFromTokenLegacy(ctx context.Context, token string) (*apikey.
 
 	// fetch key
 	keyQuery := apikey.GetByNameQuery{KeyName: decoded.Name, OrgID: decoded.OrgId}
-	key, err := s.apiKeyService.GetApiKeyByName(ctx, &keyQuery)
-	if err != nil {
+	if err := s.apiKeyService.GetApiKeyByName(ctx, &keyQuery); err != nil {
 		return nil, err
 	}
 
 	// validate api key
-	isValid, err := apikeygen.IsValid(decoded, key.Key)
+	isValid, err := apikeygen.IsValid(decoded, keyQuery.Result.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +131,7 @@ func (s *APIKey) getFromTokenLegacy(ctx context.Context, token string) (*apikey.
 		return nil, apikeygen.ErrInvalidApiKey
 	}
 
-	return key, nil
+	return keyQuery.Result, nil
 }
 
 func (s *APIKey) Test(ctx context.Context, r *authn.Request) bool {

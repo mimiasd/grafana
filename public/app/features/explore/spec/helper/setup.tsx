@@ -1,8 +1,6 @@
-import { waitFor, within } from '@testing-library/dom';
+import { within } from '@testing-library/dom';
 import { render, screen } from '@testing-library/react';
-import { createMemoryHistory } from 'history';
 import { fromPairs } from 'lodash';
-import { stringify } from 'querystring';
 import React from 'react';
 import { Provider } from 'react-redux';
 import { Route, Router } from 'react-router-dom';
@@ -11,41 +9,37 @@ import { getGrafanaContextMock } from 'test/mocks/getGrafanaContextMock';
 import {
   DataSourceApi,
   DataSourceInstanceSettings,
+  DataSourceRef,
   QueryEditorProps,
-  DataSourcePluginMeta,
-  PluginType,
+  ScopedVars,
+  UrlQueryValue,
 } from '@grafana/data';
-import {
-  setDataSourceSrv,
-  setEchoSrv,
-  config,
-  setLocationService,
-  HistoryWrapper,
-  LocationService,
-  setPluginExtensionGetter,
-} from '@grafana/runtime';
-import { DataSourceRef } from '@grafana/schema';
+import { locationSearchToObject, locationService, setDataSourceSrv, setEchoSrv, config } from '@grafana/runtime';
 import { GrafanaContext } from 'app/core/context/GrafanaContext';
 import { GrafanaRoute } from 'app/core/navigation/GrafanaRoute';
 import { Echo } from 'app/core/services/echo/Echo';
-import { setLastUsedDatasourceUID } from 'app/core/utils/explore';
+import store from 'app/core/store';
+import { lastUsedDatasourceKeyForOrgId } from 'app/core/utils/explore';
 import { MIXED_DATASOURCE_NAME } from 'app/plugins/datasource/mixed/MixedDataSource';
 import { configureStore } from 'app/store/configureStore';
 
+import { RICH_HISTORY_KEY, RichHistoryLocalStorageDTO } from '../../../../core/history/RichHistoryLocalStorage';
+import { RICH_HISTORY_SETTING_KEYS } from '../../../../core/history/richHistoryLocalStorageUtils';
 import { LokiDatasource } from '../../../../plugins/datasource/loki/datasource';
 import { LokiQuery } from '../../../../plugins/datasource/loki/types';
-import { ExploreQueryParams } from '../../../../types';
+import { ExploreId } from '../../../../types';
 import { initialUserState } from '../../../profile/state/reducers';
-import ExplorePage from '../../ExplorePage';
+import { ExplorePage } from '../../ExplorePage';
 
 type DatasourceSetup = { settings: DataSourceInstanceSettings; api: DataSourceApi };
 
 type SetupOptions = {
+  // default true
   clearLocalStorage?: boolean;
   datasources?: DatasourceSetup[];
-  urlParams?: ExploreQueryParams;
+  urlParams?: { left: string; right?: string } | string;
+  searchParams?: string;
   prevUsedDatasource?: { orgId: number; datasource: string };
-  mixedEnabled?: boolean;
 };
 
 export function setupExplore(options?: SetupOptions): {
@@ -53,10 +47,7 @@ export function setupExplore(options?: SetupOptions): {
   store: ReturnType<typeof configureStore>;
   unmount: () => void;
   container: HTMLElement;
-  location: LocationService;
 } {
-  setPluginExtensionGetter(() => ({ extensions: [] }));
-
   // Clear this up otherwise it persists data source selection
   // TODO: probably add test for that too
   if (options?.clearLocalStorage !== false) {
@@ -64,7 +55,7 @@ export function setupExplore(options?: SetupOptions): {
   }
 
   if (options?.prevUsedDatasource) {
-    setLastUsedDatasourceUID(options?.prevUsedDatasource.orgId, options?.prevUsedDatasource.datasource);
+    store.set(lastUsedDatasourceKeyForOrgId(options?.prevUsedDatasource.orgId), options?.prevUsedDatasource.datasource);
   }
 
   // Create this here so any mocks are recreated on setup and don't retain state
@@ -74,7 +65,7 @@ export function setupExplore(options?: SetupOptions): {
   ];
 
   if (config.featureToggles.exploreMixedDatasource) {
-    defaultDatasources.push(makeDatasourceSetup({ name: MIXED_DATASOURCE_NAME, uid: MIXED_DATASOURCE_NAME, id: 999 }));
+    defaultDatasources.push(makeDatasourceSetup({ name: MIXED_DATASOURCE_NAME, id: 999 }));
   }
 
   const dsSettings = options?.datasources || defaultDatasources;
@@ -83,30 +74,24 @@ export function setupExplore(options?: SetupOptions): {
     getList(): DataSourceInstanceSettings[] {
       return dsSettings.map((d) => d.settings);
     },
-    getInstanceSettings(ref?: DataSourceRef) {
-      const allSettings = dsSettings.map((d) => d.settings);
-      return allSettings.find((x) => x.name === ref || x.uid === ref || x.uid === ref?.uid) || allSettings[0];
+    getInstanceSettings(ref: DataSourceRef) {
+      return dsSettings.map((d) => d.settings).find((x) => x.name === ref || x.uid === ref || x.uid === ref.uid);
     },
-    get(datasource?: string | DataSourceRef | null): Promise<DataSourceApi> {
-      let ds: DataSourceApi | undefined;
-      if (!datasource) {
-        ds = dsSettings[0]?.api;
+    get(datasource?: string | DataSourceRef | null, scopedVars?: ScopedVars): Promise<DataSourceApi | undefined> {
+      if (dsSettings.length === 0) {
+        return Promise.resolve(undefined);
       } else {
-        ds = dsSettings.find((ds) =>
-          typeof datasource === 'string'
-            ? ds.api.name === datasource || ds.api.uid === datasource
-            : ds.api.uid === datasource?.uid
-        )?.api;
+        const datasourceStr = typeof datasource === 'string';
+        return Promise.resolve(
+          (datasource
+            ? dsSettings.find((d) =>
+                datasourceStr ? d.api.name === datasource || d.api.uid === datasource : d.api.uid === datasource?.uid
+              )
+            : dsSettings[0])!.api
+        );
       }
-
-      if (ds) {
-        return Promise.resolve(ds);
-      }
-
-      return Promise.reject();
     },
-    reload() {},
-  });
+  } as any);
 
   setEchoSrv(new Echo());
 
@@ -127,82 +112,43 @@ export function setupExplore(options?: SetupOptions): {
     },
   };
 
-  const history = createMemoryHistory({
-    initialEntries: [{ pathname: '/explore', search: stringify(options?.urlParams) }],
-  });
+  locationService.push({ pathname: '/explore', search: options?.searchParams });
 
-  const location = new HistoryWrapper(history);
-  setLocationService(location);
+  if (options?.urlParams) {
+    let urlParams: Record<string, string | UrlQueryValue> =
+      typeof options.urlParams === 'string' ? locationSearchToObject(options.urlParams) : options.urlParams;
+    locationService.partial(urlParams);
+  }
 
-  const contextMock = getGrafanaContextMock({ location });
+  const route = { component: ExplorePage };
 
   const { unmount, container } = render(
     <Provider store={storeState}>
-      <GrafanaContext.Provider
-        value={{
-          ...contextMock,
-          config: {
-            ...contextMock.config,
-            featureToggles: {
-              exploreMixedDatasource: options?.mixedEnabled ?? false,
-            },
-          },
-        }}
-      >
-        <Router history={history}>
-          <Route
-            path="/explore"
-            exact
-            render={(props) => <GrafanaRoute {...props} route={{ component: ExplorePage, path: '/explore' }} />}
-          />
+      <GrafanaContext.Provider value={getGrafanaContextMock()}>
+        <Router history={locationService.getHistory()}>
+          <Route path="/explore" exact render={(props) => <GrafanaRoute {...props} route={route as any} />} />
         </Router>
       </GrafanaContext.Provider>
     </Provider>
   );
 
-  return {
-    datasources: fromPairs(dsSettings.map((d) => [d.api.name, d.api])),
-    store: storeState,
-    unmount,
-    container,
-    location,
-  };
+  return { datasources: fromPairs(dsSettings.map((d) => [d.api.name, d.api])), store: storeState, unmount, container };
 }
 
-export function makeDatasourceSetup({
-  name = 'loki',
-  id = 1,
-  uid: uidOverride,
-}: { name?: string; id?: number; uid?: string } = {}): DatasourceSetup {
-  const uid = uidOverride || `${name}-uid`;
-  const type = 'logs';
-
-  const meta: DataSourcePluginMeta = {
+function makeDatasourceSetup({ name = 'loki', id = 1 }: { name?: string; id?: number } = {}): DatasourceSetup {
+  const meta: any = {
     info: {
-      author: {
-        name: 'Grafana',
-      },
-      description: '',
-      links: [],
-      screenshots: [],
-      updated: '',
-      version: '',
       logos: {
         small: '',
-        large: '',
       },
     },
     id: id.toString(),
-    module: 'loki',
-    name,
-    type: PluginType.datasource,
-    baseUrl: '',
   };
   return {
     settings: {
       id,
-      uid,
-      type,
+      uid: `${name}-uid`,
+      type: 'logs',
       name,
       meta,
       access: 'proxy',
@@ -227,26 +173,42 @@ export function makeDatasourceSetup({
         },
       },
       name: name,
-      uid: uid,
+      uid: `${name}-uid`,
       query: jest.fn(),
-      getRef: () => ({ type, uid }),
+      getRef: jest.fn().mockReturnValue({ type: 'logs', uid: `${name}-uid` }),
       meta,
     } as any,
   };
 }
 
-export const waitForExplore = (exploreId = 'left') => {
-  return waitFor(async () => {
-    const container = screen.getAllByTestId('data-testid Explore');
-    return within(container[exploreId === 'left' ? 0 : 1]);
-  });
+export const waitForExplore = async (exploreId: ExploreId = ExploreId.left, multi = false) => {
+  if (multi) {
+    return await withinExplore(exploreId).findAllByText(/Editor/i);
+  } else {
+    return await withinExplore(exploreId).findByText(/Editor/i);
+  }
 };
 
 export const tearDown = () => {
   window.localStorage.clear();
 };
 
-export const withinExplore = (exploreId: string) => {
+export const withinExplore = (exploreId: ExploreId) => {
   const container = screen.getAllByTestId('data-testid Explore');
-  return within(container[exploreId === 'left' ? 0 : 1]);
+  return within(container[exploreId === ExploreId.left ? 0 : 1]);
+};
+
+export const localStorageHasAlreadyBeenMigrated = () => {
+  window.localStorage.setItem(RICH_HISTORY_SETTING_KEYS.migrated, 'true');
+};
+
+export const setupLocalStorageRichHistory = (dsName: string) => {
+  const richHistoryDTO: RichHistoryLocalStorageDTO = {
+    ts: Date.now(),
+    datasourceName: dsName,
+    starred: true,
+    comment: '',
+    queries: [{ refId: 'A' }],
+  };
+  window.localStorage.setItem(RICH_HISTORY_KEY, JSON.stringify([richHistoryDTO]));
 };

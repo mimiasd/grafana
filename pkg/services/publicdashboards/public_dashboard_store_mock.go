@@ -37,20 +37,20 @@ func (_m *FakePublicDashboardStore) Create(ctx context.Context, cmd models.SaveP
 	return r0, r1
 }
 
-// Delete provides a mock function with given fields: ctx, uid
-func (_m *FakePublicDashboardStore) Delete(ctx context.Context, uid string) (int64, error) {
-	ret := _m.Called(ctx, uid)
+// Delete provides a mock function with given fields: ctx, orgId, uid
+func (_m *FakePublicDashboardStore) Delete(ctx context.Context, orgId int64, uid string) (int64, error) {
+	ret := _m.Called(ctx, orgId, uid)
 
 	var r0 int64
-	if rf, ok := ret.Get(0).(func(context.Context, string) int64); ok {
-		r0 = rf(ctx, uid)
+	if rf, ok := ret.Get(0).(func(context.Context, int64, string) int64); ok {
+		r0 = rf(ctx, orgId, uid)
 	} else {
 		r0 = ret.Get(0).(int64)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, uid)
+	if rf, ok := ret.Get(1).(func(context.Context, int64, string) error); ok {
+		r1 = rf(ctx, orgId, uid)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -123,22 +123,22 @@ func (_m *FakePublicDashboardStore) Find(ctx context.Context, uid string) (*mode
 	return r0, r1
 }
 
-// FindAllWithPagination provides a mock function with given fields: ctx, query
-func (_m *FakePublicDashboardStore) FindAllWithPagination(ctx context.Context, query *models.PublicDashboardListQuery) (*models.PublicDashboardListResponseWithPagination, error) {
-	ret := _m.Called(ctx, query)
+// FindAll provides a mock function with given fields: ctx, orgId
+func (_m *FakePublicDashboardStore) FindAll(ctx context.Context, orgId int64) ([]models.PublicDashboardListResponse, error) {
+	ret := _m.Called(ctx, orgId)
 
-	var r0 *models.PublicDashboardListResponseWithPagination
-	if rf, ok := ret.Get(0).(func(context.Context, *models.PublicDashboardListQuery) *models.PublicDashboardListResponseWithPagination); ok {
-		r0 = rf(ctx, query)
+	var r0 []models.PublicDashboardListResponse
+	if rf, ok := ret.Get(0).(func(context.Context, int64) []models.PublicDashboardListResponse); ok {
+		r0 = rf(ctx, orgId)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*models.PublicDashboardListResponseWithPagination)
+			r0 = ret.Get(0).([]models.PublicDashboardListResponse)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *models.PublicDashboardListQuery) error); ok {
-		r1 = rf(ctx, query)
+	if rf, ok := ret.Get(1).(func(context.Context, int64) error); ok {
+		r1 = rf(ctx, orgId)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -162,29 +162,6 @@ func (_m *FakePublicDashboardStore) FindByAccessToken(ctx context.Context, acces
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, accessToken)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// FindByDashboardFolder provides a mock function with given fields: ctx, dashboard
-func (_m *FakePublicDashboardStore) FindByDashboardFolder(ctx context.Context, dashboard *dashboards.Dashboard) ([]*models.PublicDashboard, error) {
-	ret := _m.Called(ctx, dashboard)
-
-	var r0 []*models.PublicDashboard
-	if rf, ok := ret.Get(0).(func(context.Context, *dashboards.Dashboard) []*models.PublicDashboard); ok {
-		r0 = rf(ctx, dashboard)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*models.PublicDashboard)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *dashboards.Dashboard) error); ok {
-		r1 = rf(ctx, dashboard)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -231,29 +208,6 @@ func (_m *FakePublicDashboardStore) FindDashboard(ctx context.Context, orgId int
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, int64, string) error); ok {
 		r1 = rf(ctx, orgId, dashboardUid)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetMetrics provides a mock function with given fields: ctx
-func (_m *FakePublicDashboardStore) GetMetrics(ctx context.Context) (*models.Metrics, error) {
-	ret := _m.Called(ctx)
-
-	var r0 *models.Metrics
-	if rf, ok := ret.Get(0).(func(context.Context) *models.Metrics); ok {
-		r0 = rf(ctx)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*models.Metrics)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = rf(ctx)
 	} else {
 		r1 = ret.Error(1)
 	}

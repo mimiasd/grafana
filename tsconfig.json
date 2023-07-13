@@ -10,10 +10,7 @@
     "useUnknownInCatchVariables": true,
     "incremental": true,
     "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
-    "preserveSymlinks": true,
-    "paths": {
-      "@grafana/schema/dist/esm/*": ["../packages/grafana-schema/src/*"]
-    }
+    "preserveSymlinks": true
   },
   "extends": "@grafana/tsconfig/base.json",
   "include": [

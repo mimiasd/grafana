@@ -25,7 +25,6 @@ export function VizLegend<T>({
   className,
   itemRenderer,
   readonly,
-  isSortable,
 }: LegendProps<T>) {
   const { eventBus, onToggleSeriesVisibility, onToggleLegendSort } = usePanelContext();
 
@@ -97,7 +96,6 @@ export function VizLegend<T>({
           onLabelMouseOut={onMouseOut}
           itemRenderer={itemRenderer}
           readonly={readonly}
-          isSortable={isSortable}
         />
       );
     case LegendDisplayMode.List:

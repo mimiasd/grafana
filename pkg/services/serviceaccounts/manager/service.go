@@ -58,9 +58,10 @@ func ProvideServiceAccountsService(
 		userService,
 		orgService,
 	)
+	log := log.New("serviceaccounts")
 	s := &ServiceAccountsService{
 		store:         serviceAccountsStore,
-		log:           log.New("serviceaccounts"),
+		log:           log,
 		backgroundLog: log.New("serviceaccounts.background"),
 	}
 
@@ -234,34 +235,34 @@ func (sa *ServiceAccountsService) MigrateApiKey(ctx context.Context, orgID, keyI
 	}
 	return sa.store.MigrateApiKey(ctx, orgID, keyID)
 }
-func (sa *ServiceAccountsService) MigrateApiKeysToServiceAccounts(ctx context.Context, orgID int64) (*serviceaccounts.MigrationResult, error) {
+func (sa *ServiceAccountsService) MigrateApiKeysToServiceAccounts(ctx context.Context, orgID int64) error {
 	if err := validOrgID(orgID); err != nil {
-		return nil, err
+		return err
 	}
 	return sa.store.MigrateApiKeysToServiceAccounts(ctx, orgID)
 }
 
 func validOrgID(orgID int64) error {
 	if orgID == 0 {
-		return serviceaccounts.ErrServiceAccountInvalidOrgID.Errorf("invalid org ID 0 has been specified")
+		return serviceaccounts.ErrServiceAccountInvalidOrgID
 	}
 	return nil
 }
 func validServiceAccountID(serviceaccountID int64) error {
 	if serviceaccountID == 0 {
-		return serviceaccounts.ErrServiceAccountInvalidID.Errorf("invalid service account ID 0 has been specified")
+		return serviceaccounts.ErrServiceAccountInvalidID
 	}
 	return nil
 }
 func validServiceAccountTokenID(tokenID int64) error {
 	if tokenID == 0 {
-		return serviceaccounts.ErrServiceAccountInvalidTokenID.Errorf("invalid service account token ID 0 has been specified")
+		return serviceaccounts.ErrServiceAccountInvalidTokenID
 	}
 	return nil
 }
 func validAPIKeyID(apiKeyID int64) error {
 	if apiKeyID == 0 {
-		return serviceaccounts.ErrServiceAccountInvalidAPIKeyID.Errorf("invalid API key ID 0 has been specified")
+		return serviceaccounts.ErrServiceAccountInvalidAPIKeyID
 	}
 	return nil
 }

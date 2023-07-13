@@ -1,4 +1,4 @@
-import { DataFrame, FieldType } from '@grafana/data';
+import { ArrayVector, DataFrame, FieldType, incrRoundDn } from '@grafana/data';
 
 type InsertMode = (prev: number, next: number, threshold: number) => number;
 
@@ -43,7 +43,7 @@ export function applyNullInsertThreshold(opts: NullInsertOptions): DataFrame {
     nullThresholdApplied: true,
   };
 
-  const thresholds = frame.fields.map((field) => field.config.custom?.insertNulls || refField.config.interval || null);
+  const thresholds = frame.fields.map((field) => field.config.custom?.insertNulls ?? refField.config.interval ?? null);
 
   const uniqueThresholds = new Set<number>(thresholds);
 
@@ -60,9 +60,9 @@ export function applyNullInsertThreshold(opts: NullInsertOptions): DataFrame {
       return frame;
     }
 
-    const refValues = refField.values;
+    const refValues = refField.values.toArray();
 
-    const frameValues = frame.fields.map((field) => field.values);
+    const frameValues = frame.fields.map((field) => field.values.toArray());
 
     const filledFieldValues = nullInsertThreshold(
       refValues,
@@ -83,7 +83,7 @@ export function applyNullInsertThreshold(opts: NullInsertOptions): DataFrame {
       length: filledFieldValues[0].length,
       fields: frame.fields.map((field, i) => ({
         ...field,
-        values: filledFieldValues[i],
+        values: new ArrayVector(filledFieldValues[i]),
       })),
     };
   }
@@ -108,11 +108,11 @@ function nullInsertThreshold(
   const len = refValues.length;
   const refValuesNew: number[] = [];
 
-  // Continuously subtract the threshold from the first data point, filling in insert values accordingly
+  // Continiuously subtract the threshold from the first data
+  // point filling in insert values accordingly
   if (refFieldPseudoMin != null && refFieldPseudoMin < refValues[0]) {
-    let preFillCount = Math.ceil((refValues[0] - refFieldPseudoMin) / threshold);
     // this will be 0 or 1 threshold increment left of visible range
-    let prevSlot = refValues[0] - preFillCount * threshold;
+    let prevSlot = incrRoundDn(refFieldPseudoMin, threshold);
 
     while (prevSlot < refValues[0]) {
       // (prevSlot - threshold) is used to simulate the previous 'real' data point, as getInsertValue expects
@@ -126,7 +126,8 @@ function nullInsertThreshold(
 
   let prevValue: number = refValues[0];
 
-  // Fill nulls when a value is greater than the threshold value
+  // Fill nulls when a value is greater than
+  // the threshold value
   for (let i = 1; i < len; i++) {
     const curValue = refValues[i];
 

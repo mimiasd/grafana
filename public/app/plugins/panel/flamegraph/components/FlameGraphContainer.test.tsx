@@ -1,8 +1,8 @@
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import React from 'react';
 
-import { CoreApp, createDataFrame } from '@grafana/data';
+import { CoreApp, MutableDataFrame } from '@grafana/data';
 
 import { MIN_WIDTH_TO_SHOW_BOTH_TOPTABLE_AND_FLAMEGRAPH } from '../constants';
 
@@ -20,10 +20,9 @@ describe('FlameGraphContainer', () => {
   // Needed for AutoSizer to work in test
   Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { value: 500 });
   Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { value: 500 });
-  Object.defineProperty(HTMLElement.prototype, 'clientWidth', { value: 500 });
 
   const FlameGraphContainerWithProps = () => {
-    const flameGraphData = createDataFrame(data);
+    const flameGraphData = new MutableDataFrame(data);
     flameGraphData.meta = {
       custom: {
         ProfileTypeID: 'cpu:foo:bar',
@@ -39,11 +38,11 @@ describe('FlameGraphContainer', () => {
 
   it('should update search when row selected in top table', async () => {
     render(<FlameGraphContainerWithProps />);
-    await userEvent.click((await screen.findAllByTitle('Highlight symbol'))[0]);
+    screen.getAllByRole('row')[1].click();
     expect(screen.getByDisplayValue('net/http.HandlerFunc.ServeHTTP')).toBeInTheDocument();
-    await userEvent.click((await screen.findAllByTitle('Highlight symbol'))[1]);
+    screen.getAllByRole('row')[2].click();
     expect(screen.getByDisplayValue('total')).toBeInTheDocument();
-    await userEvent.click((await screen.findAllByTitle('Highlight symbol'))[1]);
+    screen.getAllByRole('row')[2].click();
     expect(screen.queryByDisplayValue('total')).not.toBeInTheDocument();
   });
 
@@ -60,15 +59,15 @@ describe('FlameGraphContainer', () => {
     expect(screen.getByTestId('flameGraph')).toBeDefined();
     expect(screen.getByTestId('topTable')).toBeDefined();
 
-    await userEvent.click(screen.getByText(/Top Table/));
+    screen.getByText(/Top Table/).click();
     expect(screen.queryByTestId('flameGraph')).toBeNull();
     expect(screen.getByTestId('topTable')).toBeDefined();
 
-    await userEvent.click(screen.getByText(/Flame Graph/));
+    screen.getByText(/Flame Graph/).click();
     expect(screen.getByTestId('flameGraph')).toBeDefined();
     expect(screen.queryByTestId('topTable')).toBeNull();
 
-    await userEvent.click(screen.getByText(/Both/));
+    screen.getByText(/Both/).click();
     expect(screen.getByTestId('flameGraph')).toBeDefined();
     expect(screen.getByTestId('topTable')).toBeDefined();
   });

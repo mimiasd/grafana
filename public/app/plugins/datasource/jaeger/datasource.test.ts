@@ -352,6 +352,7 @@ const defaultSettings: DataSourceInstanceSettings<JaegerJsonData> = {
 
 const defaultQuery: DataQueryRequest<JaegerQuery> = {
   requestId: '1',
+  dashboardId: 0,
   interval: '0',
   intervalMs: 10,
   panelId: 0,

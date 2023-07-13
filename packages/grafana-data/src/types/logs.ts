@@ -1,10 +1,9 @@
 import { Observable } from 'rxjs';
 
-import { DataQuery } from '@grafana/schema';
-
 import { Labels } from './data';
 import { DataFrame } from './dataFrame';
 import { DataQueryRequest, DataQueryResponse } from './datasource';
+import { DataQuery } from './query';
 import { AbsoluteTimeRange } from './time';
 export { LogsDedupStrategy, LogsSortOrder } from '@grafana/schema';
 
@@ -88,7 +87,6 @@ export interface LogsModel {
   // visibleRange is time range for histogram created from log results
   visibleRange?: AbsoluteTimeRange;
   queries?: DataQuery[];
-  bucketSize?: number;
 }
 
 export interface LogSearchMatch {
@@ -104,21 +102,40 @@ export interface LogLabelStatsModel {
   value: string;
 }
 
+/** @deprecated will be removed in the next major version */
+export interface LogsParser {
+  /**
+   * Value-agnostic matcher for a field label.
+   * Used to filter rows, and first capture group contains the value.
+   */
+  buildMatcher: (label: string) => RegExp;
+
+  /**
+   * Returns all parsable substrings from a line, used for highlighting
+   */
+  getFields: (line: string) => string[];
+
+  /**
+   * Gets the label name from a parsable substring of a line
+   */
+  getLabelFromField: (field: string) => string;
+
+  /**
+   * Gets the label value from a parsable substring of a line
+   */
+  getValueFromField: (field: string) => string;
+  /**
+   * Function to verify if this is a valid parser for the given line.
+   * The parser accepts the line if it returns true.
+   */
+  test: (line: string) => boolean;
+}
+
 export enum LogsDedupDescription {
   none = 'No de-duplication',
   exact = 'De-duplication of successive lines that are identical, ignoring ISO datetimes.',
   numbers = 'De-duplication of successive lines that are identical when ignoring numbers, e.g., IP addresses, latencies.',
   signature = 'De-duplication of successive lines that have identical punctuation and whitespace.',
-}
-
-export interface LogRowContextOptions {
-  direction?: LogRowContextQueryDirection;
-  limit?: number;
-}
-
-export enum LogRowContextQueryDirection {
-  Backward = 'BACKWARD',
-  Forward = 'FORWARD',
 }
 
 /**
@@ -129,12 +146,11 @@ export interface DataSourceWithLogsContextSupport<TQuery extends DataQuery = Dat
   /**
    * Retrieve context for a given log row
    */
-  getLogRowContext: (row: LogRowModel, options?: LogRowContextOptions, query?: TQuery) => Promise<DataQueryResponse>;
-
-  /**
-   * Retrieve the context query object for a given log row. This is currently used to open LogContext queries in a split view.
-   */
-  getLogRowContextQuery?: (row: LogRowModel, options?: LogRowContextOptions, query?: TQuery) => Promise<TQuery | null>;
+  getLogRowContext: <TContextQueryOptions extends {}>(
+    row: LogRowModel,
+    options?: TContextQueryOptions,
+    query?: TQuery
+  ) => Promise<DataQueryResponse>;
 
   /**
    * This method can be used to show "context" button based on runtime conditions (for example row model data or plugin settings, etc.)
@@ -146,7 +162,7 @@ export interface DataSourceWithLogsContextSupport<TQuery extends DataQuery = Dat
    * @alpha
    * @internal
    */
-  getLogRowContextUi?(row: LogRowModel, runContextQuery?: () => void, origQuery?: TQuery): React.ReactNode;
+  getLogRowContextUi?(row: LogRowModel, runContextQuery?: () => void): React.ReactNode;
 }
 
 export const hasLogsContextSupport = (datasource: unknown): datasource is DataSourceWithLogsContextSupport => {
@@ -169,26 +185,6 @@ export enum SupplementaryQueryType {
 }
 
 /**
- * @internal
- */
-export type SupplementaryQueryOptions = LogsVolumeOption | LogsSampleOptions;
-
-/**
- * @internal
- */
-export type LogsVolumeOption = {
-  type: SupplementaryQueryType.LogsVolume;
-};
-
-/**
- * @internal
- */
-export type LogsSampleOptions = {
-  type: SupplementaryQueryType.LogsSample;
-  limit?: number;
-};
-
-/**
  * Types of logs volume responses. A data source may return full range histogram (based on selected range)
  * or limited (based on returned results). This information is attached to DataFrame.meta.custom object.
  * @internal
@@ -197,16 +193,6 @@ export enum LogsVolumeType {
   FullRange = 'FullRange',
   Limited = 'Limited',
 }
-
-/**
- * Custom meta information required by Logs Volume responses
- */
-export type LogsVolumeCustomMetaData = {
-  absoluteRange: AbsoluteTimeRange;
-  logsVolumeType: LogsVolumeType;
-  datasourceName: string;
-  sourceQuery: DataQuery;
-};
 
 /**
  * Data sources that support supplementary queries in Explore.
@@ -231,7 +217,7 @@ export interface DataSourceWithSupplementaryQueriesSupport<TQuery extends DataQu
    * Returns a supplementary query to be used to fetch supplementary data based on the provided type and original query.
    * If provided query is not suitable for provided supplementary query type, undefined should be returned.
    */
-  getSupplementaryQuery(options: SupplementaryQueryOptions, originalQuery: TQuery): TQuery | undefined;
+  getSupplementaryQuery(type: SupplementaryQueryType, query: TQuery): TQuery | undefined;
 }
 
 export const hasSupplementaryQuerySupport = <TQuery extends DataQuery>(

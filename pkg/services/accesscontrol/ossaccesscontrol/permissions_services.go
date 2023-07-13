@@ -273,11 +273,6 @@ func (e DatasourcePermissionsService) SetPermissions(ctx context.Context, orgID 
 	return nil, nil
 }
 
-func (e DatasourcePermissionsService) DeleteResourcePermissions(ctx context.Context, orgID int64, resourceID string) error {
-	// TODO: implement
-	return nil
-}
-
 func (e DatasourcePermissionsService) MapActions(permission accesscontrol.ResourcePermission) string {
 	return ""
 }

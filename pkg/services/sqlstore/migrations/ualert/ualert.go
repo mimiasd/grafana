@@ -2,6 +2,7 @@ package ualert
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +12,9 @@ import (
 	"strings"
 	"time"
 
+	alertingLogging "github.com/grafana/alerting/logging"
 	alertingNotify "github.com/grafana/alerting/notify"
+	"github.com/grafana/alerting/receivers"
 	pb "github.com/prometheus/alertmanager/silence/silencepb"
 	"xorm.io/xorm"
 
@@ -39,9 +42,6 @@ var rmMigTitle = "remove unified alerting data"
 
 const clearMigrationEntryTitle = "clear migration entry %q"
 const codeMigration = "code migration"
-
-// It is defined in pkg/expr/service.go as "DatasourceType"
-const expressionDatasourceUID = "__expr__"
 
 type MigrationError struct {
 	AlertId int64
@@ -264,36 +264,10 @@ func (m *migration) Exec(sess *xorm.Session, mg *migrator.Migrator) error {
 	// cache for the general folders
 	generalFolderCache := make(map[int64]*dashboard)
 
-	folderHelper := folderHelper{
-		sess: sess,
-		mg:   mg,
-	}
-
-	gf := func(dash dashboard, da dashAlert) (*dashboard, error) {
-		f, ok := generalFolderCache[dash.OrgId]
-		if !ok {
-			// get or create general folder
-			f, err = folderHelper.getOrCreateGeneralFolder(dash.OrgId)
-			if err != nil {
-				return nil, MigrationError{
-					Err:     fmt.Errorf("failed to get or create general folder under organisation %d: %w", dash.OrgId, err),
-					AlertId: da.Id,
-				}
-			}
-			generalFolderCache[dash.OrgId] = f
-		}
-		// No need to assign default permissions to general folder
-		// because they are included to the query result if it's a folder with no permissions
-		// https://github.com/grafana/grafana/blob/076e2ce06a6ecf15804423fcc8dca1b620a321e5/pkg/services/sqlstore/dashboard_acl.go#L109
-		return f, nil
-	}
-
 	// Per org map of newly created rules to which notification channels it should send to.
 	rulesPerOrg := make(map[int64]map[*alertRule][]uidOrID)
 
 	for _, da := range dashAlerts {
-		l := mg.Logger.New("ruleID", da.Id, "ruleName", da.Name, "dashboardUID", da.DashboardUID, "orgID", da.OrgId)
-		l.Debug("migrating alert rule to Unified Alerting")
 		newCond, err := transConditions(*da.ParsedSettings, da.OrgId, dsIDMap)
 		if err != nil {
 			return err
@@ -317,13 +291,18 @@ func (m *migration) Exec(sess *xorm.Session, mg *migrator.Migrator) error {
 			}
 		}
 
+		folderHelper := folderHelper{
+			sess: sess,
+			mg:   mg,
+		}
+
 		var folder *dashboard
 		switch {
 		case dash.HasACL:
 			folderName := getAlertFolderNameFromDashboard(&dash)
 			f, ok := folderCache[folderName]
 			if !ok {
-				l.Info("create a new folder for alerts that belongs to dashboard because it has custom permissions", "folder", folderName)
+				mg.Logger.Info("create a new folder for alerts that belongs to dashboard because it has custom permissions", "org", dash.OrgId, "dashboard_uid", dash.Uid, "folder", folderName)
 				// create folder and assign the permissions of the dashboard (included default and inherited)
 				f, err = folderHelper.createFolder(dash.OrgId, folderName)
 				if err != nil {
@@ -353,20 +332,29 @@ func (m *migration) Exec(sess *xorm.Session, mg *migrator.Migrator) error {
 			// get folder if exists
 			f, err := folderHelper.getFolder(dash, da)
 			if err != nil {
-				// If folder does not exist then the dashboard is an orphan and we migrate the alert to the general folder.
-				l.Warn("Failed to find folder for dashboard. Migrate rule to the default folder", "rule_name", da.Name, "dashboard_uid", da.DashboardUID, "missing_folder_id", dash.FolderId)
-				folder, err = gf(dash, da)
-				if err != nil {
-					return err
+				return MigrationError{
+					Err:     err,
+					AlertId: da.Id,
 				}
-			} else {
-				folder = &f
 			}
+			folder = &f
 		default:
-			folder, err = gf(dash, da)
-			if err != nil {
-				return err
+			f, ok := generalFolderCache[dash.OrgId]
+			if !ok {
+				// get or create general folder
+				f, err = folderHelper.getOrCreateGeneralFolder(dash.OrgId)
+				if err != nil {
+					return MigrationError{
+						Err:     fmt.Errorf("failed to get or create general folder under organisation %d: %w", dash.OrgId, err),
+						AlertId: da.Id,
+					}
+				}
+				generalFolderCache[dash.OrgId] = f
 			}
+			// No need to assign default permissions to general folder
+			// because they are included to the query result if it's a folder with no permissions
+			// https://github.com/grafana/grafana/blob/076e2ce06a6ecf15804423fcc8dca1b620a321e5/pkg/services/sqlstore/dashboard_acl.go#L109
+			folder = f
 		}
 
 		if folder.Uid == "" {
@@ -375,9 +363,9 @@ func (m *migration) Exec(sess *xorm.Session, mg *migrator.Migrator) error {
 				AlertId: da.Id,
 			}
 		}
-		rule, err := m.makeAlertRule(l, *newCond, da, folder.Uid)
+		rule, err := m.makeAlertRule(*newCond, da, folder.Uid)
 		if err != nil {
-			return fmt.Errorf("failed to migrate alert rule '%s' [ID:%d, DashboardUID:%s, orgID:%d]: %w", da.Name, da.Id, da.DashboardUID, da.OrgId, err)
+			return err
 		}
 
 		if _, ok := rulesPerOrg[rule.OrgID]; !ok {
@@ -457,9 +445,6 @@ func (m *migration) writeAlertmanagerConfig(orgID int64, amConfig *PostableUserC
 		return err
 	}
 
-	// remove an existing configuration, which could have been left during switching back to legacy alerting
-	_, _ = m.sess.Delete(AlertConfiguration{OrgID: orgID})
-
 	// We don't need to apply the configuration, given the multi org alertmanager will do an initial sync before the server is ready.
 	_, err = m.sess.Insert(AlertConfiguration{
 		AlertmanagerConfiguration: string(rawAmConfig),
@@ -476,21 +461,32 @@ func (m *migration) writeAlertmanagerConfig(orgID int64, amConfig *PostableUserC
 }
 
 // validateAlertmanagerConfig validates the alertmanager configuration produced by the migration against the receivers.
-func (m *migration) validateAlertmanagerConfig(config *PostableUserConfig) error {
+func (m *migration) validateAlertmanagerConfig(orgID int64, config *PostableUserConfig) error {
 	for _, r := range config.AlertmanagerConfig.Receivers {
 		for _, gr := range r.GrafanaManagedReceivers {
+			// First, let's decode the secure settings - given they're stored as base64.
+			secureSettings := make(map[string][]byte, len(gr.SecureSettings))
+			for k, v := range gr.SecureSettings {
+				d, err := base64.StdEncoding.DecodeString(v)
+				if err != nil {
+					return err
+				}
+				secureSettings[k] = d
+			}
+
 			data, err := gr.Settings.MarshalJSON()
 			if err != nil {
 				return err
 			}
 			var (
-				cfg = &alertingNotify.GrafanaIntegrationConfig{
+				cfg = &receivers.NotificationChannelConfig{
 					UID:                   gr.UID,
+					OrgID:                 orgID,
 					Name:                  gr.Name,
 					Type:                  gr.Type,
 					DisableResolveMessage: gr.DisableResolveMessage,
 					Settings:              data,
-					SecureSettings:        gr.SecureSettings,
+					SecureSettings:        secureSettings,
 				}
 			)
 
@@ -507,9 +503,17 @@ func (m *migration) validateAlertmanagerConfig(config *PostableUserConfig) error
 				}
 				return fallback
 			}
-			_, err = alertingNotify.BuildReceiverConfiguration(context.Background(), &alertingNotify.APIReceiver{
-				GrafanaIntegrations: alertingNotify.GrafanaIntegrations{Integrations: []*alertingNotify.GrafanaIntegrationConfig{cfg}},
-			}, decryptFunc)
+			receiverFactory, exists := alertingNotify.Factory(gr.Type)
+			if !exists {
+				return fmt.Errorf("notifier %s is not supported", gr.Type)
+			}
+			factoryConfig, err := receivers.NewFactoryConfig(cfg, nil, decryptFunc, nil, nil, func(ctx ...interface{}) alertingLogging.Logger {
+				return &alertingLogging.FakeLogger{}
+			}, setting.BuildVersion)
+			if err != nil {
+				return err
+			}
+			_, err = receiverFactory(factoryConfig)
 			if err != nil {
 				return err
 			}

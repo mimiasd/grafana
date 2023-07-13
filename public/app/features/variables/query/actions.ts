@@ -137,7 +137,7 @@ export const changeQueryVariableQuery =
       )
     );
 
-    if (definition !== undefined) {
+    if (definition) {
       dispatch(
         toKeyedAction(
           rootStateKey,

@@ -7,8 +7,6 @@ export type AlertManagerCortexConfig = {
   alertmanager_config: AlertmanagerConfig;
   /** { [name]: provenance } */
   template_file_provenances?: Record<string, string>;
-  last_applied?: string;
-  id?: number;
 };
 
 export type TLSConfig = {
@@ -157,7 +155,6 @@ export type AlertmanagerConfig = {
   mute_time_intervals?: MuteTimeInterval[];
   /** { [name]: provenance } */
   muteTimeProvenances?: Record<string, string>;
-  last_applied?: boolean;
 };
 
 export type Matcher = {
@@ -252,7 +249,6 @@ export interface AlertmanagerStatus {
 }
 
 export type TestReceiversAlert = Pick<AlertmanagerAlert, 'annotations' | 'labels'>;
-export type TestTemplateAlert = Pick<AlertmanagerAlert, 'annotations' | 'labels' | 'startsAt' | 'endsAt'>;
 
 export interface TestReceiversPayload {
   receivers?: Receiver[];
@@ -315,8 +311,6 @@ export interface TimeInterval {
   days_of_month?: string[];
   months?: string[];
   years?: string[];
-  /** IANA TZ identifier like "Europe/Brussels", also supports "Local" or "UTC" */
-  location?: string;
 }
 
 export type MuteTimeInterval = {

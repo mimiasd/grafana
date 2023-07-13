@@ -8,15 +8,14 @@ import {
 import { VisibilityMode } from '@grafana/schema';
 import { commonOptionsBuilder } from '@grafana/ui';
 
-import { InsertNullsEditor } from '../timeseries/InsertNullsEditor';
 import { SpanNullsEditor } from '../timeseries/SpanNullsEditor';
 
 import { StateTimelinePanel } from './StateTimelinePanel';
 import { timelinePanelChangedHandler } from './migrations';
-import { Options, FieldConfig, defaultOptions, defaultFieldConfig } from './panelcfg.gen';
+import { PanelOptions, PanelFieldConfig, defaultPanelOptions, defaultPanelFieldConfig } from './panelcfg.gen';
 import { StatTimelineSuggestionsSupplier } from './suggestions';
 
-export const plugin = new PanelPlugin<Options, FieldConfig>(StateTimelinePanel)
+export const plugin = new PanelPlugin<PanelOptions, PanelFieldConfig>(StateTimelinePanel)
   .setPanelChangeHandler(timelinePanelChangedHandler)
   .useFieldConfig({
     standardOptions: {
@@ -34,7 +33,7 @@ export const plugin = new PanelPlugin<Options, FieldConfig>(StateTimelinePanel)
         .addSliderInput({
           path: 'lineWidth',
           name: 'Line width',
-          defaultValue: defaultFieldConfig.lineWidth,
+          defaultValue: defaultPanelFieldConfig.lineWidth,
           settings: {
             min: 0,
             max: 10,
@@ -44,7 +43,7 @@ export const plugin = new PanelPlugin<Options, FieldConfig>(StateTimelinePanel)
         .addSliderInput({
           path: 'fillOpacity',
           name: 'Fill opacity',
-          defaultValue: defaultFieldConfig.fillOpacity,
+          defaultValue: defaultPanelFieldConfig.fillOpacity,
           settings: {
             min: 0,
             max: 100,
@@ -58,21 +57,9 @@ export const plugin = new PanelPlugin<Options, FieldConfig>(StateTimelinePanel)
           defaultValue: false,
           editor: SpanNullsEditor,
           override: SpanNullsEditor,
-          shouldApply: (field) => field.type !== FieldType.time,
-          process: identityOverrideProcessor,
-        })
-        .addCustomEditor<void, boolean>({
-          id: 'insertNulls',
-          path: 'insertNulls',
-          name: 'Disconnect values',
-          defaultValue: false,
-          editor: InsertNullsEditor,
-          override: InsertNullsEditor,
-          shouldApply: (field) => field.type !== FieldType.time,
+          shouldApply: (f) => f.type !== FieldType.time,
           process: identityOverrideProcessor,
         });
-
-      commonOptionsBuilder.addHideFrom(builder);
     },
   })
   .setPanelOptions((builder) => {
@@ -80,7 +67,7 @@ export const plugin = new PanelPlugin<Options, FieldConfig>(StateTimelinePanel)
       .addBooleanSwitch({
         path: 'mergeValues',
         name: 'Merge equal consecutive values',
-        defaultValue: defaultOptions.mergeValues,
+        defaultValue: defaultPanelOptions.mergeValues,
       })
       .addRadio({
         path: 'showValue',
@@ -92,7 +79,7 @@ export const plugin = new PanelPlugin<Options, FieldConfig>(StateTimelinePanel)
             { value: VisibilityMode.Never, label: 'Never' },
           ],
         },
-        defaultValue: defaultOptions.showValue,
+        defaultValue: defaultPanelOptions.showValue,
       })
       .addRadio({
         path: 'alignValue',
@@ -104,7 +91,7 @@ export const plugin = new PanelPlugin<Options, FieldConfig>(StateTimelinePanel)
             { value: 'right', label: 'Right' },
           ],
         },
-        defaultValue: defaultOptions.alignValue,
+        defaultValue: defaultPanelOptions.alignValue,
       })
       .addSliderInput({
         path: 'rowHeight',
@@ -114,7 +101,7 @@ export const plugin = new PanelPlugin<Options, FieldConfig>(StateTimelinePanel)
           max: 1,
           step: 0.01,
         },
-        defaultValue: defaultOptions.rowHeight,
+        defaultValue: defaultPanelOptions.rowHeight,
       });
 
     commonOptionsBuilder.addLegendOptions(builder, false);

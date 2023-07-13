@@ -55,12 +55,7 @@ describe('RichHistoryRemoteStorage', () => {
     storage = new RichHistoryRemoteStorage();
   });
 
-  const setup = (): {
-    richHistoryQuery: RichHistoryQuery;
-    richHistoryStarredQuery: RichHistoryQuery;
-    dto: RichHistoryRemoteStorageDTO;
-    dtoStarred: RichHistoryRemoteStorageDTO;
-  } => {
+  const setup = (): { richHistoryQuery: RichHistoryQuery; dto: RichHistoryRemoteStorageDTO } => {
     const richHistoryQuery: RichHistoryQuery = {
       id: '123',
       createdAt: 200 * 1000,
@@ -69,11 +64,6 @@ describe('RichHistoryRemoteStorage', () => {
       starred: true,
       comment: 'comment',
       queries: [{ refId: 'foo' }],
-    };
-
-    const richHistoryStarredQuery: RichHistoryQuery = {
-      ...richHistoryQuery,
-      starred: false,
     };
 
     const dto = {
@@ -85,16 +75,9 @@ describe('RichHistoryRemoteStorage', () => {
       queries: richHistoryQuery.queries,
     };
 
-    const dtoStarred = {
-      ...dto,
-      starred: richHistoryStarredQuery.starred,
-    };
-
     return {
       richHistoryQuery,
-      richHistoryStarredQuery,
       dto,
-      dtoStarred,
     };
   };
 
@@ -114,48 +97,6 @@ describe('RichHistoryRemoteStorage', () => {
     const search = 'foo';
     const datasourceFilters = ['name-of-ds1', 'name-of-ds2'];
     const sortOrder = SortOrder.Descending;
-    const starred = false;
-    const from = 100;
-    const to = 200;
-    const expectedLimit = 100;
-    const expectedPage = 1;
-
-    const { richHistory, total } = await storage.getRichHistory({
-      search,
-      datasourceFilters,
-      sortOrder,
-      starred,
-      to,
-      from,
-    });
-
-    expect(fetchMock).toBeCalledWith({
-      method: 'GET',
-      url: `/api/query-history?datasourceUid=ds1&datasourceUid=ds2&searchString=${search}&sort=time-desc&to=now-${from}d&from=now-${to}d&limit=${expectedLimit}&page=${expectedPage}`,
-      requestId: 'query-history-get-all',
-    });
-    expect(richHistory).toMatchObject([richHistoryQuery]);
-    expect(total).toBe(1);
-  });
-
-  it('returns list of all starred query history items', async () => {
-    const { richHistoryStarredQuery, dtoStarred } = setup();
-    const returnedDTOs: RichHistoryRemoteStorageDTO[] = [dtoStarred];
-
-    fetchMock.mockReturnValue(
-      of({
-        data: {
-          result: {
-            queryHistory: returnedDTOs,
-            totalCount: returnedDTOs.length,
-          },
-        },
-      })
-    );
-
-    const search = 'foo';
-    const datasourceFilters = ['name-of-ds1', 'name-of-ds2'];
-    const sortOrder = SortOrder.Descending;
     const starred = true;
     const from = 100;
     const to = 200;
@@ -167,16 +108,16 @@ describe('RichHistoryRemoteStorage', () => {
       datasourceFilters,
       sortOrder,
       starred,
-      from,
       to,
+      from,
     });
 
     expect(fetchMock).toBeCalledWith({
       method: 'GET',
-      url: `/api/query-history?datasourceUid=ds1&datasourceUid=ds2&searchString=${search}&sort=time-desc&limit=${expectedLimit}&page=${expectedPage}&onlyStarred=${starred}`,
-      requestId: 'query-history-get-starred',
+      url: `/api/query-history?datasourceUid=ds1&datasourceUid=ds2&searchString=${search}&sort=time-desc&to=now-${from}d&from=now-${to}d&limit=${expectedLimit}&page=${expectedPage}&onlyStarred=${starred}`,
+      requestId: 'query-history-get-all',
     });
-    expect(richHistory).toMatchObject([richHistoryStarredQuery]);
+    expect(richHistory).toMatchObject([richHistoryQuery]);
     expect(total).toBe(1);
   });
 
@@ -230,6 +171,18 @@ describe('RichHistoryRemoteStorage', () => {
     expect(preferencesServiceMock.patch).toBeCalledWith({
       queryHistory: { homeTab: 'starred' },
     } as Partial<UserPreferencesDTO>);
+  });
+
+  it('migrates provided rich history items', async () => {
+    const { richHistoryQuery, dto } = setup();
+    fetchMock.mockReturnValue(of({}));
+    await storage.migrate([richHistoryQuery]);
+    expect(fetchMock).toBeCalledWith({
+      url: '/api/query-history/migrate',
+      method: 'POST',
+      data: { queries: [dto] },
+      showSuccessAlert: false,
+    });
   });
 
   it('stars query history items', async () => {

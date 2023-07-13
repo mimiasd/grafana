@@ -37,7 +37,6 @@ const renderAndSubmitForm = async (
 ) => {
   render(
     <SaveDashboardAsForm
-      isLoading={false}
       dashboard={dashboard as DashboardModel}
       onCancel={() => {}}
       onSuccess={() => {}}

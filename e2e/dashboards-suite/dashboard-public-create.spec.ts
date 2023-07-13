@@ -8,11 +8,7 @@ e2e.scenario({
   skipScenario: false,
   scenario: () => {
     // Opening a dashboard without template variables
-    e2e()
-      .intercept({
-        pathname: '/api/ds/query',
-      })
-      .as('query');
+    e2e().intercept('POST', '/api/ds/query').as('query');
     e2e.flows.openDashboard({ uid: 'ZqZnVvFZz' });
     e2e().wait('@query');
 
@@ -69,12 +65,7 @@ e2e.scenario({
   skipScenario: false,
   scenario: () => {
     // Opening a dashboard without template variables
-    e2e()
-      .intercept({
-        method: 'POST',
-        pathname: '/api/ds/query',
-      })
-      .as('query');
+    e2e().intercept('POST', '/api/ds/query').as('query');
     e2e.flows.openDashboard({ uid: 'ZqZnVvFZz' });
     e2e().wait('@query');
 
@@ -118,12 +109,7 @@ e2e.scenario({
   skipScenario: false,
   scenario: () => {
     // Opening a dashboard without template variables
-    e2e()
-      .intercept({
-        method: 'POST',
-        pathname: '/api/ds/query',
-      })
-      .as('query');
+    e2e().intercept('/api/ds/query').as('query');
     e2e.flows.openDashboard({ uid: 'ZqZnVvFZz' });
     e2e().wait('@query');
 
@@ -141,7 +127,7 @@ e2e.scenario({
       .then((text) => e2e().wrap(text).as('url'));
 
     // Save public dashboard
-    e2e().intercept('PATCH', '/api/dashboards/uid/ZqZnVvFZz/public-dashboards/*').as('update');
+    e2e().intercept('PUT', '/api/dashboards/uid/ZqZnVvFZz/public-dashboards/*').as('update');
     // Switch off enabling toggle
     e2e.pages.ShareDashboardModal.PublicDashboard.PauseSwitch().should('be.enabled').click({ force: true });
     e2e().wait('@update');

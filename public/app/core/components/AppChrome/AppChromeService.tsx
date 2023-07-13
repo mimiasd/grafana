@@ -1,7 +1,7 @@
 import { useObservable } from 'react-use';
 import { BehaviorSubject } from 'rxjs';
 
-import { AppEvents, NavModel, NavModelItem, PageLayoutType, UrlQueryValue } from '@grafana/data';
+import { AppEvents, NavModelItem, UrlQueryValue } from '@grafana/data';
 import { locationService, reportInteraction } from '@grafana/runtime';
 import appEvents from 'app/core/app_events';
 import { t } from 'app/core/internationalization';
@@ -13,13 +13,12 @@ import { RouteDescriptor } from '../../navigation/types';
 
 export interface AppChromeState {
   chromeless?: boolean;
-  sectionNav: NavModel;
+  sectionNav: NavModelItem;
   pageNav?: NavModelItem;
   actions?: React.ReactNode;
   searchBarHidden?: boolean;
   megaMenuOpen?: boolean;
   kioskMode: KioskMode | null;
-  layout: PageLayoutType;
 }
 
 export class AppChromeService {
@@ -29,10 +28,9 @@ export class AppChromeService {
 
   readonly state = new BehaviorSubject<AppChromeState>({
     chromeless: true, // start out hidden to not flash it on pages without chrome
-    sectionNav: { node: { text: t('nav.home.title', 'Home') }, main: { text: '' } },
+    sectionNav: { text: t('nav.home.title', 'Home') },
     searchBarHidden: store.getBool(this.searchBarStorageKey, false),
     kioskMode: null,
-    layout: PageLayoutType.Canvas,
   });
 
   setMatchedRoute(route: RouteDescriptor) {
@@ -52,9 +50,8 @@ export class AppChromeService {
     if (!this.routeChangeHandled) {
       newState.actions = undefined;
       newState.pageNav = undefined;
-      newState.sectionNav = { node: { text: t('nav.home.title', 'Home') }, main: { text: '' } };
+      newState.sectionNav = { text: t('nav.home.title', 'Home') };
       newState.chromeless = this.currentRoute?.chromeless;
-      newState.layout = PageLayoutType.Standard;
       this.routeChangeHandled = true;
     }
 
@@ -76,9 +73,7 @@ export class AppChromeService {
     // Some updates can have new instance of sectionNav or pageNav but with same values
     if (newState.sectionNav !== current.sectionNav || newState.pageNav !== current.pageNav) {
       if (
-        newState.actions === current.actions &&
-        newState.layout === current.layout &&
-        navItemsAreTheSame(newState.sectionNav.node, current.sectionNav.node) &&
+        navItemsAreTheSame(newState.sectionNav, current.sectionNav) &&
         navItemsAreTheSame(newState.pageNav, current.pageNav)
       ) {
         return true;
@@ -104,15 +99,9 @@ export class AppChromeService {
   };
 
   onToggleSearchBar = () => {
-    const { searchBarHidden, kioskMode } = this.state.getValue();
-    const newSearchBarHidden = !searchBarHidden;
-    store.set(this.searchBarStorageKey, newSearchBarHidden);
-
-    if (kioskMode) {
-      locationService.partial({ kiosk: null });
-    }
-
-    this.update({ searchBarHidden: newSearchBarHidden, kioskMode: null });
+    const searchBarHidden = !this.state.getValue().searchBarHidden;
+    store.set(this.searchBarStorageKey, searchBarHidden);
+    this.update({ searchBarHidden });
   };
 
   onToggleKioskMode = () => {
@@ -165,9 +154,9 @@ export class AppChromeService {
 }
 
 /**
- * Checks if text, url, active child url and parent are the same
+ * Checks if text, url and active child url are the same
  **/
-function navItemsAreTheSame(a: NavModelItem | undefined, b: NavModelItem | undefined): boolean {
+function navItemsAreTheSame(a: NavModelItem | undefined, b: NavModelItem | undefined) {
   if (a === b) {
     return true;
   }
@@ -175,10 +164,5 @@ function navItemsAreTheSame(a: NavModelItem | undefined, b: NavModelItem | undef
   const aActiveChild = a?.children?.find((child) => child.active);
   const bActiveChild = b?.children?.find((child) => child.active);
 
-  return (
-    a?.text === b?.text &&
-    a?.url === b?.url &&
-    aActiveChild?.url === bActiveChild?.url &&
-    navItemsAreTheSame(a?.parentItem, b?.parentItem)
-  );
+  return a?.text === b?.text && a?.url === b?.url && aActiveChild?.url === bActiveChild?.url;
 }

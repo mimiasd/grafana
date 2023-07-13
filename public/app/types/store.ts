@@ -1,13 +1,11 @@
 /* eslint-disable no-restricted-imports */
 import {
   Action,
-  addListener as addListenerUntyped,
   AsyncThunk,
   AsyncThunkOptions,
   AsyncThunkPayloadCreator,
   createAsyncThunk as createAsyncThunkUntyped,
   PayloadAction,
-  TypedAddListener,
 } from '@reduxjs/toolkit';
 import {
   useSelector as useSelectorUntyped,
@@ -39,5 +37,3 @@ export const createAsyncThunk = <Returned, ThunkArg = void, ThunkApiConfig exten
   options?: AsyncThunkOptions<ThunkArg, ThunkApiConfig>
 ): AsyncThunk<Returned, ThunkArg, ThunkApiConfig> =>
   createAsyncThunkUntyped<Returned, ThunkArg, ThunkApiConfig>(typePrefix, payloadCreator, options);
-
-export const addListener = addListenerUntyped as TypedAddListener<RootState, AppDispatch>;

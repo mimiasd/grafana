@@ -177,8 +177,6 @@ export class DashboardExporter {
           model = libPanel.model;
         }
 
-        await templateizeDatasourceUsage(model);
-
         const { gridPos, id, ...rest } = model as any;
         if (!libraryPanels.has(uid)) {
           libraryPanels.set(uid, { name, uid, kind: LibraryElementKind.Panel, model: rest });
@@ -223,9 +221,13 @@ export class DashboardExporter {
         version: config.buildInfo.version,
       };
 
+      each(datasources, (value: any) => {
+        inputs.push(value);
+      });
+
       // we need to process all panels again after all the promises are resolved
       // so all data sources, variables and targets have been templateized when we process library panels
-      for (const panel of saveModel.panels) {
+      for (const panel of dashboard.panels) {
         await processLibraryPanels(panel);
         if (panel.collapsed !== undefined && panel.collapsed === true && panel.panels) {
           for (const rowPanel of panel.panels) {
@@ -233,10 +235,6 @@ export class DashboardExporter {
           }
         }
       }
-
-      each(datasources, (value: any) => {
-        inputs.push(value);
-      });
 
       // templatize constants
       for (const variable of saveModel.getVariables()) {

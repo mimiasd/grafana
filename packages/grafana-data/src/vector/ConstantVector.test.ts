@@ -10,9 +10,8 @@ describe('ConstantVector', () => {
     expect(v.get(1)).toEqual(value);
 
     // Now check all of them
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 10; i++) {
       expect(v.get(i)).toEqual(value);
-      expect(v[i]).toEqual(value);
     }
   });
 });

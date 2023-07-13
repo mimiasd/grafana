@@ -5,9 +5,9 @@
   <title>
     {{ Subject .Subject .TemplateData "{{ .Title }}" }}
   </title>
-  {{ __dangerouslyInjectHTML `<!--[if !mso]><!-->` }}
+  <!--[if !mso]><!-->
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  {{ __dangerouslyInjectHTML `<!--<![endif]-->` }}
+  <!--<![endif]-->
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style type="text/css">
@@ -44,7 +44,7 @@
     }
 
   </style>
-  {{ __dangerouslyInjectHTML `<!--[if mso]>
+  <!--[if mso]>
     <noscript>
     <xml>
     <o:OfficeDocumentSettings>
@@ -53,19 +53,19 @@
     </o:OfficeDocumentSettings>
     </xml>
     </noscript>
-    <![endif]-->` }}
-  {{ __dangerouslyInjectHTML `<!--[if lte mso 11]>
+    <![endif]-->
+  <!--[if lte mso 11]>
     <style type="text/css">
       .mj-outlook-group-fix { width:100% !important; }
     </style>
-    <![endif]-->` }}
-  {{ __dangerouslyInjectHTML `<!--[if !mso]><!-->` }}
+    <![endif]-->
+  <!--[if !mso]><!-->
   <link href="https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700" rel="stylesheet" type="text/css">
   <style type="text/css">
     @import url(https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700);
 
   </style>
-  {{ __dangerouslyInjectHTML `<!--<![endif]-->` }}
+  <!--<![endif]-->
   <style type="text/css">
     @media only screen and (min-width:480px) {
       .mj-column-per-100 {
@@ -143,13 +143,13 @@
     </mj-raw>
   </div>
   <div style="background-color:#111217;">
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+    <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div style="margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
         <tbody>
           <tr>
             <td style="direction:ltr;font-size:0px;padding:20px 0;text-align:center;">
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->` }}
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
               <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                 <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="background-color:transparent;vertical-align:top;" width="100%">
                   <tbody>
@@ -169,19 +169,19 @@
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table><![endif]-->
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div style="margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
         <tbody>
           <tr>
             <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->` }}
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
               <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                 <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                   <tbody>
@@ -212,34 +212,33 @@
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table><![endif]-->
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+    <!--[if mso | IE]></td></tr></table><![endif]-->
     {{ if .Message }}
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#22252b" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+    <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#22252b" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div style="background:#22252b;background-color:#22252b;margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#22252b;background-color:#22252b;width:100%;">
         <tbody>
           <tr>
             <td style="border:1px solid #2f3037;direction:ltr;font-size:0px;padding:0;text-align:center;">
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
                               <tr>
                                 <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                                  <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#FFFFFF;">
-                                    <mj-raw>
+                                  <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#FFFFFF;"><mj-raw>
                                       {{ range $line := (splitList "\n" .Message) }}
                                     </mj-raw>
                                     {{ $line }}<br>
@@ -252,27 +251,27 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr></table><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr></table><![endif]-->
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+    <!--[if mso | IE]></td></tr></table><![endif]-->
     {{ else }}{{ if .Alerts.Firing  }}
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+    <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div style="margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
         <tbody>
           <tr>
             <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->` }}
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
               <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                 <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                   <tbody>
@@ -286,27 +285,27 @@
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table><![endif]-->
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+    <!--[if mso | IE]></td></tr></table><![endif]-->
     {{ range .Alerts.Firing }}
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#22252b" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+    <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#22252b" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div style="background:#22252b;background-color:#22252b;margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#22252b;background-color:#22252b;width:100%;">
         <tbody>
           <tr>
             <td style="border:1px solid #2f3037;direction:ltr;font-size:0px;padding:0;text-align:center;">
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="border-bottom:1px solid #2f3037;direction:ltr;font-size:0px;padding:10px 0;text-align:center;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:middle;width:199.33333333333337px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:middle;width:199.33333333333337px;" ><![endif]-->
                         <div class="mj-column-per-33-333333333333336 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:middle;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:middle;" width="100%">
                             <tbody>
@@ -326,7 +325,7 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><td class="" style="vertical-align:middle;width:199.33333333333337px;" ><![endif]-->` }}
+                        <!--[if mso | IE]></td><td class="" style="vertical-align:middle;width:199.33333333333337px;" ><![endif]-->
                         <div class="mj-column-per-33-333333333333336 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:middle;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:middle;" width="100%">
                             <tbody>
@@ -338,9 +337,9 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><![endif]-->` }}
+                        <!--[if mso | IE]></td><![endif]-->
                         {{ if gt (len .GeneratorURL) 0 }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><td class="" style="vertical-align:middle;width:199.33333333333337px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><td class="" style="vertical-align:middle;width:199.33333333333337px;" ><![endif]-->
                         <div class="mj-column-per-33-333333333333336 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:middle;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:middle;" width="100%">
                             <tbody>
@@ -360,23 +359,23 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><![endif]-->` }}
+                        <!--[if mso | IE]></td><![endif]-->
                         {{ end }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><![endif]-->
               {{ if .ImageURL }}
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-bottom:1px solid #2f3037;vertical-align:top;" width="100%">
                             <tbody>
@@ -398,21 +397,21 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><![endif]-->
               {{ end }}{{ if .EmbeddedImage }}
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-bottom:1px solid #2f3037;vertical-align:top;" width="100%">
                             <tbody>
@@ -432,21 +431,21 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><![endif]-->
               {{ end }}
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:0;text-align:left;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -469,10 +468,13 @@
                               </tr>
                               <tr>
                                 <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                                  <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#FFFFFF;">
-                                    <mj-raw>{{ range $line := (splitList "\n" .Annotations.description) }}</mj-raw>
+                                  <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#FFFFFF;"><mj-raw>
+                                      {{ range $line := (splitList "\n" .Annotations.description) }}
+                                    </mj-raw>
                                     {{ $line }}<br>
-                                    <mj-raw>{{ end }}</mj-raw>
+                                    <mj-raw>
+                                      {{ end }}
+                                    </mj-raw>
                                   </div>
                                 </td>
                               </tr>
@@ -480,21 +482,21 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><![endif]-->
               {{ if .Values }}
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:0;text-align:left;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -506,19 +508,19 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:0 25px;text-align:left;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:548px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:548px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
                             <tbody>
@@ -528,9 +530,12 @@
                                     <tbody>
                                       <tr>
                                         <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                                          <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#FFFFFF;">
-                                            <mj-raw>{{ range $refID, $value := .Values }}</mj-raw>
-                                            {{ $refID }}={{ $value }}&nbsp; <mj-raw>{{ end }}</mj-raw>
+                                          <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#FFFFFF;"><mj-raw>
+                                              {{ range $refID, $value := .Values }}
+                                            </mj-raw>
+                                            {{ $refID }}={{ $value }}&nbsp; <mj-raw>
+                                              {{ end }}
+                                            </mj-raw>
                                           </div>
                                         </td>
                                       </tr>
@@ -541,21 +546,21 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><![endif]-->
               {{ end }}
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:20px 0;text-align:center;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -568,18 +573,24 @@
                               <tr>
                                 <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
                                   <table cellpadding="0" cellspacing="0" width="100%" border="0" style="color:white;font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:22px;table-layout:auto;width:100%;border:none;">
-                                    <mj-raw>{{ range .Labels.SortedPairs }}</mj-raw>
+                                    <mj-raw>
+                                      {{ range .Labels.SortedPairs }}
+                                    </mj-raw>
                                     <tr>
                                       <td>
                                         <strong>{{ .Name }}</strong>
                                       </td>
-                                      <td>{{ .Value }}</td>
+                                      <td>
+                                        {{ .Value }}
+                                      </td>
                                     </tr>
-                                    <mj-raw>{{ end }}</mj-raw>
+                                    <mj-raw>
+                                      {{ end }}
+                                    </mj-raw>
                                   </table>
                                 </td>
                               </tr>
-                              {{ end }}{{ if (without .Annotations.SortedPairs.Names "description" "summary") }}
+                              {{ end }}{{ if .Annotations.SortedPairs }}
                               <tr>
                                 <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
                                   <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#FFFFFF;"><strong>Annotations</strong></div>
@@ -588,16 +599,20 @@
                               <tr>
                                 <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
                                   <table cellpadding="0" cellspacing="0" width="100%" border="0" style="color:white;font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:22px;table-layout:auto;width:100%;border:none;">
-                                    <mj-raw>{{ range .Annotations.SortedPairs }}</mj-raw>
-                                    <mj-raw>{{ if and (ne .Name "description") (ne .Name "summary") }}</mj-raw>
+                                    <mj-raw>
+                                      {{ range .Annotations.SortedPairs }}
+                                    </mj-raw>
                                     <tr>
                                       <td>
                                         <strong>{{ .Name }}</strong>
                                       </td>
-                                      <td>{{ .Value }}</td>
+                                      <td>
+                                        {{ .Value }}
+                                      </td>
                                     </tr>
-                                    <mj-raw>{{ end }}</mj-raw>
-                                    <mj-raw>{{ end }}</mj-raw>
+                                    <mj-raw>
+                                      {{ end }}
+                                    </mj-raw>
                                   </table>
                                 </td>
                               </tr>
@@ -605,21 +620,21 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="border-top:1px solid #2f3037;direction:ltr;font-size:0px;padding:15px 0px;text-align:left;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><![endif]-->
                         {{ if .SilenceURL }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->
                         <div class="mj-column-per-25 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -639,9 +654,9 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><![endif]-->` }}
+                        <!--[if mso | IE]></td><![endif]-->
                         {{ end }}{{ if .Annotations.runbook_url }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->
                         <div class="mj-column-per-25 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -661,9 +676,9 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><![endif]-->` }}
+                        <!--[if mso | IE]></td><![endif]-->
                         {{ end }}{{ if .DashboardURL }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->
                         <div class="mj-column-per-25 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -683,9 +698,9 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><![endif]-->` }}
+                        <!--[if mso | IE]></td><![endif]-->
                         {{ end }}{{ if .PanelURL }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->
                         <div class="mj-column-per-25 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -705,21 +720,21 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><![endif]-->` }}
+                        <!--[if mso | IE]></td><![endif]-->
                         {{ end }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="border-top:1px solid #2f3037;direction:ltr;font-size:0px;padding:5px 0;text-align:center;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -731,39 +746,39 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr></table><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr></table><![endif]-->
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div style="margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
         <tbody>
           <tr>
             <td style="direction:ltr;font-size:0px;padding:10px;text-align:center;">
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr></tr></table><![endif]-->` }}
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr></tr></table><![endif]-->
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+    <!--[if mso | IE]></td></tr></table><![endif]-->
     {{ end }}{{ end }}{{ if .Alerts.Resolved }}
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+    <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div style="margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
         <tbody>
           <tr>
             <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->` }}
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
               <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                 <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                   <tbody>
@@ -777,27 +792,27 @@
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table><![endif]-->
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+    <!--[if mso | IE]></td></tr></table><![endif]-->
     {{ range .Alerts.Resolved }}
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#22252b" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+    <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#22252b" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div style="background:#22252b;background-color:#22252b;margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#22252b;background-color:#22252b;width:100%;">
         <tbody>
           <tr>
             <td style="border:1px solid #2f3037;direction:ltr;font-size:0px;padding:0;text-align:center;">
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="border-bottom:1px solid #2f3037;direction:ltr;font-size:0px;padding:10px 0;text-align:center;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:middle;width:199.33333333333337px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:middle;width:199.33333333333337px;" ><![endif]-->
                         <div class="mj-column-per-33-333333333333336 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:middle;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:middle;" width="100%">
                             <tbody>
@@ -817,7 +832,7 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><td class="" style="vertical-align:middle;width:199.33333333333337px;" ><![endif]-->` }}
+                        <!--[if mso | IE]></td><td class="" style="vertical-align:middle;width:199.33333333333337px;" ><![endif]-->
                         <div class="mj-column-per-33-333333333333336 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:middle;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:middle;" width="100%">
                             <tbody>
@@ -829,9 +844,9 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><![endif]-->` }}
+                        <!--[if mso | IE]></td><![endif]-->
                         {{ if gt (len .GeneratorURL) 0 }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><td class="" style="vertical-align:middle;width:199.33333333333337px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><td class="" style="vertical-align:middle;width:199.33333333333337px;" ><![endif]-->
                         <div class="mj-column-per-33-333333333333336 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:middle;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:middle;" width="100%">
                             <tbody>
@@ -851,23 +866,23 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><![endif]-->` }}
+                        <!--[if mso | IE]></td><![endif]-->
                         {{ end }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><![endif]-->
               {{ if .ImageURL }}
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-bottom:1px solid #2f3037;vertical-align:top;" width="100%">
                             <tbody>
@@ -889,21 +904,21 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><![endif]-->
               {{ end }}{{ if .EmbeddedImage }}
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-bottom:1px solid #2f3037;vertical-align:top;" width="100%">
                             <tbody>
@@ -923,21 +938,21 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><![endif]-->
               {{ end }}
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:0;text-align:left;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -960,10 +975,13 @@
                               </tr>
                               <tr>
                                 <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                                  <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#FFFFFF;">
-                                    <mj-raw>{{ range $line := (splitList "\n" .Annotations.description) }}</mj-raw>
+                                  <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#FFFFFF;"><mj-raw>
+                                      {{ range $line := (splitList "\n" .Annotations.description) }}
+                                    </mj-raw>
                                     {{ $line }}<br>
-                                    <mj-raw>{{ end }}</mj-raw>
+                                    <mj-raw>
+                                      {{ end }}
+                                    </mj-raw>
                                   </div>
                                 </td>
                               </tr>
@@ -971,21 +989,21 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><![endif]-->
               {{ if .Values }}
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:0;text-align:left;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -997,19 +1015,19 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:0 25px;text-align:left;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:548px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:548px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
                             <tbody>
@@ -1019,9 +1037,12 @@
                                     <tbody>
                                       <tr>
                                         <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                                          <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#FFFFFF;">
-                                            <mj-raw>{{ range $refID, $value := .Values }}</mj-raw>
-                                            {{ $refID }}={{ $value }}&nbsp; <mj-raw>{{ end }}</mj-raw>
+                                          <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#FFFFFF;"><mj-raw>
+                                              {{ range $refID, $value := .Values }}
+                                            </mj-raw>
+                                            {{ $refID }}={{ $value }}&nbsp; <mj-raw>
+                                              {{ end }}
+                                            </mj-raw>
                                           </div>
                                         </td>
                                       </tr>
@@ -1032,21 +1053,21 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><![endif]-->
               {{ end }}
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="direction:ltr;font-size:0px;padding:20px 0;text-align:center;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -1059,18 +1080,24 @@
                               <tr>
                                 <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
                                   <table cellpadding="0" cellspacing="0" width="100%" border="0" style="color:white;font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:22px;table-layout:auto;width:100%;border:none;">
-                                    <mj-raw>{{ range .Labels.SortedPairs }}</mj-raw>
+                                    <mj-raw>
+                                      {{ range .Labels.SortedPairs }}
+                                    </mj-raw>
                                     <tr>
                                       <td>
                                         <strong>{{ .Name }}</strong>
                                       </td>
-                                      <td>{{ .Value }}</td>
+                                      <td>
+                                        {{ .Value }}
+                                      </td>
                                     </tr>
-                                    <mj-raw>{{ end }}</mj-raw>
+                                    <mj-raw>
+                                      {{ end }}
+                                    </mj-raw>
                                   </table>
                                 </td>
                               </tr>
-                              {{ end }}{{ if (without .Annotations.SortedPairs.Names "description" "summary") }}
+                              {{ end }}{{ if .Annotations.SortedPairs }}
                               <tr>
                                 <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
                                   <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;text-align:left;color:#FFFFFF;"><strong>Annotations</strong></div>
@@ -1079,16 +1106,20 @@
                               <tr>
                                 <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;">
                                   <table cellpadding="0" cellspacing="0" width="100%" border="0" style="color:white;font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:22px;table-layout:auto;width:100%;border:none;">
-                                    <mj-raw>{{ range .Annotations.SortedPairs }}</mj-raw>
-                                    <mj-raw>{{ if and (ne .Name "description") (ne .Name "summary") }}</mj-raw>
+                                    <mj-raw>
+                                      {{ range .Annotations.SortedPairs }}
+                                    </mj-raw>
                                     <tr>
                                       <td>
                                         <strong>{{ .Name }}</strong>
                                       </td>
-                                      <td>{{ .Value }}</td>
+                                      <td>
+                                        {{ .Value }}
+                                      </td>
                                     </tr>
-                                    <mj-raw>{{ end }}</mj-raw>
-                                    <mj-raw>{{ end }}</mj-raw>
+                                    <mj-raw>
+                                      {{ end }}
+                                    </mj-raw>
                                   </table>
                                 </td>
                               </tr>
@@ -1096,21 +1127,21 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="border-top:1px solid #2f3037;direction:ltr;font-size:0px;padding:15px 0px;text-align:left;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><![endif]-->
                         {{ if .SilenceURL }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->
                         <div class="mj-column-per-25 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -1130,9 +1161,9 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><![endif]-->` }}
+                        <!--[if mso | IE]></td><![endif]-->
                         {{ end }}{{ if .Annotations.runbook_url }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->
                         <div class="mj-column-per-25 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -1152,9 +1183,9 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><![endif]-->` }}
+                        <!--[if mso | IE]></td><![endif]-->
                         {{ end }}{{ if .DashboardURL }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->
                         <div class="mj-column-per-25 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -1174,9 +1205,9 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><![endif]-->` }}
+                        <!--[if mso | IE]></td><![endif]-->
                         {{ end }}{{ if .PanelURL }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><td class="" style="vertical-align:top;width:149.5px;" ><![endif]-->
                         <div class="mj-column-per-25 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -1196,21 +1227,21 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td><![endif]-->` }}
+                        <!--[if mso | IE]></td><![endif]-->
                         {{ end }}
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr><tr><td class="" width="600px" ><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:598px;" width="598" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
               <div style="margin:0px auto;max-width:598px;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
                   <tbody>
                     <tr>
                       <td style="border-top:1px solid #2f3037;direction:ltr;font-size:0px;padding:5px 0;text-align:center;">
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->` }}
+                        <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:598px;" ><![endif]-->
                         <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                             <tbody>
@@ -1222,39 +1253,39 @@
                             </tbody>
                           </table>
                         </div>
-                        {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+                        <!--[if mso | IE]></td></tr></table><![endif]-->
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table></td></tr></table><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table></td></tr></table><![endif]-->
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+    <!--[if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div style="margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
         <tbody>
           <tr>
             <td style="direction:ltr;font-size:0px;padding:10px;text-align:center;">
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr></tr></table><![endif]-->` }}
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr></tr></table><![endif]-->
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+    <!--[if mso | IE]></td></tr></table><![endif]-->
     {{ end }}{{ end }}{{ end }}
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->` }}
+    <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div style="margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
         <tbody>
           <tr>
             <td style="direction:ltr;font-size:0px;padding:20px 0;padding-top:10px;text-align:center;">
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->` }}
+              <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
               <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                 <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="background-color:transparent;vertical-align:top;" width="100%">
                   <tbody>
@@ -1266,13 +1297,13 @@
                   </tbody>
                 </table>
               </div>
-              {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+              <!--[if mso | IE]></td></tr></table><![endif]-->
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    {{ __dangerouslyInjectHTML `<!--[if mso | IE]></td></tr></table><![endif]-->` }}
+    <!--[if mso | IE]></td></tr></table><![endif]-->
   </div>
 </body>
 

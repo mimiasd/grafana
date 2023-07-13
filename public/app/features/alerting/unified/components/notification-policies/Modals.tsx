@@ -21,7 +21,6 @@ import { AmRoutesExpandedForm } from './EditNotificationPolicyForm';
 import { Matchers } from './Matchers';
 
 type ModalHook<T = undefined> = [JSX.Element, (item: T) => void, () => void];
-type EditModalHook = [JSX.Element, (item: RouteWithID, isDefaultRoute?: boolean) => void, () => void];
 
 const useAddPolicyModal = (
   receivers: Receiver[] = [],
@@ -56,16 +55,13 @@ const useAddPolicyModal = (
         >
           <AmRoutesExpandedForm
             receivers={AmRouteReceivers}
-            defaults={{
-              groupBy: parentRoute?.group_by,
-            }}
             onSubmit={(newRoute) => parentRoute && handleAdd(newRoute, parentRoute)}
             actionButtons={
               <Modal.ButtonRow>
-                <Button type="button" variant="secondary" onClick={handleDismiss} fill="outline">
+                <Button type="submit">Add policy</Button>
+                <Button type="button" variant="secondary" onClick={handleDismiss}>
                   Cancel
                 </Button>
-                <Button type="submit">Save policy</Button>
               </Modal.ButtonRow>
             }
           />
@@ -82,7 +78,7 @@ const useEditPolicyModal = (
   receivers: Receiver[],
   handleSave: (route: Partial<FormAmRoute>) => void,
   loading: boolean
-): EditModalHook => {
+): ModalHook<RouteWithID> => {
   const [showModal, setShowModal] = useState(false);
   const [isDefaultPolicy, setIsDefaultPolicy] = useState(false);
   const [route, setRoute] = useState<RouteWithID>();
@@ -121,10 +117,10 @@ const useEditPolicyModal = (
               route={route}
               actionButtons={
                 <Modal.ButtonRow>
-                  <Button type="button" variant="secondary" onClick={handleDismiss} fill="outline">
+                  <Button type="submit">Update default policy</Button>
+                  <Button type="button" variant="secondary" onClick={handleDismiss}>
                     Cancel
                   </Button>
-                  <Button type="submit">Update default policy</Button>
                 </Modal.ButtonRow>
               }
             />
@@ -136,10 +132,10 @@ const useEditPolicyModal = (
               onSubmit={handleSave}
               actionButtons={
                 <Modal.ButtonRow>
-                  <Button type="button" variant="secondary" onClick={handleDismiss} fill="outline">
+                  <Button type="submit">Update policy</Button>
+                  <Button type="button" variant="secondary" onClick={handleDismiss}>
                     Cancel
                   </Button>
-                  <Button type="submit">Update policy</Button>
                 </Modal.ButtonRow>
               }
             />
@@ -218,11 +214,9 @@ const useAlertGroupsModal = (): [
     setMatchers([]);
   }, []);
 
-  const handleShow = useCallback((alertGroups: AlertmanagerGroup[], matchers?: ObjectMatcher[]) => {
+  const handleShow = useCallback((alertGroups, matchers) => {
     setAlertGroups(alertGroups);
-    if (matchers) {
-      setMatchers(matchers);
-    }
+    setMatchers(matchers);
     setShowModal(true);
   }, []);
 

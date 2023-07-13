@@ -42,18 +42,17 @@ func TestIntegrationReadCorrelation(t *testing.T) {
 			res := ctx.Get(GetParams{
 				url:  "/api/datasources/correlations",
 				user: adminUser,
-				page: "0",
 			})
 			require.Equal(t, http.StatusOK, res.StatusCode)
 
 			responseBody, err := io.ReadAll(res.Body)
 			require.NoError(t, err)
 
-			var response correlations.GetCorrelationsResponseBody
+			var response []correlations.Correlation
 			err = json.Unmarshal(responseBody, &response)
 			require.NoError(t, err)
 
-			require.Len(t, response.Correlations, 0)
+			require.Len(t, response, 0)
 
 			require.NoError(t, res.Body.Close())
 		})
@@ -148,12 +147,12 @@ func TestIntegrationReadCorrelation(t *testing.T) {
 			responseBody, err := io.ReadAll(res.Body)
 			require.NoError(t, err)
 
-			var response correlations.GetCorrelationsResponseBody
+			var response []correlations.Correlation
 			err = json.Unmarshal(responseBody, &response)
 			require.NoError(t, err)
 
-			require.Len(t, response.Correlations, 1)
-			require.EqualValues(t, correlation, response.Correlations[0])
+			require.Len(t, response, 1)
+			require.EqualValues(t, correlation, response[0])
 
 			require.NoError(t, res.Body.Close())
 		})

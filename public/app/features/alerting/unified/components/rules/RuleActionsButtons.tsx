@@ -1,9 +1,10 @@
 import { css } from '@emotion/css';
-import React, { useState } from 'react';
+import React, { FC, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { Stack } from '@grafana/experimental';
+import { config } from '@grafana/runtime';
 import { Button, ClipboardButton, ConfirmModal, LinkButton, Tooltip, useStyles2 } from '@grafana/ui';
 import { useAppNotification } from 'app/core/copy/appNotification';
 import { useDispatch } from 'app/types';
@@ -11,8 +12,8 @@ import { CombinedRule, RulesSource } from 'app/types/unified-alerting';
 
 import { useIsRuleEditable } from '../../hooks/useIsRuleEditable';
 import { deleteRuleAction } from '../../state/actions';
-import { getRulesSourceName } from '../../utils/datasource';
-import { createShareLink, createViewLink } from '../../utils/misc';
+import { getRulesSourceName, isCloudRulesSource } from '../../utils/datasource';
+import { createViewLink } from '../../utils/misc';
 import * as ruleId from '../../utils/rule-id';
 import { isFederatedRuleGroup, isGrafanaRulerRule } from '../../utils/rules';
 import { createUrl } from '../../utils/url';
@@ -25,7 +26,7 @@ interface Props {
   rulesSource: RulesSource;
 }
 
-export const RuleActionsButtons = ({ rule, rulesSource }: Props) => {
+export const RuleActionsButtons: FC<Props> = ({ rule, rulesSource }) => {
   const dispatch = useDispatch();
   const location = useLocation();
   const notifyApp = useAppNotification();
@@ -58,7 +59,16 @@ export const RuleActionsButtons = ({ rule, rulesSource }: Props) => {
     }
   };
 
-  const buildShareUrl = () => createShareLink(rulesSource, rule);
+  const buildShareUrl = () => {
+    if (isCloudRulesSource(rulesSource)) {
+      const { appUrl, appSubUrl } = config;
+      const baseUrl = appSubUrl !== '' ? `${appUrl}${appSubUrl}/` : config.appUrl;
+      const ruleUrl = `${encodeURIComponent(rulesSource.name)}/${encodeURIComponent(rule.name)}`;
+      return `${baseUrl}alerting/${ruleUrl}/find`;
+    }
+
+    return window.location.href.split('?')[0];
+  };
 
   const sourceName = getRulesSourceName(rulesSource);
 
@@ -73,7 +83,7 @@ export const RuleActionsButtons = ({ rule, rulesSource }: Props) => {
           variant="secondary"
           icon="eye"
           href={createViewLink(rulesSource, rule, returnTo)}
-        />
+        ></LinkButton>
       </Tooltip>
     );
   }
@@ -154,15 +164,7 @@ export const RuleActionsButtons = ({ rule, rulesSource }: Props) => {
           <ConfirmModal
             isOpen={true}
             title="Delete rule"
-            body={
-              <div>
-                <p>
-                  Deleting &quot;<strong>{ruleToDelete.name}</strong>&quot; will permanently remove it from your alert
-                  rule list.
-                </p>
-                <p>Are you sure you want to delete this rule?</p>
-              </div>
-            }
+            body="Deleting this rule will permanently remove it from your alert rule list. Are you sure you want to delete this rule?"
             confirmText="Yes, delete"
             icon="exclamation-triangle"
             onConfirm={deleteRule}

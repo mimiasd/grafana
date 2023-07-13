@@ -35,7 +35,7 @@ export const standardAnnotationSupport: AnnotationSupport = {
         mappings: {},
       };
     }
-    return json;
+    return json as AnnotationQuery;
   },
 
   /**
@@ -218,12 +218,12 @@ export function getAnnotationsFromData(
         };
 
         for (const f of fields) {
-          let v = undefined;
+          let v: any = undefined;
 
           if (f.text) {
             v = f.text; // TODO support templates!
           } else if (f.field) {
-            v = f.field.values[i];
+            v = f.field.values.get(i);
             if (v !== undefined && f.regex) {
               const match = f.regex.exec(v);
               if (match) {
@@ -236,7 +236,7 @@ export function getAnnotationsFromData(
             if (f.split && typeof v === 'string') {
               v = v.split(',');
             }
-            anno[f.key] = v;
+            (anno as any)[f.key] = v;
           }
         }
 

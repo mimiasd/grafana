@@ -30,8 +30,7 @@ export const usePanelLatestData = (
 
     querySubscription.current = panel
       .getQueryRunner()
-      // We apply field config later
-      .getData({ withTransforms: options.withTransforms, withFieldConfig: false })
+      .getData(options)
       .subscribe({
         next: (data) => {
           if (checkSchema) {
@@ -59,7 +58,7 @@ export const usePanelLatestData = (
      * Otherwise, passing different references to the same object might cause troubles.
      */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panel, options.withTransforms]);
+  }, [panel, options.withFieldConfig, options.withTransforms]);
 
   return {
     data: latestData,

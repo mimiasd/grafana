@@ -449,7 +449,7 @@ func contextProvider(tc *testContext) web.Handler {
 			Context:      c,
 			SignedInUser: tc.user,
 			IsSignedIn:   signedIn,
-			SkipDSCache:  true,
+			SkipCache:    true,
 			Logger:       log.New("test"),
 		}
 		c.Req = c.Req.WithContext(ctxkey.Set(c.Req.Context(), reqCtx))

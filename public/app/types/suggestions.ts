@@ -27,5 +27,4 @@ export enum SuggestionName {
   TextPanel = 'Text',
   DashboardList = 'Dashboard list',
   Logs = 'Logs',
-  FlameGraph = 'Flame graph',
 }

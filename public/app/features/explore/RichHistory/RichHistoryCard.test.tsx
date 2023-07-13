@@ -1,13 +1,12 @@
-import { fireEvent, render, screen, getByText, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent, getByText, waitFor } from '@testing-library/react';
 import React from 'react';
 
 import { DataSourceApi, DataSourceInstanceSettings, DataSourcePluginMeta } from '@grafana/data';
 import { DataQuery, DataSourceRef } from '@grafana/schema';
 import appEvents from 'app/core/app_events';
 import { MixedDatasource } from 'app/plugins/datasource/mixed/MixedDataSource';
-import { RichHistoryQuery } from 'app/types';
 import { ShowConfirmModalEvent } from 'app/types/events';
+import { ExploreId, RichHistoryQuery } from 'app/types/explore';
 
 import { RichHistoryCard, Props } from './RichHistoryCard';
 
@@ -120,7 +119,7 @@ const setup = (propOverrides?: Partial<Props<MockQuery>>) => {
     deleteHistoryItem: deleteRichHistoryMock,
     commentHistoryItem: jest.fn(),
     setQueries: jest.fn(),
-    exploreId: 'left',
+    exploreId: ExploreId.left,
     datasourceInstance: dsStore.loki,
   };
 
@@ -199,8 +198,10 @@ describe('RichHistoryCard', () => {
       });
       const copyQueriesButton = await screen.findByRole('button', { name: 'Copy query to clipboard' });
       expect(copyQueriesButton).toBeInTheDocument();
-      await userEvent.click(copyQueriesButton);
-      expect(copyStringToClipboard).toHaveBeenCalledTimes(1);
+      fireEvent.click(copyQueriesButton);
+      await waitFor(() => {
+        expect(copyStringToClipboard).toHaveBeenCalledTimes(1);
+      });
       expect(copyStringToClipboard).toHaveBeenCalledWith(JSON.stringify({ query: 'query1' }));
     });
 
@@ -218,8 +219,10 @@ describe('RichHistoryCard', () => {
       });
       const copyQueriesButton = await screen.findByRole('button', { name: 'Copy query to clipboard' });
       expect(copyQueriesButton).toBeInTheDocument();
-      await userEvent.click(copyQueriesButton);
-      expect(copyStringToClipboard).toHaveBeenCalledTimes(1);
+      fireEvent.click(copyQueriesButton);
+      await waitFor(() => {
+        expect(copyStringToClipboard).toHaveBeenCalledTimes(1);
+      });
       expect(copyStringToClipboard).toHaveBeenCalledWith(JSON.stringify({ query: 'query1' }));
     });
 
@@ -237,8 +240,10 @@ describe('RichHistoryCard', () => {
       });
       const copyQueriesButton = await screen.findByRole('button', { name: 'Copy query to clipboard' });
       expect(copyQueriesButton).toBeInTheDocument();
-      await userEvent.click(copyQueriesButton);
-      expect(copyStringToClipboard).toHaveBeenCalledTimes(1);
+      fireEvent.click(copyQueriesButton);
+      await waitFor(() => {
+        expect(copyStringToClipboard).toHaveBeenCalledTimes(1);
+      });
       expect(copyStringToClipboard).toHaveBeenCalledWith('query1');
     });
 
@@ -259,8 +264,10 @@ describe('RichHistoryCard', () => {
       });
       const copyQueriesButton = await screen.findByRole('button', { name: 'Copy query to clipboard' });
       expect(copyQueriesButton).toBeInTheDocument();
-      await userEvent.click(copyQueriesButton);
-      expect(copyStringToClipboard).toHaveBeenCalledTimes(1);
+      fireEvent.click(copyQueriesButton);
+      await waitFor(() => {
+        expect(copyStringToClipboard).toHaveBeenCalledTimes(1);
+      });
       expect(copyStringToClipboard).toHaveBeenCalledWith(`query1\n${JSON.stringify({ query: 'query2' })}`);
     });
   });
@@ -338,7 +345,7 @@ describe('RichHistoryCard', () => {
       });
 
       const runQueryButton = await screen.findByRole('button', { name: /run query/i });
-      await userEvent.click(runQueryButton);
+      fireEvent.click(runQueryButton);
 
       expect(setQueries).toHaveBeenCalledWith(expect.any(String), queries);
       expect(changeDatasource).not.toHaveBeenCalled();
@@ -366,7 +373,7 @@ describe('RichHistoryCard', () => {
       });
 
       const runQueryButton = await screen.findByRole('button', { name: /run query/i });
-      await userEvent.click(runQueryButton);
+      fireEvent.click(runQueryButton);
 
       await waitFor(() => {
         expect(setQueries).toHaveBeenCalledWith(expect.any(String), queries);
@@ -384,31 +391,30 @@ describe('RichHistoryCard', () => {
     });
     it('should have title "Edit comment" at comment icon, if comment present', async () => {
       setup({ query: starredQueryWithComment });
-      const editComment = await screen.findByLabelText('Edit comment');
+      const editComment = await screen.findByTitle('Edit comment');
       const addComment = screen.queryByTitle('Add comment');
       expect(editComment).toBeInTheDocument();
       expect(addComment).not.toBeInTheDocument();
     });
     it('should have title "Add comment" at comment icon, if no comment present', async () => {
       setup();
-      const addComment = await screen.findByLabelText('Add comment');
+      const addComment = await screen.findByTitle('Add comment');
       const editComment = await screen.queryByTitle('Edit comment');
       expect(addComment).toBeInTheDocument();
       expect(editComment).not.toBeInTheDocument();
     });
     it('should open update comment form when edit comment button clicked', async () => {
       setup({ query: starredQueryWithComment });
-      const editComment = await screen.findByLabelText('Edit comment');
-      await userEvent.click(editComment);
+      const editComment = await screen.findByTitle('Edit comment');
+      fireEvent.click(editComment);
       const updateCommentForm = await screen.findByLabelText('Update comment form');
       expect(updateCommentForm).toBeInTheDocument();
     });
     it('should close update comment form when escape key pressed', async () => {
       setup({ query: starredQueryWithComment });
-      const editComment = await screen.findByLabelText('Edit comment');
-      await userEvent.click(editComment);
+      const editComment = await screen.findByTitle('Edit comment');
+      fireEvent.click(editComment);
       const updateCommentForm = await screen.findByLabelText('Update comment form');
-      await userEvent.click(updateCommentForm);
       fireEvent.keyDown(getByText(updateCommentForm, starredQueryWithComment.comment), {
         key: 'Escape',
       });
@@ -417,10 +423,9 @@ describe('RichHistoryCard', () => {
     });
     it('should close update comment form when enter and shift keys pressed', async () => {
       setup({ query: starredQueryWithComment });
-      const editComment = await screen.findByLabelText('Edit comment');
-      await userEvent.click(editComment);
+      const editComment = await screen.findByTitle('Edit comment');
+      fireEvent.click(editComment);
       const updateCommentForm = await screen.findByLabelText('Update comment form');
-      await userEvent.click(updateCommentForm);
       fireEvent.keyDown(getByText(updateCommentForm, starredQueryWithComment.comment), {
         key: 'Enter',
         shiftKey: true,
@@ -430,10 +435,9 @@ describe('RichHistoryCard', () => {
     });
     it('should close update comment form when enter and ctrl keys pressed', async () => {
       setup({ query: starredQueryWithComment });
-      const editComment = await screen.findByLabelText('Edit comment');
-      await userEvent.click(editComment);
+      const editComment = await screen.findByTitle('Edit comment');
+      fireEvent.click(editComment);
       const updateCommentForm = await screen.findByLabelText('Update comment form');
-      await userEvent.click(updateCommentForm);
       fireEvent.keyDown(getByText(updateCommentForm, starredQueryWithComment.comment), {
         key: 'Enter',
         ctrlKey: true,
@@ -443,10 +447,9 @@ describe('RichHistoryCard', () => {
     });
     it('should not close update comment form when enter key pressed', async () => {
       setup({ query: starredQueryWithComment });
-      const editComment = await screen.findByLabelText('Edit comment');
-      await userEvent.click(editComment);
+      const editComment = await screen.findByTitle('Edit comment');
+      fireEvent.click(editComment);
       const updateCommentForm = await screen.findByLabelText('Update comment form');
-      await userEvent.click(updateCommentForm);
       fireEvent.keyDown(getByText(updateCommentForm, starredQueryWithComment.comment), {
         key: 'Enter',
         shiftKey: false,
@@ -459,16 +462,16 @@ describe('RichHistoryCard', () => {
   describe('starring', () => {
     it('should have title "Star query", if not starred', async () => {
       setup();
-      const starButton = await screen.findByLabelText('Star query');
+      const starButton = await screen.findByTitle('Star query');
       expect(starButton).toBeInTheDocument();
-      await userEvent.click(starButton);
+      fireEvent.click(starButton);
       expect(starRichHistoryMock).toBeCalledWith(starredQueryWithComment.id, true);
     });
     it('should have title "Unstar query", if not starred', async () => {
       setup({ query: starredQueryWithComment });
-      const unstarButton = await screen.findByLabelText('Unstar query');
+      const unstarButton = await screen.findByTitle('Unstar query');
       expect(unstarButton).toBeInTheDocument();
-      await userEvent.click(unstarButton);
+      fireEvent.click(unstarButton);
       expect(starRichHistoryMock).toBeCalledWith(starredQueryWithComment.id, false);
     });
   });
@@ -476,15 +479,15 @@ describe('RichHistoryCard', () => {
   describe('deleting', () => {
     it('should delete if not starred', async () => {
       setup();
-      const deleteButton = await screen.findByLabelText('Delete query');
+      const deleteButton = await screen.findByTitle('Delete query');
       expect(deleteButton).toBeInTheDocument();
-      await userEvent.click(deleteButton);
+      fireEvent.click(deleteButton);
       expect(deleteRichHistoryMock).toBeCalledWith(starredQueryWithComment.id);
     });
     it('should display modal before deleting if starred', async () => {
       setup({ query: starredQueryWithComment });
-      const deleteButton = await screen.findByLabelText('Delete query');
-      await userEvent.click(deleteButton);
+      const deleteButton = await screen.findByTitle('Delete query');
+      fireEvent.click(deleteButton);
       expect(deleteRichHistoryMock).not.toBeCalled();
       expect(appEvents.publish).toHaveBeenCalledWith(new ShowConfirmModalEvent(expect.anything()));
     });

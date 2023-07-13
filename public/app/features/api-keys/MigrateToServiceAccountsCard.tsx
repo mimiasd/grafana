@@ -26,11 +26,8 @@ export const MigrateToServiceAccountsCard = ({ onMigrate, apikeysCount, disabled
   );
   const migrationBoxDesc = (
     <span>
-      Migrating all API keys will hide the API keys tab.
-      <br></br>
-      <br></br>
-      The API keys API will remain available for you to create new API keys, but we strongly encourage you to use
-      Service accounts instead.
+      Are you sure you want to migrate all API keys to service accounts? {docsLink}
+      <br>This hides the API keys tab.</br>
     </span>
   );
 
@@ -47,7 +44,7 @@ export const MigrateToServiceAccountsCard = ({ onMigrate, apikeysCount, disabled
               Migrate all service accounts
             </Button>
             <ConfirmModal
-              title={'Migrate API keys to Service accounts'}
+              title={'Migrate API keys to service accounts'}
               isOpen={isModalOpen}
               body={migrationBoxDesc}
               confirmText={'Yes, migrate now'}

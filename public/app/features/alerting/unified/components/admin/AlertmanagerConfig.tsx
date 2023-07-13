@@ -2,11 +2,12 @@ import { css } from '@emotion/css';
 import React, { useEffect, useState, useMemo } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
-import { Alert, useStyles2 } from '@grafana/ui';
+import { Alert, Button, ConfirmModal, TextArea, HorizontalGroup, Field, Form, useStyles2 } from '@grafana/ui';
 import { useDispatch } from 'app/types';
 
+import { useAlertManagerSourceName } from '../../hooks/useAlertManagerSourceName';
+import { useAlertManagersByPermission } from '../../hooks/useAlertManagerSources';
 import { useUnifiedAlertingSelector } from '../../hooks/useUnifiedAlertingSelector';
-import { useAlertmanager } from '../../state/AlertmanagerContext';
 import {
   deleteAlertManagerConfigAction,
   fetchAlertManagerConfigAction,
@@ -14,44 +15,40 @@ import {
 } from '../../state/actions';
 import { GRAFANA_RULES_SOURCE_NAME, isVanillaPrometheusAlertManagerDataSource } from '../../utils/datasource';
 import { initialAsyncRequestState } from '../../utils/redux';
+import { AlertManagerPicker } from '../AlertManagerPicker';
 
-import AlertmanagerConfigSelector, { ValidAmConfigOption } from './AlertmanagerConfigSelector';
-import { ConfigEditor } from './ConfigEditor';
-
-export interface FormValues {
+interface FormValues {
   configJSON: string;
 }
 
 export default function AlertmanagerConfig(): JSX.Element {
   const dispatch = useDispatch();
+  const alertManagers = useAlertManagersByPermission('notification');
+  const [alertManagerSourceName, setAlertManagerSourceName] = useAlertManagerSourceName(alertManagers);
 
   const [showConfirmDeleteAMConfig, setShowConfirmDeleteAMConfig] = useState(false);
   const { loading: isDeleting } = useUnifiedAlertingSelector((state) => state.deleteAMConfig);
   const { loading: isSaving } = useUnifiedAlertingSelector((state) => state.saveAMConfig);
-  const { selectedAlertmanager } = useAlertmanager();
-
-  const readOnly = selectedAlertmanager ? isVanillaPrometheusAlertManagerDataSource(selectedAlertmanager) : false;
+  const readOnly = alertManagerSourceName ? isVanillaPrometheusAlertManagerDataSource(alertManagerSourceName) : false;
   const styles = useStyles2(getStyles);
 
   const configRequests = useUnifiedAlertingSelector((state) => state.amConfigs);
-
-  const [selectedAmConfig, setSelectedAmConfig] = useState<ValidAmConfigOption | undefined>();
 
   const {
     result: config,
     loading: isLoadingConfig,
     error: loadingError,
-  } = (selectedAlertmanager && configRequests[selectedAlertmanager]) || initialAsyncRequestState;
+  } = (alertManagerSourceName && configRequests[alertManagerSourceName]) || initialAsyncRequestState;
 
   useEffect(() => {
-    if (selectedAlertmanager) {
-      dispatch(fetchAlertManagerConfigAction(selectedAlertmanager));
+    if (alertManagerSourceName) {
+      dispatch(fetchAlertManagerConfigAction(alertManagerSourceName));
     }
-  }, [selectedAlertmanager, dispatch]);
+  }, [alertManagerSourceName, dispatch]);
 
   const resetConfig = () => {
-    if (selectedAlertmanager) {
-      dispatch(deleteAlertManagerConfigAction(selectedAlertmanager));
+    if (alertManagerSourceName) {
+      dispatch(deleteAlertManagerConfigAction(alertManagerSourceName));
     }
     setShowConfirmDeleteAMConfig(false);
   };
@@ -63,22 +60,15 @@ export default function AlertmanagerConfig(): JSX.Element {
     [config]
   );
 
-  const defaultValidValues = useMemo(
-    (): FormValues => ({
-      configJSON: selectedAmConfig ? JSON.stringify(selectedAmConfig.value, null, 2) : '',
-    }),
-    [selectedAmConfig]
-  );
-
   const loading = isDeleting || isLoadingConfig || isSaving;
 
   const onSubmit = (values: FormValues) => {
-    if (selectedAlertmanager && config) {
+    if (alertManagerSourceName && config) {
       dispatch(
         updateAlertManagerConfigAction({
           newConfig: JSON.parse(values.configJSON),
           oldConfig: config,
-          alertManagerSourceName: selectedAlertmanager,
+          alertManagerSourceName,
           successMessage: 'Alertmanager configuration updated.',
           refetch: true,
         })
@@ -88,44 +78,86 @@ export default function AlertmanagerConfig(): JSX.Element {
 
   return (
     <div className={styles.container}>
+      <AlertManagerPicker
+        current={alertManagerSourceName}
+        onChange={setAlertManagerSourceName}
+        dataSources={alertManagers}
+      />
       {loadingError && !loading && (
-        <>
-          <Alert
-            severity="error"
-            title="Your Alertmanager configuration is incorrect. These are the details of the error:"
-          >
-            {loadingError.message || 'Unknown error.'}
-          </Alert>
-
-          {selectedAlertmanager === GRAFANA_RULES_SOURCE_NAME && (
-            <AlertmanagerConfigSelector
-              onChange={setSelectedAmConfig}
-              selectedAmConfig={selectedAmConfig}
-              defaultValues={defaultValidValues}
-              readOnly={true}
-              loading={loading}
-              onSubmit={onSubmit}
-            />
-          )}
-        </>
+        <Alert severity="error" title="Error loading Alertmanager configuration">
+          {loadingError.message || 'Unknown error.'}
+        </Alert>
       )}
-      {isDeleting && selectedAlertmanager !== GRAFANA_RULES_SOURCE_NAME && (
+      {isDeleting && alertManagerSourceName !== GRAFANA_RULES_SOURCE_NAME && (
         <Alert severity="info" title="Resetting Alertmanager configuration">
           It might take a while...
         </Alert>
       )}
-      {selectedAlertmanager && config && (
-        <ConfigEditor
-          defaultValues={defaultValues}
-          onSubmit={(values) => onSubmit(values)}
-          readOnly={readOnly}
-          loading={loading}
-          alertManagerSourceName={selectedAlertmanager}
-          showConfirmDeleteAMConfig={showConfirmDeleteAMConfig}
-          onReset={() => setShowConfirmDeleteAMConfig(true)}
-          onConfirmReset={resetConfig}
-          onDismiss={() => setShowConfirmDeleteAMConfig(false)}
-        />
+      {alertManagerSourceName && config && (
+        <Form defaultValues={defaultValues} onSubmit={onSubmit} key={defaultValues.configJSON}>
+          {({ register, errors }) => (
+            <>
+              {!readOnly && (
+                <Field
+                  disabled={loading}
+                  label="Configuration"
+                  invalid={!!errors.configJSON}
+                  error={errors.configJSON?.message}
+                >
+                  <TextArea
+                    {...register('configJSON', {
+                      required: { value: true, message: 'Required.' },
+                      validate: (v) => {
+                        try {
+                          JSON.parse(v);
+                          return true;
+                        } catch (e) {
+                          return e instanceof Error ? e.message : 'Invalid JSON.';
+                        }
+                      },
+                    })}
+                    id="configuration"
+                    rows={25}
+                  />
+                </Field>
+              )}
+              {readOnly && (
+                <Field label="Configuration">
+                  <pre data-testid="readonly-config">{defaultValues.configJSON}</pre>
+                </Field>
+              )}
+              {!readOnly && (
+                <HorizontalGroup>
+                  <Button type="submit" variant="primary" disabled={loading}>
+                    Save
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={loading}
+                    variant="destructive"
+                    onClick={() => setShowConfirmDeleteAMConfig(true)}
+                  >
+                    Reset configuration
+                  </Button>
+                </HorizontalGroup>
+              )}
+              {!!showConfirmDeleteAMConfig && (
+                <ConfirmModal
+                  isOpen={true}
+                  title="Reset Alertmanager configuration"
+                  body={`Are you sure you want to reset configuration ${
+                    alertManagerSourceName === GRAFANA_RULES_SOURCE_NAME
+                      ? 'for the Grafana Alertmanager'
+                      : `for "${alertManagerSourceName}"`
+                  }? Contact points and notification policies will be reset to their defaults.`}
+                  confirmText="Yes, reset configuration"
+                  onConfirm={resetConfig}
+                  onDismiss={() => setShowConfirmDeleteAMConfig(false)}
+                />
+              )}
+            </>
+          )}
+        </Form>
       )}
     </div>
   );

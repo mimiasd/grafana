@@ -15,9 +15,9 @@ title: Licensing HTTP API
 
 # Enterprise License API
 
-Licensing is only available in Grafana Enterprise. Read more about [Grafana Enterprise]({{< relref "/docs/grafana/latest/introduction/grafana-enterprise" >}}).
+Licensing is only available in Grafana Enterprise. Read more about [Grafana Enterprise]({{< relref "../../introduction/grafana-enterprise/" >}}).
 
-> If you are running Grafana Enterprise, for some endpoints you'll need to have specific permissions. Refer to [Role-based access control permissions]({{< relref "/docs/grafana/latest/administration/roles-and-permissions/access-control/custom-role-actions-scopes" >}}) for more information.
+> If you are running Grafana Enterprise, for some endpoints you'll need to have specific permissions. Refer to [Role-based access control permissions]({{< relref "../../administration/roles-and-permissions/access-control/custom-role-actions-scopes/" >}}) for more information.
 
 ## Check license availability
 
@@ -61,9 +61,7 @@ Status codes:
 
 ## Add license
 
-{{% admonition type="note" %}}
-Available in Grafana Enterprise v7.4+.
-{{% /admonition %}}
+> **Note:** Available in Grafana Enterprise v7.4+.
 
 `POST /api/licensing/token`
 
@@ -123,9 +121,7 @@ Status Codes:
 
 ## Manually force license refresh
 
-{{% admonition type="note" %}}
-Available in Grafana Enterprise v7.4+.
-{{% /admonition %}}
+> **Note:** Available in Grafana Enterprise v7.4+.
 
 `POST /api/licensing/token/renew`
 
@@ -184,9 +180,7 @@ Status Codes:
 
 ## Remove license from database
 
-{{% admonition type="note" %}}
-Available in Grafana Enterprise v7.4+.
-{{% /admonition %}}
+> **Note:** Available in Grafana Enterprise v7.4+.
 
 `DELETE /api/licensing/token`
 

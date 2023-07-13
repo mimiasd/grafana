@@ -10,7 +10,7 @@ keywords:
   - glossary
   - dictionary
 title: Glossary
-weight: 850
+weight: 800
 ---
 
 # Glossary

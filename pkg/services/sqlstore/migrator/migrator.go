@@ -5,7 +5,6 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/golang-migrate/migrate/v4/database"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/atomic"
@@ -28,8 +27,6 @@ type Migrator struct {
 	Logger       log.Logger
 	Cfg          *setting.Cfg
 	isLocked     atomic.Bool
-	logMap       map[string]MigrationLog
-	tableName    string
 }
 
 type MigrationLog struct {
@@ -42,42 +39,14 @@ type MigrationLog struct {
 }
 
 func NewMigrator(engine *xorm.Engine, cfg *setting.Cfg) *Migrator {
-	return NewScopedMigrator(engine, cfg, "")
-}
-
-// NewScopedMigrator should only be used for the transition to a new storage engine
-func NewScopedMigrator(engine *xorm.Engine, cfg *setting.Cfg, scope string) *Migrator {
-	mg := &Migrator{
-		Cfg:          cfg,
-		DBEngine:     engine,
-		migrations:   make([]Migration, 0),
-		migrationIds: make(map[string]struct{}),
-		Dialect:      NewDialect(engine.DriverName()),
-	}
-	if scope == "" {
-		mg.tableName = "migration_log"
-		mg.Logger = log.New("migrator")
-	} else {
-		mg.tableName = scope + "_migration_log"
-		mg.Logger = log.New(scope + " migrator")
-	}
+	mg := &Migrator{}
+	mg.DBEngine = engine
+	mg.Logger = log.New("migrator")
+	mg.migrations = make([]Migration, 0)
+	mg.migrationIds = make(map[string]struct{})
+	mg.Dialect = NewDialect(mg.DBEngine)
+	mg.Cfg = cfg
 	return mg
-}
-
-// AddCreateMigration adds the initial migration log table -- this should likely be
-// automatic and first, but enough tests exists that do not expect that we can keep it explicit
-func (mg *Migrator) AddCreateMigration() {
-	mg.AddMigration("create "+mg.tableName+" table", NewAddTableMigration(Table{
-		Name: mg.tableName,
-		Columns: []*Column{
-			{Name: "id", Type: DB_BigInt, IsPrimaryKey: true, IsAutoIncrement: true},
-			{Name: "migration_id", Type: DB_NVarchar, Length: 255},
-			{Name: "sql", Type: DB_Text},
-			{Name: "success", Type: DB_Bool},
-			{Name: "error", Type: DB_Text},
-			{Name: "timestamp", Type: DB_DateTime},
-		},
-	}))
 }
 
 func (mg *Migrator) MigrationsCount() int {
@@ -109,7 +78,7 @@ func (mg *Migrator) GetMigrationLog() (map[string]MigrationLog, error) {
 	logMap := make(map[string]MigrationLog)
 	logItems := make([]MigrationLog, 0)
 
-	exists, err := mg.DBEngine.IsTableExist(mg.tableName)
+	exists, err := mg.DBEngine.IsTableExist(new(MigrationLog))
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", "failed to check table existence", err)
 	}
@@ -117,7 +86,7 @@ func (mg *Migrator) GetMigrationLog() (map[string]MigrationLog, error) {
 		return logMap, nil
 	}
 
-	if err = mg.DBEngine.Table(mg.tableName).Find(&logItems); err != nil {
+	if err = mg.DBEngine.Find(&logItems); err != nil {
 		return nil, err
 	}
 
@@ -128,14 +97,7 @@ func (mg *Migrator) GetMigrationLog() (map[string]MigrationLog, error) {
 		logMap[logItem.MigrationID] = logItem
 	}
 
-	mg.logMap = logMap
 	return logMap, nil
-}
-
-func (mg *Migrator) RemoveMigrationLogs(migrationsIDs ...string) {
-	for _, id := range migrationsIDs {
-		delete(mg.logMap, id)
-	}
 }
 
 func (mg *Migrator) Start(isDatabaseLockingEnabled bool, lockAttemptTimeout int) (err error) {
@@ -143,31 +105,16 @@ func (mg *Migrator) Start(isDatabaseLockingEnabled bool, lockAttemptTimeout int)
 		return mg.run()
 	}
 
-	dbName, err := mg.Dialect.GetDBName(mg.DBEngine.DataSourceName())
-	if err != nil {
-		return err
-	}
-	key, err := database.GenerateAdvisoryLockId(dbName)
-	if err != nil {
-		return err
-	}
-
 	return mg.InTransaction(func(sess *xorm.Session) error {
 		mg.Logger.Info("Locking database")
-		lockCfg := LockCfg{
-			Session: sess,
-			Key:     key,
-			Timeout: lockAttemptTimeout,
-		}
-
-		if err := casRestoreOnErr(&mg.isLocked, false, true, ErrMigratorIsLocked, mg.Dialect.Lock, lockCfg); err != nil {
+		if err := casRestoreOnErr(&mg.isLocked, false, true, ErrMigratorIsLocked, mg.Dialect.Lock, LockCfg{Session: sess, Timeout: lockAttemptTimeout}); err != nil {
 			mg.Logger.Error("Failed to lock database", "error", err)
 			return err
 		}
 
 		defer func() {
 			mg.Logger.Info("Unlocking database")
-			unlockErr := casRestoreOnErr(&mg.isLocked, true, false, ErrMigratorIsUnlocked, mg.Dialect.Unlock, lockCfg)
+			unlockErr := casRestoreOnErr(&mg.isLocked, true, false, ErrMigratorIsUnlocked, mg.Dialect.Unlock, LockCfg{Session: sess})
 			if unlockErr != nil {
 				mg.Logger.Error("Failed to unlock database", "error", unlockErr)
 			}
@@ -181,7 +128,7 @@ func (mg *Migrator) Start(isDatabaseLockingEnabled bool, lockAttemptTimeout int)
 func (mg *Migrator) run() (err error) {
 	mg.Logger.Info("Starting DB migrations")
 
-	_, err = mg.GetMigrationLog()
+	logMap, err := mg.GetMigrationLog()
 	if err != nil {
 		return err
 	}
@@ -191,7 +138,7 @@ func (mg *Migrator) run() (err error) {
 	start := time.Now()
 	for _, m := range mg.migrations {
 		m := m
-		_, exists := mg.logMap[m.Id()]
+		_, exists := logMap[m.Id()]
 		if exists {
 			mg.Logger.Debug("Skipping migration: Already executed", "id", m.Id())
 			migrationsSkipped++
@@ -212,7 +159,7 @@ func (mg *Migrator) run() (err error) {
 				mg.Logger.Error("Exec failed", "error", err, "sql", sql)
 				record.Error = err.Error()
 				if !m.SkipMigrationLog() {
-					if _, err := sess.Table(mg.tableName).Insert(&record); err != nil {
+					if _, err := sess.Insert(&record); err != nil {
 						return err
 					}
 				}
@@ -220,7 +167,7 @@ func (mg *Migrator) run() (err error) {
 			}
 			record.Success = true
 			if !m.SkipMigrationLog() {
-				_, err = sess.Table(mg.tableName).Insert(&record)
+				_, err = sess.Insert(&record)
 			}
 			if err == nil {
 				migrationsPerformed++

@@ -2,13 +2,22 @@ import { DisplayProcessor } from '../types';
 import { Vector } from '../types/vector';
 import { formattedValueToString } from '../valueFormats';
 
+import { FunctionalVector } from './FunctionalVector';
+
 /**
  * @public
- * @deprecated use a simple Arrays. NOTE: not used in grafana core.
  */
-export class FormattedVector<T = any> extends Array<string> {
-  constructor(source: Vector<T>, formatter: DisplayProcessor) {
+export class FormattedVector<T = any> extends FunctionalVector<string> {
+  constructor(private source: Vector<T>, private formatter: DisplayProcessor) {
     super();
-    return source.map((v) => formattedValueToString(formatter(v))) as FormattedVector<T>;
+  }
+
+  get length() {
+    return this.source.length;
+  }
+
+  get(index: number): string {
+    const v = this.source.get(index);
+    return formattedValueToString(this.formatter(v));
   }
 }

@@ -24,16 +24,9 @@ export const VizLegendTable = <T extends unknown>({
   onLabelMouseOver,
   onLabelMouseOut,
   readonly,
-  isSortable,
 }: VizLegendTableProps<T>): JSX.Element => {
   const styles = useStyles2(getStyles);
   const stats: Record<string, DisplayValue> = {};
-  const nameSortKey = 'Name';
-
-  if (isSortable) {
-    // placeholder displayValue for Name
-    stats[nameSortKey] = { description: 'name', numeric: 0, text: '' };
-  }
 
   for (const item of items) {
     if (item.getDisplayValues) {
@@ -47,10 +40,6 @@ export const VizLegendTable = <T extends unknown>({
     ? orderBy(
         items,
         (item) => {
-          if (sortKey === nameSortKey) {
-            return item.label;
-          }
-
           if (item.getDisplayValues) {
             const stat = item.getDisplayValues().filter((stat) => stat.title === sortKey)[0];
             return stat && stat.numeric;
@@ -79,14 +68,14 @@ export const VizLegendTable = <T extends unknown>({
     <table className={cx(styles.table, className)}>
       <thead>
         <tr>
-          {!isSortable && <th></th>}
+          <th></th>
           {Object.keys(stats).map((columnTitle) => {
             const displayValue = stats[columnTitle];
             return (
               <th
                 title={displayValue.description}
                 key={columnTitle}
-                className={cx(styles.header, onToggleSort && styles.headerSortable, isSortable && styles.nameHeader, {
+                className={cx(styles.header, onToggleSort && styles.headerSortable, {
                   [styles.withIcon]: sortKey === columnTitle,
                 })}
                 onClick={() => {
@@ -123,10 +112,6 @@ const getStyles = (theme: GrafanaTheme2) => ({
     font-size: ${theme.typography.bodySmall.fontSize};
     text-align: right;
     white-space: nowrap;
-  `,
-  nameHeader: css`
-    text-align: left;
-    padding-left: 30px;
   `,
   // This needs to be padding-right - icon size(xs==12) to avoid jumping
   withIcon: css`

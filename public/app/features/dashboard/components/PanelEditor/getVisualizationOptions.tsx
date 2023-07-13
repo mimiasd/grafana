@@ -82,8 +82,8 @@ export function getVisualizationOptions(props: OptionPaneRenderProps): OptionsPa
   };
 
   const access: NestedValueAccess = {
-    getValue: (path) => lodashGet(currentOptions, path),
-    onChange: (path, value) => {
+    getValue: (path: string) => lodashGet(currentOptions, path),
+    onChange: (path: string, value: any) => {
       const newOptions = setOptionImmutably(currentOptions, path, value);
       onPanelOptionsChanged(newOptions);
     },
@@ -152,10 +152,10 @@ export function fillOptionsPaneItems(
   supplier: PanelOptionsSupplier<any>,
   access: NestedValueAccess,
   getOptionsPaneCategory: categoryGetter,
-  context: StandardEditorContext<any>,
+  context: StandardEditorContext<any, any>,
   parentCategory?: OptionsPaneCategoryDescriptor
 ) {
-  const builder = new PanelOptionsEditorBuilder();
+  const builder = new PanelOptionsEditorBuilder<any>();
   supplier(builder, context);
 
   for (const pluginOption of builder.getItems()) {

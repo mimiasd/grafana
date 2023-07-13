@@ -2,10 +2,12 @@ package models
 
 import (
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/grafana/grafana/pkg/kinds/dashboard"
-	"github.com/grafana/grafana/pkg/services/user"
+	"github.com/grafana/grafana/pkg/services/dashboards"
+	"github.com/grafana/grafana/pkg/tsdb/legacydata"
 )
 
 // PublicDashboardErr represents a dashboard error.
@@ -38,28 +40,20 @@ var (
 type ShareType string
 
 type PublicDashboard struct {
-	Uid          string    `json:"uid" xorm:"pk uid"`
-	DashboardUid string    `json:"dashboardUid" xorm:"dashboard_uid"`
-	OrgId        int64     `json:"-" xorm:"org_id"` // Don't ever marshal orgId to Json
-	AccessToken  string    `json:"accessToken" xorm:"access_token"`
-	CreatedBy    int64     `json:"createdBy" xorm:"created_by"`
-	UpdatedBy    int64     `json:"updatedBy" xorm:"updated_by"`
-	CreatedAt    time.Time `json:"createdAt" xorm:"created_at"`
-	UpdatedAt    time.Time `json:"updatedAt" xorm:"updated_at"`
-	//config fields
-	TimeSettings         *TimeSettings `json:"-" xorm:"time_settings"`
-	TimeSelectionEnabled bool          `json:"timeSelectionEnabled" xorm:"time_selection_enabled"`
+	Uid                  string        `json:"uid" xorm:"pk uid"`
+	DashboardUid         string        `json:"dashboardUid" xorm:"dashboard_uid"`
+	OrgId                int64         `json:"-" xorm:"org_id"` // Don't ever marshal orgId to Json
+	TimeSettings         *TimeSettings `json:"timeSettings" xorm:"time_settings"`
 	IsEnabled            bool          `json:"isEnabled" xorm:"is_enabled"`
+	AccessToken          string        `json:"accessToken" xorm:"access_token"`
 	AnnotationsEnabled   bool          `json:"annotationsEnabled" xorm:"annotations_enabled"`
+	TimeSelectionEnabled bool          `json:"timeSelectionEnabled" xorm:"time_selection_enabled"`
 	Share                ShareType     `json:"share" xorm:"share"`
 	Recipients           []EmailDTO    `json:"recipients,omitempty" xorm:"-"`
-}
-
-type PublicDashboardDTO struct {
-	TimeSelectionEnabled *bool     `json:"timeSelectionEnabled"`
-	IsEnabled            *bool     `json:"isEnabled"`
-	AnnotationsEnabled   *bool     `json:"annotationsEnabled"`
-	Share                ShareType `json:"share"`
+	CreatedBy            int64         `json:"createdBy" xorm:"created_by"`
+	UpdatedBy            int64         `json:"updatedBy" xorm:"updated_by"`
+	CreatedAt            time.Time     `json:"createdAt" xorm:"created_at"`
+	UpdatedAt            time.Time     `json:"updatedAt" xorm:"updated_at"`
 }
 
 type EmailDTO struct {
@@ -93,22 +87,6 @@ func (pd PublicDashboard) TableName() string {
 	return "dashboard_public"
 }
 
-type PublicDashboardListQuery struct {
-	OrgID  int64
-	Query  string
-	Page   int
-	Limit  int
-	Offset int
-	User   *user.SignedInUser
-}
-
-type PublicDashboardListResponseWithPagination struct {
-	PublicDashboards []*PublicDashboardListResponse `json:"publicDashboards"`
-	TotalCount       int64                          `json:"totalCount"`
-	Page             int                            `json:"page"`
-	PerPage          int                            `json:"perPage"`
-}
-
 type PublicDashboardListResponse struct {
 	Uid          string `json:"uid" xorm:"uid"`
 	AccessToken  string `json:"accessToken" xorm:"access_token"`
@@ -130,26 +108,38 @@ func (ts *TimeSettings) ToDB() ([]byte, error) {
 	return json.Marshal(ts)
 }
 
-// DTO for transforming user input in the api
-type SavePublicDashboardDTO struct {
-	Uid             string
-	DashboardUid    string
-	OrgID           int64
-	UserId          int64
-	PublicDashboard *PublicDashboardDTO
+// BuildTimeSettings build time settings object using selected values if enabled and are valid or dashboard default values
+func (pd PublicDashboard) BuildTimeSettings(dashboard *dashboards.Dashboard, reqDTO PublicDashboardQueryDTO) TimeSettings {
+	from := dashboard.Data.GetPath("time", "from").MustString()
+	to := dashboard.Data.GetPath("time", "to").MustString()
+
+	if pd.TimeSelectionEnabled {
+		from = reqDTO.TimeRange.From
+		to = reqDTO.TimeRange.To
+	}
+
+	timeRange := legacydata.NewDataTimeRange(from, to)
+
+	// Were using epoch ms because this is used to build a MetricRequest, which is used by query caching, which expected the time range in epoch milliseconds.
+	return TimeSettings{
+		From: strconv.FormatInt(timeRange.GetFromAsMsEpoch(), 10),
+		To:   strconv.FormatInt(timeRange.GetToAsMsEpoch(), 10),
+	}
 }
 
-type TimeRangeDTO struct {
-	From     string
-	To       string
-	Timezone string
+// DTO for transforming user input in the api
+type SavePublicDashboardDTO struct {
+	DashboardUid    string
+	OrgId           int64
+	UserId          int64
+	PublicDashboard *PublicDashboard
 }
 
 type PublicDashboardQueryDTO struct {
 	IntervalMs      int64
 	MaxDataPoints   int64
 	QueryCachingTTL int64
-	TimeRange       TimeRangeDTO
+	TimeRange       TimeSettings
 }
 
 type AnnotationsQueryDTO struct {

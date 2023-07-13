@@ -1,9 +1,13 @@
 import { css } from '@emotion/css';
 import React, { PureComponent } from 'react';
+import { DropEvent, FileRejection } from 'react-dropzone';
 import { Unsubscribable } from 'rxjs';
 
 import {
   CoreApp,
+  DataFrameJSON,
+  dataFrameToJSON,
+  DataQuery,
   DataSourceApi,
   DataSourceInstanceSettings,
   getDefaultTimeRange,
@@ -11,26 +15,28 @@ import {
   PanelData,
 } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
-import { getDataSourceSrv, locationService } from '@grafana/runtime';
-import { DataQuery } from '@grafana/schema';
+import { DataSourcePicker, getDataSourceSrv } from '@grafana/runtime';
 import { Button, CustomScrollbar, HorizontalGroup, InlineFormLabel, Modal, stylesFactory } from '@grafana/ui';
 import { PluginHelp } from 'app/core/components/PluginHelp/PluginHelp';
 import config from 'app/core/config';
 import { backendSrv } from 'app/core/services/backend_srv';
 import { addQuery, queryIsEmpty } from 'app/core/utils/query';
-import { DataSourceModal } from 'app/features/datasources/components/picker/DataSourceModal';
-import { DataSourcePicker } from 'app/features/datasources/components/picker/DataSourcePicker';
+import * as DFImport from 'app/features/dataframe-import';
+import { DataSourcePickerWithHistory } from 'app/features/datasource-drawer/DataSourcePickerWithHistory';
 import { dataSource as expressionDatasource } from 'app/features/expressions/ExpressionDatasource';
 import { DashboardQueryEditor, isSharedDashboardQuery } from 'app/plugins/datasource/dashboard';
-import { GrafanaQuery } from 'app/plugins/datasource/grafana/types';
-import { QueryGroupOptions } from 'app/types';
+import { GrafanaQuery, GrafanaQueryType } from 'app/plugins/datasource/grafana/types';
+import { QueryGroupDataSource, QueryGroupOptions } from 'app/types';
 
+import { isQueryWithMixedDatasource } from '../../query-library/api/SavedQueriesApi';
+import { getSavedQuerySrv } from '../../query-library/api/SavedQueriesSrv';
 import { PanelQueryRunner } from '../state/PanelQueryRunner';
 import { updateQueries } from '../state/updateQueries';
 
 import { GroupActionComponents } from './QueryActionComponent';
 import { QueryEditorRows } from './QueryEditorRows';
 import { QueryGroupOptionsEditor } from './QueryGroupOptions';
+import { SavedQueryPicker } from './SavedQueryPicker';
 
 export interface Props {
   queryRunner: PanelQueryRunner;
@@ -47,11 +53,17 @@ interface State {
   helpContent: React.ReactNode;
   isLoadingHelp: boolean;
   isPickerOpen: boolean;
-  isDataSourceModalOpen: boolean;
+  isAddingMixed: boolean;
   data: PanelData;
   isHelpOpen: boolean;
   defaultDataSource?: DataSourceApi;
   scrollElement?: HTMLDivElement;
+  savedQueryUid?: string | null;
+  initialState: {
+    queries: DataQuery[];
+    dataSource?: QueryGroupDataSource;
+    savedQueryUid?: string | null;
+  };
 }
 
 export class QueryGroup extends PureComponent<Props, State> {
@@ -60,12 +72,17 @@ export class QueryGroup extends PureComponent<Props, State> {
   querySubscription: Unsubscribable | null = null;
 
   state: State = {
-    isDataSourceModalOpen: !!locationService.getSearchObject().firstPanel,
     isLoadingHelp: false,
     helpContent: null,
     isPickerOpen: false,
+    isAddingMixed: false,
     isHelpOpen: false,
     queries: [],
+    savedQueryUid: null,
+    initialState: {
+      queries: [],
+      savedQueryUid: null,
+    },
     data: {
       state: LoadingState.NotStarted,
       series: [],
@@ -80,31 +97,6 @@ export class QueryGroup extends PureComponent<Props, State> {
       next: (data: PanelData) => this.onPanelDataUpdate(data),
     });
 
-    this.setNewQueriesAndDatasource(options);
-
-    // Clean up the first panel flag since the modal is now open
-    if (!!locationService.getSearchObject().firstPanel) {
-      locationService.partial({ firstPanel: null }, true);
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.querySubscription) {
-      this.querySubscription.unsubscribe();
-      this.querySubscription = null;
-    }
-  }
-
-  async componentDidUpdate() {
-    const { options } = this.props;
-
-    const currentDS = await getDataSourceSrv().get(options.dataSource);
-    if (this.state.dataSource && currentDS.uid !== this.state.dataSource?.uid) {
-      this.setNewQueriesAndDatasource(options);
-    }
-  }
-
-  async setNewQueriesAndDatasource(options: QueryGroupOptions) {
     try {
       const ds = await this.dataSourceSrv.get(options.dataSource);
       const dsSettings = this.dataSourceSrv.getInstanceSettings(options.dataSource);
@@ -116,15 +108,27 @@ export class QueryGroup extends PureComponent<Props, State> {
         datasource,
         ...q,
       }));
-
       this.setState({
         queries,
         dataSource: ds,
         dsSettings,
         defaultDataSource,
+        savedQueryUid: options.savedQueryUid,
+        initialState: {
+          queries: options.queries.map((q) => ({ ...q })),
+          dataSource: { ...options.dataSource },
+          savedQueryUid: options.savedQueryUid,
+        },
       });
     } catch (error) {
       console.log('failed to load data source', error);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.querySubscription) {
+      this.querySubscription.unsubscribe();
+      this.querySubscription = null;
     }
   }
 
@@ -132,21 +136,18 @@ export class QueryGroup extends PureComponent<Props, State> {
     this.setState({ data });
   }
 
-  onChangeDataSource = async (
-    newSettings: DataSourceInstanceSettings,
-    defaultQueries?: DataQuery[] | GrafanaQuery[]
-  ) => {
+  onChangeDataSource = async (newSettings: DataSourceInstanceSettings) => {
     const { dsSettings } = this.state;
     const currentDS = dsSettings ? await getDataSourceSrv().get(dsSettings.uid) : undefined;
     const nextDS = await getDataSourceSrv().get(newSettings.uid);
 
     // We need to pass in newSettings.uid as well here as that can be a variable expression and we want to store that in the query model not the current ds variable value
-    const queries = defaultQueries || (await updateQueries(nextDS, newSettings.uid, this.state.queries, currentDS));
+    const queries = await updateQueries(nextDS, newSettings.uid, this.state.queries, currentDS);
 
     const dataSource = await this.dataSourceSrv.get(newSettings.name);
-
     this.onChange({
       queries,
+      savedQueryUid: null,
       dataSource: {
         name: newSettings.name,
         uid: newSettings.uid,
@@ -157,13 +158,73 @@ export class QueryGroup extends PureComponent<Props, State> {
 
     this.setState({
       queries,
+      savedQueryUid: null,
       dataSource: dataSource,
       dsSettings: newSettings,
     });
+  };
 
-    if (defaultQueries) {
-      this.props.onRunQueries();
+  onChangeSavedQuery = async (savedQueryUid: string | null) => {
+    if (!savedQueryUid?.length) {
+      // leave the queries, remove the link
+      this.onChange({
+        queries: this.state.queries,
+        savedQueryUid: null,
+        dataSource: {
+          name: this.state.dsSettings?.name,
+          uid: this.state.dsSettings?.uid,
+          type: this.state.dsSettings?.meta.id,
+          default: this.state.dsSettings?.isDefault,
+        },
+      });
+
+      this.setState({
+        queries: this.state.queries,
+        savedQueryUid: null,
+        dataSource: this.state.dataSource,
+        dsSettings: this.state.dsSettings,
+      });
+      return;
     }
+
+    const { dsSettings } = this.state;
+    const currentDS = dsSettings ? await getDataSourceSrv().get(dsSettings.uid) : undefined;
+
+    const resp = await getSavedQuerySrv().getSavedQueries([{ uid: savedQueryUid }]);
+    if (!resp?.length) {
+      throw new Error('TODO error handling');
+    }
+    const savedQuery = resp[0];
+    const isMixedDatasource = isQueryWithMixedDatasource(savedQuery);
+
+    const nextDS = isMixedDatasource
+      ? await getDataSourceSrv().get('-- Mixed --')
+      : await getDataSourceSrv().get(savedQuery.queries[0].datasource?.uid);
+
+    // We need to pass in newSettings.uid as well here as that can be a variable expression and we want to store that in the query model not the current ds variable value
+    const queries = await updateQueries(nextDS, nextDS.uid, savedQuery.queries, currentDS);
+
+    const newDsSettings = await getDataSourceSrv().getInstanceSettings(nextDS.uid);
+    if (!newDsSettings) {
+      throw new Error('TODO error handling');
+    }
+    this.onChange({
+      queries,
+      savedQueryUid: savedQueryUid,
+      dataSource: {
+        name: newDsSettings.name,
+        uid: newDsSettings.uid,
+        type: newDsSettings.meta.id,
+        default: newDsSettings.isDefault,
+      },
+    });
+
+    this.setState({
+      queries,
+      savedQueryUid,
+      dataSource: nextDS,
+      dsSettings: newDsSettings,
+    });
   };
 
   onAddQueryClick = () => {
@@ -218,7 +279,34 @@ export class QueryGroup extends PureComponent<Props, State> {
           <InlineFormLabel htmlFor="data-source-picker" width={'auto'}>
             Data source
           </InlineFormLabel>
-          <div className={styles.dataSourceRowItem}>{this.renderDataSourcePickerWithPrompt()}</div>
+          <div className={styles.dataSourceRowItem}>
+            {config.featureToggles.drawerDataSourcePicker ? (
+              <DataSourcePickerWithHistory
+                onChange={this.onChangeDataSource}
+                current={options.dataSource}
+                metrics={true}
+                mixed={true}
+                dashboard={true}
+                variables={true}
+                enableFileUpload={config.featureToggles.editPanelCSVDragAndDrop}
+                fileUploadOptions={{
+                  onDrop: this.onFileDrop,
+                  maxSize: DFImport.maxFileSize,
+                  multiple: false,
+                  accept: DFImport.acceptedFiles,
+                }}
+              ></DataSourcePickerWithHistory>
+            ) : (
+              <DataSourcePicker
+                onChange={this.onChangeDataSource}
+                current={options.dataSource}
+                metrics={true}
+                mixed={true}
+                dashboard={true}
+                variables={true}
+              ></DataSourcePicker>
+            )}
+          </div>
           {dataSource && (
             <>
               <div className={styles.dataSourceRowItem}>
@@ -252,6 +340,18 @@ export class QueryGroup extends PureComponent<Props, State> {
             </>
           )}
         </div>
+        {config.featureToggles.queryLibrary && (
+          <>
+            <div className={styles.dataSourceRow}>
+              <InlineFormLabel htmlFor="saved-query-picker" width={'auto'}>
+                Saved query
+              </InlineFormLabel>
+              <div className={styles.dataSourceRowItem}>
+                <SavedQueryPicker current={this.state.savedQueryUid} onChange={this.onChangeSavedQuery} />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -264,40 +364,58 @@ export class QueryGroup extends PureComponent<Props, State> {
     this.setState({ isHelpOpen: false });
   };
 
-  onCloseDataSourceModal = () => {
-    this.setState({ isDataSourceModalOpen: false });
+  renderMixedPicker = () => {
+    return (
+      <DataSourcePicker
+        mixed={false}
+        onChange={this.onAddMixedQuery}
+        current={null}
+        autoFocus={true}
+        variables={true}
+        onBlur={this.onMixedPickerBlur}
+        openMenuOnFocus={true}
+      />
+    );
   };
 
-  renderDataSourcePickerWithPrompt = () => {
-    const { isDataSourceModalOpen } = this.state;
+  onAddMixedQuery = (datasource: any) => {
+    this.onAddQuery({ datasource: datasource.name });
+    this.setState({ isAddingMixed: false });
+  };
 
-    const commonProps = {
-      metrics: true,
-      mixed: true,
-      dashboard: true,
-      variables: true,
-      current: this.props.options.dataSource,
-      uploadFile: true,
-      onChange: async (ds: DataSourceInstanceSettings, defaultQueries?: DataQuery[] | GrafanaQuery[]) => {
-        await this.onChangeDataSource(ds, defaultQueries);
-        this.onCloseDataSourceModal();
-      },
-    };
-
-    return (
-      <>
-        {isDataSourceModalOpen && config.featureToggles.advancedDataSourcePicker && (
-          <DataSourceModal {...commonProps} onDismiss={this.onCloseDataSourceModal}></DataSourceModal>
-        )}
-        <DataSourcePicker {...commonProps} />
-      </>
-    );
+  onMixedPickerBlur = () => {
+    this.setState({ isAddingMixed: false });
   };
 
   onAddQuery = (query: Partial<DataQuery>) => {
     const { dsSettings, queries } = this.state;
     this.onQueriesChange(addQuery(queries, query, { type: dsSettings?.type, uid: dsSettings?.uid }));
     this.onScrollBottom();
+  };
+
+  onFileDrop = (acceptedFiles: File[], fileRejections: FileRejection[], event: DropEvent) => {
+    DFImport.filesToDataframes(acceptedFiles).subscribe(async (next) => {
+      const snapshot: DataFrameJSON[] = [];
+      next.dataFrames.forEach((df) => {
+        const dataframeJson = dataFrameToJSON(df);
+        snapshot.push(dataframeJson);
+      });
+      const ds = getDataSourceSrv().getInstanceSettings('-- Grafana --');
+      await this.onChangeDataSource(ds!);
+      this.onQueriesChange([
+        {
+          refId: 'A',
+          datasource: {
+            type: 'grafana',
+            uid: 'grafana',
+          },
+          queryType: GrafanaQueryType.Snapshot,
+          snapshot: snapshot,
+          file: next.file,
+        },
+      ]);
+      this.props.onRunQueries();
+    });
   };
 
   onQueriesChange = (queries: DataQuery[] | GrafanaQuery[]) => {
@@ -350,7 +468,8 @@ export class QueryGroup extends PureComponent<Props, State> {
   }
 
   renderAddQueryRow(dsSettings: DataSourceInstanceSettings, styles: QueriesTabStyles) {
-    const showAddButton = !isSharedDashboardQuery(dsSettings.name);
+    const { isAddingMixed } = this.state;
+    const showAddButton = !(isAddingMixed || isSharedDashboardQuery(dsSettings.name));
 
     return (
       <HorizontalGroup spacing="md" align="flex-start">

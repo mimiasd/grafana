@@ -10,14 +10,15 @@ import {
   LogsSortOrder,
   CoreApp,
   DataFrame,
+  DataSourceWithLogsContextSupport,
 } from '@grafana/data';
 import { withTheme2, Themeable2 } from '@grafana/ui';
 
-import { UniqueKeyMaker } from '../UniqueKeyMaker';
 import { sortLogRows } from '../utils';
 
 //Components
 import { LogRow } from './LogRow';
+import { RowContextOptions } from './LogRowContextProvider';
 import { getLogRowStyles } from './getLogRowStyles';
 
 export const PREVIEW_LIMIT = 100;
@@ -37,24 +38,21 @@ export interface Props extends Themeable2 {
   forceEscape?: boolean;
   displayedFields?: string[];
   app?: CoreApp;
+  scrollElement?: HTMLDivElement;
   showContextToggle?: (row?: LogRowModel) => boolean;
   onClickFilterLabel?: (key: string, value: string) => void;
   onClickFilterOutLabel?: (key: string, value: string) => void;
+  getRowContext?: (row: LogRowModel, options?: RowContextOptions) => Promise<any>;
+  getLogRowContextUi?: DataSourceWithLogsContextSupport['getLogRowContextUi'];
   getFieldLinks?: (field: Field, rowIndex: number, dataFrame: DataFrame) => Array<LinkModel<Field>>;
   onClickShowField?: (key: string) => void;
   onClickHideField?: (key: string) => void;
-  onPinLine?: (row: LogRowModel) => void;
-  onUnpinLine?: (row: LogRowModel) => void;
   onLogRowHover?: (row?: LogRowModel) => void;
-  onOpenContext?: (row: LogRowModel, onClose: () => void) => void;
-  onPermalinkClick?: (row: LogRowModel) => Promise<void>;
-  permalinkedRowId?: string;
-  scrollIntoView?: (element: HTMLElement) => void;
-  pinnedRowId?: string;
 }
 
 interface State {
   renderAll: boolean;
+  contextIsOpen: boolean;
 }
 
 class UnThemedLogRows extends PureComponent<Props, State> {
@@ -66,15 +64,18 @@ class UnThemedLogRows extends PureComponent<Props, State> {
 
   state: State = {
     renderAll: false,
+    contextIsOpen: false,
   };
 
   /**
    * Toggle the `contextIsOpen` state when a context of one LogRow is opened in order to not show the menu of the other log rows.
    */
-  openContext = (row: LogRowModel, onClose: () => void): void => {
-    if (this.props.onOpenContext) {
-      this.props.onOpenContext(row, onClose);
-    }
+  toggleContextIsOpen = (): void => {
+    this.setState((state) => {
+      return {
+        contextIsOpen: !state.contextIsOpen,
+      };
+    });
   };
 
   componentDidMount() {
@@ -105,8 +106,33 @@ class UnThemedLogRows extends PureComponent<Props, State> {
   );
 
   render() {
-    const { deduplicatedRows, logRows, dedupStrategy, theme, logsSortOrder, previewLimit, ...rest } = this.props;
-    const { renderAll } = this.state;
+    const {
+      dedupStrategy,
+      showContextToggle,
+      showLabels,
+      showTime,
+      wrapLogMessage,
+      prettifyLogMessage,
+      logRows,
+      deduplicatedRows,
+      timeZone,
+      onClickFilterLabel,
+      onClickFilterOutLabel,
+      theme,
+      enableLogDetails,
+      previewLimit,
+      getFieldLinks,
+      logsSortOrder,
+      displayedFields,
+      onClickShowField,
+      onClickHideField,
+      forceEscape,
+      onLogRowHover,
+      app,
+      scrollElement,
+      getLogRowContextUi,
+    } = this.props;
+    const { renderAll, contextIsOpen } = this.state;
     const styles = getLogRowStyles(theme);
     const dedupedRows = deduplicatedRows ? deduplicatedRows : logRows;
     const hasData = logRows && logRows.length > 0;
@@ -122,49 +148,74 @@ class UnThemedLogRows extends PureComponent<Props, State> {
 
     // React profiler becomes unusable if we pass all rows to all rows and their labels, using getter instead
     const getRows = this.makeGetRows(orderedRows);
-
-    const keyMaker = new UniqueKeyMaker();
+    const getRowContext = this.props.getRowContext ? this.props.getRowContext : () => Promise.resolve([]);
 
     return (
       <table className={styles.logsRowsTable}>
         <tbody>
           {hasData &&
-            firstRows.map((row) => (
+            firstRows.map((row, index) => (
               <LogRow
-                key={keyMaker.getKey(row.uid)}
+                key={row.uid}
                 getRows={getRows}
+                getRowContext={getRowContext}
+                getLogRowContextUi={getLogRowContextUi}
                 row={row}
+                showContextToggle={showContextToggle}
+                showRowMenu={!contextIsOpen}
                 showDuplicates={showDuplicates}
+                showLabels={showLabels}
+                showTime={showTime}
+                displayedFields={displayedFields}
+                wrapLogMessage={wrapLogMessage}
+                prettifyLogMessage={prettifyLogMessage}
+                timeZone={timeZone}
+                enableLogDetails={enableLogDetails}
+                onClickFilterLabel={onClickFilterLabel}
+                onClickFilterOutLabel={onClickFilterOutLabel}
+                onClickShowField={onClickShowField}
+                onClickHideField={onClickHideField}
+                getFieldLinks={getFieldLinks}
                 logsSortOrder={logsSortOrder}
-                onOpenContext={this.openContext}
+                forceEscape={forceEscape}
+                toggleContextIsOpen={this.toggleContextIsOpen}
+                onLogRowHover={onLogRowHover}
+                app={app}
+                scrollElement={scrollElement}
                 styles={styles}
-                onPermalinkClick={this.props.onPermalinkClick}
-                scrollIntoView={this.props.scrollIntoView}
-                permalinkedRowId={this.props.permalinkedRowId}
-                onPinLine={this.props.onPinLine}
-                onUnpinLine={this.props.onUnpinLine}
-                pinned={this.props.pinnedRowId === row.uid}
-                {...rest}
               />
             ))}
           {hasData &&
             renderAll &&
-            lastRows.map((row) => (
+            lastRows.map((row, index) => (
               <LogRow
-                key={keyMaker.getKey(row.uid)}
+                key={row.uid}
                 getRows={getRows}
+                getRowContext={getRowContext}
+                getLogRowContextUi={getLogRowContextUi}
                 row={row}
+                showContextToggle={showContextToggle}
+                showRowMenu={!contextIsOpen}
                 showDuplicates={showDuplicates}
+                showLabels={showLabels}
+                showTime={showTime}
+                displayedFields={displayedFields}
+                wrapLogMessage={wrapLogMessage}
+                prettifyLogMessage={prettifyLogMessage}
+                timeZone={timeZone}
+                enableLogDetails={enableLogDetails}
+                onClickFilterLabel={onClickFilterLabel}
+                onClickFilterOutLabel={onClickFilterOutLabel}
+                onClickShowField={onClickShowField}
+                onClickHideField={onClickHideField}
+                getFieldLinks={getFieldLinks}
                 logsSortOrder={logsSortOrder}
-                onOpenContext={this.openContext}
+                forceEscape={forceEscape}
+                toggleContextIsOpen={this.toggleContextIsOpen}
+                onLogRowHover={onLogRowHover}
+                app={app}
+                scrollElement={scrollElement}
                 styles={styles}
-                onPermalinkClick={this.props.onPermalinkClick}
-                scrollIntoView={this.props.scrollIntoView}
-                permalinkedRowId={this.props.permalinkedRowId}
-                onPinLine={this.props.onPinLine}
-                onUnpinLine={this.props.onUnpinLine}
-                pinned={this.props.pinnedRowId === row.uid}
-                {...rest}
               />
             ))}
           {hasData && !renderAll && (

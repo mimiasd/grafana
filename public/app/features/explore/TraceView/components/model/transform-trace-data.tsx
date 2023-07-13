@@ -24,9 +24,9 @@ import { getConfigValue } from '../utils/config/get-config';
 import { getTraceName } from './trace-viewer';
 
 // exported for tests
-export function deduplicateTags(tags: TraceKeyValuePair[]) {
+export function deduplicateTags(spanTags: TraceKeyValuePair[]) {
   const warningsHash: Map<string, string> = new Map<string, string>();
-  const dedupedTags: TraceKeyValuePair[] = tags.reduce<TraceKeyValuePair[]>((uniqueTags, tag) => {
+  const tags: TraceKeyValuePair[] = spanTags.reduce<TraceKeyValuePair[]>((uniqueTags, tag) => {
     if (!uniqueTags.some((t) => t.key === tag.key && t.value === tag.value)) {
       uniqueTags.push(tag);
     } else {
@@ -35,12 +35,12 @@ export function deduplicateTags(tags: TraceKeyValuePair[]) {
     return uniqueTags;
   }, []);
   const warnings = Array.from(warningsHash.values());
-  return { dedupedTags, warnings };
+  return { tags, warnings };
 }
 
 // exported for tests
-export function orderTags(tags: TraceKeyValuePair[], topPrefixes?: string[]) {
-  const orderedTags: TraceKeyValuePair[] = tags?.slice() ?? [];
+export function orderTags(spanTags: TraceKeyValuePair[], topPrefixes?: string[]) {
+  const orderedTags: TraceKeyValuePair[] = spanTags?.slice() ?? [];
   const tp = (topPrefixes || []).map((p: string) => p.toLowerCase());
 
   orderedTags.sort((a, b) => {
@@ -156,7 +156,7 @@ export default function transformTraceData(data: TraceResponse | undefined): Tra
     span.tags = span.tags || [];
     span.references = span.references || [];
     const tagsInfo = deduplicateTags(span.tags);
-    span.tags = orderTags(tagsInfo.dedupedTags, getConfigValue('topTagPrefixes'));
+    span.tags = orderTags(tagsInfo.tags, getConfigValue('topTagPrefixes'));
     span.warnings = span.warnings.concat(tagsInfo.warnings);
     span.references.forEach((ref, index) => {
       const refSpan = spanMap.get(ref.spanID);

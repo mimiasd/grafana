@@ -1,6 +1,5 @@
 import React from 'react';
 
-import { config } from '@grafana/runtime';
 import { HorizontalGroup, LinkButton } from '@grafana/ui';
 
 import { getExternalManageLink } from '../../helpers';
@@ -9,10 +8,9 @@ import { PluginStatus } from '../../types';
 type ExternallyManagedButtonProps = {
   pluginId: string;
   pluginStatus: PluginStatus;
-  angularDetected?: boolean;
 };
 
-export function ExternallyManagedButton({ pluginId, pluginStatus, angularDetected }: ExternallyManagedButtonProps) {
+export function ExternallyManagedButton({ pluginId, pluginStatus }: ExternallyManagedButtonProps) {
   const externalManageLink = `${getExternalManageLink(pluginId)}/?tab=installation`;
 
   if (pluginStatus === PluginStatus.UPDATE) {
@@ -37,12 +35,7 @@ export function ExternallyManagedButton({ pluginId, pluginStatus, angularDetecte
   }
 
   return (
-    <LinkButton
-      disabled={!config.angularSupportEnabled && angularDetected}
-      href={externalManageLink}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
+    <LinkButton href={externalManageLink} target="_blank" rel="noopener noreferrer">
       Install via grafana.com
     </LinkButton>
   );

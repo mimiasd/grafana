@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import React, { ReactElement } from 'react';
+import React from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { FieldSet, useStyles2 } from '@grafana/ui';
@@ -7,7 +7,7 @@ import { FieldSet, useStyles2 } from '@grafana/ui';
 export interface RuleEditorSectionProps {
   title: string;
   stepNo: number;
-  description?: string | ReactElement;
+  description?: string;
 }
 
 export const RuleEditorSection = ({
@@ -25,7 +25,7 @@ export const RuleEditorSection = ({
       </div>
       <div className={styles.content}>
         <FieldSet label={title} className={styles.fieldset}>
-          {description && <div className={styles.description}>{description}</div>}
+          {description && <p className={styles.description}>{description}</p>}
           {children}
         </FieldSet>
       </div>
@@ -57,7 +57,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
     width: ${theme.spacing(4)};
     height: ${theme.spacing(4)};
     line-height: ${theme.spacing(4)};
-    border-radius: ${theme.shape.radius.circle};
+    border-radius: ${theme.spacing(4)};
     text-align: center;
     color: ${theme.colors.text.maxContrast};
     background-color: ${theme.colors.background.canvas};

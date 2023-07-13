@@ -1,6 +1,13 @@
 import { map } from 'rxjs/operators';
 
-import { DataFrame, DataTransformerID, Field, FieldType, SynchronousDataTransformerInfo } from '@grafana/data';
+import {
+  ArrayVector,
+  DataFrame,
+  DataTransformerID,
+  Field,
+  FieldType,
+  SynchronousDataTransformerInfo,
+} from '@grafana/data';
 
 import { getDistinctLabels } from '../utils';
 
@@ -12,7 +19,7 @@ export interface JoinByLabelsTransformOptions {
 export const joinByLabelsTransformer: SynchronousDataTransformerInfo<JoinByLabelsTransformOptions> = {
   id: DataTransformerID.joinByLabels,
   name: 'Join by labels',
-  description: 'Flatten labeled results into a table joined by labels.',
+  description: 'Flatten labeled results into a table joined by labels',
   defaultOptions: {},
 
   operator: (options, ctx) => (source) =>
@@ -65,7 +72,7 @@ export function joinByLabels(options: JoinByLabelsTransformOptions, data: DataFr
           found.set(key, item);
         }
         const name = field.labels[options.value];
-        const vals = field.values;
+        const vals = field.values.toArray();
         const old = item.values[name];
         if (old) {
           item.values[name] = old.concat(vals);
@@ -110,7 +117,7 @@ export function joinByLabels(options: JoinByLabelsTransformOptions, data: DataFr
       name: join[i],
       config: {},
       type: FieldType.string,
-      values: joinValues[i],
+      values: new ArrayVector(joinValues[i]),
     });
   }
 
@@ -120,7 +127,7 @@ export function joinByLabels(options: JoinByLabelsTransformOptions, data: DataFr
       name: allNames[i],
       config: {},
       type: old.type ?? FieldType.number,
-      values: nameValues[i],
+      values: new ArrayVector(nameValues[i]),
     });
   }
 
@@ -132,7 +139,7 @@ function getErrorFrame(text: string): DataFrame {
     meta: {
       notices: [{ severity: 'error', text }],
     },
-    fields: [{ name: 'Error', type: FieldType.string, config: {}, values: [text] }],
+    fields: [{ name: 'Error', type: FieldType.string, config: {}, values: new ArrayVector([text]) }],
     length: 0,
   };
 }

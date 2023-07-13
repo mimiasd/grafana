@@ -1,14 +1,15 @@
 import { PanelPlugin } from '@grafana/data';
+import { GraphFieldConfig } from '@grafana/schema';
 import { commonOptionsBuilder } from '@grafana/ui';
 
 import { TimeSeriesPanel } from './TimeSeriesPanel';
 import { TimezonesEditor } from './TimezonesEditor';
 import { defaultGraphConfig, getGraphFieldConfig } from './config';
 import { graphPanelChangedHandler } from './migrations';
-import { FieldConfig, Options } from './panelcfg.gen';
 import { TimeSeriesSuggestionsSupplier } from './suggestions';
+import { TimeSeriesOptions } from './types';
 
-export const plugin = new PanelPlugin<Options, FieldConfig>(TimeSeriesPanel)
+export const plugin = new PanelPlugin<TimeSeriesOptions, GraphFieldConfig>(TimeSeriesPanel)
   .setPanelChangeHandler(graphPanelChangedHandler)
   .useFieldConfig(getGraphFieldConfig(defaultGraphConfig))
   .setPanelOptions((builder) => {

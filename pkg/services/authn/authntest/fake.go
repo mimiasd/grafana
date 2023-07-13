@@ -6,31 +6,9 @@ import (
 	"github.com/grafana/grafana/pkg/services/authn"
 )
 
-var _ authn.Service = new(FakeService)
-
 type FakeService struct {
-	ExpectedErr      error
-	ExpectedRedirect *authn.Redirect
-	ExpectedIdentity *authn.Identity
+	authn.Service
 }
-
-func (f FakeService) Authenticate(ctx context.Context, r *authn.Request) (*authn.Identity, error) {
-	return f.ExpectedIdentity, f.ExpectedErr
-}
-
-func (f FakeService) RegisterPostAuthHook(hook authn.PostAuthHookFn, priority uint) {}
-
-func (f FakeService) Login(ctx context.Context, client string, r *authn.Request) (*authn.Identity, error) {
-	return f.ExpectedIdentity, f.ExpectedErr
-}
-
-func (f FakeService) RegisterPostLoginHook(hook authn.PostLoginHookFn, priority uint) {}
-
-func (f FakeService) RedirectURL(ctx context.Context, client string, r *authn.Request) (*authn.Redirect, error) {
-	return f.ExpectedRedirect, f.ExpectedErr
-}
-
-func (f FakeService) RegisterClient(c authn.Client) {}
 
 var _ authn.ContextAwareClient = new(FakeClient)
 
@@ -40,7 +18,6 @@ type FakeClient struct {
 	ExpectedTest     bool
 	ExpectedPriority uint
 	ExpectedIdentity *authn.Identity
-	ExpectedStats    map[string]interface{}
 }
 
 func (f *FakeClient) Name() string {
@@ -57,10 +34,6 @@ func (f *FakeClient) Test(ctx context.Context, r *authn.Request) bool {
 
 func (f *FakeClient) Priority() uint {
 	return f.ExpectedPriority
-}
-
-func (f *FakeClient) UsageStatFn(ctx context.Context) (map[string]interface{}, error) {
-	return f.ExpectedStats, f.ExpectedErr
 }
 
 var _ authn.PasswordClient = new(FakePasswordClient)

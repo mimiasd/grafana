@@ -7,7 +7,7 @@ services:
     ports:
       - "4873:4873"
     volumes:
-      - ./conf:/verdaccio/conf
+      - verdaccio:/verdaccio
 
 volumes:
   verdaccio:

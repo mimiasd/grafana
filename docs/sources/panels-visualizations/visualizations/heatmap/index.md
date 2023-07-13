@@ -38,7 +38,6 @@ Select one of the following Y-axis value scales:
 - **linear -** Linear scale.
 - **log (base 2) -** Logarithmic scale with base 2.
 - **log (base 10) -** Logarithmic scale with base 10.
-- **symlog -** Symlog scale.
 
 ## Y Axes
 
@@ -61,14 +60,6 @@ This setting determines decimal configuration.
 ### Min/Max value
 
 This setting configures the axis range.
-
-### Axis width
-
-This setting configures the width for the axis.
-
-### Axis value
-
-This setting configures the axis value.
 
 ### Reverse
 

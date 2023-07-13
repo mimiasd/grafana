@@ -13,7 +13,9 @@ interface Props {
 export const SearchCheckbox = memo(
   ({ onClick, className, checked = false, editable = false, 'aria-label': ariaLabel }: Props) => {
     return editable ? (
-      <Checkbox onClick={onClick} className={className} value={checked} aria-label={ariaLabel} />
+      <div onClick={onClick} className={className}>
+        <Checkbox value={checked} aria-label={ariaLabel} />
+      </div>
     ) : null;
   }
 );

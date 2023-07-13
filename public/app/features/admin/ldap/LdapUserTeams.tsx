@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { FC } from 'react';
 
 import { Tooltip, Icon } from '@grafana/ui';
 import { LdapTeam } from 'app/types';
@@ -8,7 +8,7 @@ interface Props {
   showAttributeMapping?: boolean;
 }
 
-export const LdapUserTeams = ({ teams, showAttributeMapping }: Props) => {
+export const LdapUserTeams: FC<Props> = ({ teams, showAttributeMapping }) => {
   const items = showAttributeMapping ? teams : teams.filter((item) => item.teamName);
 
   return (
@@ -33,10 +33,14 @@ export const LdapUserTeams = ({ teams, showAttributeMapping }: Props) => {
                         <>
                           <td />
                           <td>
-                            <span className="text-warning">No match</span>
-                            <Tooltip placement="top" content="No matching teams found" theme={'info'}>
-                              <Icon name="info-circle" />
-                            </Tooltip>
+                            <div className="text-warning">
+                              No match
+                              <Tooltip placement="top" content="No matching teams found" theme={'info'}>
+                                <span className="gf-form-help-icon">
+                                  <Icon name="info-circle" />
+                                </span>
+                              </Tooltip>
+                            </div>
                           </td>
                         </>
                       )}

@@ -7,6 +7,7 @@ export * from './dashboard';
 export * from './query';
 export * from './annotations';
 export * from './logs';
+export * from './logsVolume';
 export * from './navModel';
 export * from './select';
 export * from './time';
@@ -52,15 +53,8 @@ export * from './slider';
 export * from './accesscontrol';
 export * from './icon';
 export {
-  PluginExtensionTypes,
-  PluginExtensionPoints,
   type PluginExtension,
   type PluginExtensionLink,
-  type PluginExtensionComponent,
-  type PluginExtensionConfig,
-  type PluginExtensionLinkConfig,
-  type PluginExtensionComponentConfig,
-  type PluginExtensionEventHelpers,
-  type PluginExtensionPanelContext,
-  type PluginExtensionDataSourceConfigContext,
+  isPluginExtensionLink,
+  PluginExtensionTypes,
 } from './pluginExtensions';

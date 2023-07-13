@@ -12,12 +12,12 @@ import {
   RichHistorySearchFilters,
   RichHistorySettings,
 } from 'app/core/utils/richHistory';
-import { RichHistoryQuery } from 'app/types/explore';
+import { ExploreId, RichHistoryQuery } from 'app/types/explore';
 
 import { getSortOrderOptions } from './RichHistory';
 import RichHistoryCard from './RichHistoryCard';
 
-export interface RichHistoryQueriesTabProps {
+export interface Props {
   queries: RichHistoryQuery[];
   totalQueries: number;
   loading: boolean;
@@ -27,11 +27,13 @@ export interface RichHistoryQueriesTabProps {
   loadMoreRichHistory: () => void;
   richHistorySettings: RichHistorySettings;
   richHistorySearchFilters?: RichHistorySearchFilters;
-  exploreId: string;
+  exploreId: ExploreId;
   height: number;
 }
 
 const getStyles = (theme: GrafanaTheme2, height: number) => {
+  const bgColor = theme.isLight ? theme.v1.palette.gray5 : theme.v1.palette.dark4;
+
   return {
     container: css`
       display: flex;
@@ -74,6 +76,11 @@ const getStyles = (theme: GrafanaTheme2, height: number) => {
     multiselect: css`
       width: 100%;
       margin-bottom: ${theme.spacing(1)};
+      .gf-form-select-box__multi-value {
+        background-color: ${bgColor};
+        padding: ${theme.spacing(0.25, 0.5, 0.25, 1)};
+        border-radius: ${theme.shape.borderRadius(1)};
+      }
     `,
     sort: css`
       width: 170px;
@@ -111,7 +118,7 @@ const getStyles = (theme: GrafanaTheme2, height: number) => {
   };
 };
 
-export function RichHistoryQueriesTab(props: RichHistoryQueriesTabProps) {
+export function RichHistoryQueriesTab(props: Props) {
   const {
     queries,
     totalQueries,
@@ -186,7 +193,7 @@ export function RichHistoryQueriesTab(props: RichHistoryQueriesTabProps) {
         </div>
       </div>
 
-      <div className={styles.containerContent} data-testid="query-history-queries-tab">
+      <div className={styles.containerContent}>
         <div className={styles.selectors}>
           {!richHistorySettings.activeDatasourceOnly && (
             <MultiSelect
@@ -204,7 +211,6 @@ export function RichHistoryQueriesTab(props: RichHistoryQueriesTabProps) {
           )}
           <div className={styles.filterInput}>
             <FilterInput
-              escapeRegex={false}
               placeholder="Search queries"
               value={richHistorySearchFilters.search}
               onChange={(search: string) => updateFilters({ search })}
@@ -233,7 +239,7 @@ export function RichHistoryQueriesTab(props: RichHistoryQueriesTabProps) {
                     {mappedQueriesToHeadings[heading].length} queries
                   </span>
                 </div>
-                {mappedQueriesToHeadings[heading].map((q) => {
+                {mappedQueriesToHeadings[heading].map((q: RichHistoryQuery) => {
                   return <RichHistoryCard query={q} key={q.id} exploreId={exploreId} />;
                 })}
               </div>

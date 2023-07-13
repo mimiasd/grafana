@@ -33,11 +33,10 @@ const useDimensionLabels = (data: PanelData | undefined, query: AzureMonitorQuer
       for (const label of labels) {
         // Labels only exist for series that have a dimension selected
         for (const [dimension, value] of Object.entries(label)) {
-          const dimensionLower = dimension.toLowerCase();
-          if (labelsObj[dimensionLower]) {
-            labelsObj[dimensionLower].add(value);
+          if (labelsObj[dimension]) {
+            labelsObj[dimension].add(value);
           } else {
-            labelsObj[dimensionLower] = new Set([value]);
+            labelsObj[dimension] = new Set([value]);
           }
         }
       }
@@ -61,7 +60,7 @@ const useDimensionLabels = (data: PanelData | undefined, query: AzureMonitorQuer
   return dimensionLabels;
 };
 
-const DimensionFields = ({ data, query, dimensionOptions, onQueryChange }: DimensionFieldsProps) => {
+const DimensionFields: React.FC<DimensionFieldsProps> = ({ data, query, dimensionOptions, onQueryChange }) => {
   const dimensionFilters = useMemo(
     () => query.azureMonitor?.dimensionFilters ?? [],
     [query.azureMonitor?.dimensionFilters]

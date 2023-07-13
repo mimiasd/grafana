@@ -8,7 +8,9 @@
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
-export interface Options {
+export const PanelCfgModelVersion = Object.freeze([0, 0]);
+
+export interface PanelOptions {
   /**
    * Name of the alertmanager used as a source for alerts
    */

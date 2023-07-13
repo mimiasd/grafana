@@ -126,10 +126,7 @@ func parseQuery(queryContext *backend.QueryDataRequest) ([]*lokiQuery, error) {
 		interval := query.Interval
 		timeRange := query.TimeRange.To.Sub(query.TimeRange.From)
 
-		step, err := calculateStep(interval, timeRange, resolution, model.Step)
-		if err != nil {
-			return nil, err
-		}
+		step := calculateStep(interval, timeRange, resolution)
 
 		expr := interpolateVariables(model.Expr, interval, timeRange)
 

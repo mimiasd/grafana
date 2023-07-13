@@ -78,10 +78,6 @@ export const getBodyStyles = (theme: GrafanaTheme2) => {
       &:hover {
         position: relative;
       }
-
-      &:disabled {
-        color: ${theme.colors.action.disabledText};
-      }
     `,
     body: css`
       z-index: ${theme.zIndex.modal};

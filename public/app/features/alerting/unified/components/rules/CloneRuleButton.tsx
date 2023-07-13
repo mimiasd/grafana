@@ -7,6 +7,7 @@ import { ConfirmModal, LinkButton, useStyles2 } from '@grafana/ui';
 import { RuleIdentifier } from 'app/types/unified-alerting';
 
 import * as ruleId from '../../utils/rule-id';
+import { createUrl } from '../../utils/url';
 
 interface CloneRuleButtonProps {
   ruleIdentifier: RuleIdentifier;
@@ -19,10 +20,10 @@ export const CloneRuleButton = React.forwardRef<HTMLAnchorElement, CloneRuleButt
   ({ text, ruleIdentifier, isProvisioned, className }, ref) => {
     // For provisioned rules an additional confirmation step is required
     // Users have to be aware that the cloned rule will NOT be marked as provisioned
-    const [showModal, setShowModal] = useState(false);
+    const [provRuleCloneUrl, setProvRuleCloneUrl] = useState<string | undefined>(undefined);
 
     const styles = useStyles2(getStyles);
-    const cloneUrl = '/alerting/new?copyFrom=' + ruleId.stringifyIdentifier(ruleIdentifier);
+    const cloneUrl = createUrl('/alerting/new', { copyFrom: ruleId.stringifyIdentifier(ruleIdentifier) });
 
     return (
       <>
@@ -34,14 +35,14 @@ export const CloneRuleButton = React.forwardRef<HTMLAnchorElement, CloneRuleButt
           variant="secondary"
           icon="copy"
           href={isProvisioned ? undefined : cloneUrl}
-          onClick={isProvisioned ? () => setShowModal(true) : undefined}
+          onClick={isProvisioned ? () => setProvRuleCloneUrl(cloneUrl) : undefined}
           ref={ref}
         >
           {text}
         </LinkButton>
 
         <ConfirmModal
-          isOpen={showModal}
+          isOpen={!!provRuleCloneUrl}
           title="Copy provisioned alert rule"
           body={
             <div>
@@ -55,10 +56,8 @@ export const CloneRuleButton = React.forwardRef<HTMLAnchorElement, CloneRuleButt
             </div>
           }
           confirmText="Copy"
-          onConfirm={() => {
-            locationService.push(cloneUrl);
-          }}
-          onDismiss={() => setShowModal(false)}
+          onConfirm={() => provRuleCloneUrl && locationService.push(provRuleCloneUrl)}
+          onDismiss={() => setProvRuleCloneUrl(undefined)}
         />
       </>
     );

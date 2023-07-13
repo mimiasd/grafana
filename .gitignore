@@ -79,8 +79,6 @@ public/css/*.min.css
 /devenv/docker-compose.override.yaml
 /devenv/.env
 /devenv/docker/blocks/tempo/tempo-data/
-/devenv/docker/ha-test-unified-alerting/logs/webhook/dumps/
-/devenv/docker/ha-test-unified-alerting/logs/webhook/webhook-listener.log
 
 conf/custom.ini
 /conf/provisioning/**/custom.yaml
@@ -139,7 +137,7 @@ pkg/services/quota/quotaimpl/storage/storage.json
 /packages/**/package.tgz
 /packages/grafana-toolkit/sass
 ## CI places the packages in a different location
-/npm-artifacts
+/npm-artifacts/*.tgz
 
 # Ignore frontend build manifest
 manifest.json
@@ -191,6 +189,3 @@ public/api-spec.json
 deployment_tools_config.json
 
 .betterer.cache
-
-# Temporary file for backporting PRs
-.pr-body.txt

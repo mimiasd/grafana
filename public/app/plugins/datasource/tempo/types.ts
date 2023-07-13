@@ -4,7 +4,7 @@ import { TraceToLogsOptions } from 'app/core/components/TraceToLogs/TraceToLogsS
 
 import { LokiQuery } from '../loki/types';
 
-import { TempoQuery as TempoBase, TempoQueryType, TraceqlFilter } from './dataquery.gen';
+import { Tempo as TempoBase, TempoQueryType } from './dataquery.gen';
 
 export interface SearchQueryParams {
   minDuration?: string;
@@ -22,7 +22,6 @@ export interface TempoJsonData extends DataSourceJsonData {
   };
   search?: {
     hide?: boolean;
-    filters?: TraceqlFilter[];
   };
   nodeGraph?: NodeGraphOptions;
   lokiSearch?: {
@@ -102,9 +101,4 @@ export type Spanset = {
 export type SearchResponse = {
   traces: TraceSearchMetadata[];
   metrics: SearchMetrics;
-};
-
-export type Scope = {
-  name: string;
-  tags: string[];
 };

@@ -5,7 +5,6 @@ import { EditorRows, EditorRow, EditorFieldGroup } from '@grafana/experimental';
 
 import { multiResourceCompatibleTypes } from '../../azureMetadata';
 import type Datasource from '../../datasource';
-import { selectors } from '../../e2e/selectors';
 import type { AzureMonitorQuery, AzureMonitorOption, AzureMonitorErrorish, AzureMonitorResource } from '../../types';
 import ResourceField from '../ResourceField';
 import { ResourceRow, ResourceRowGroup, ResourceRowType } from '../ResourcePicker/types';
@@ -30,14 +29,14 @@ interface MetricsQueryEditorProps {
   setError: (source: string, error: AzureMonitorErrorish | undefined) => void;
 }
 
-const MetricsQueryEditor = ({
+const MetricsQueryEditor: React.FC<MetricsQueryEditorProps> = ({
   data,
   query,
   datasource,
   variableOptionGroup,
   onChange,
   setError,
-}: MetricsQueryEditorProps) => {
+}) => {
   const metricsMetadata = useMetricMetadata(query, datasource, onChange);
   const metricNamespaces = useMetricNamespaces(query, datasource, onChange, setError);
   const metricNames = useMetricNames(query, datasource, onChange, setError);
@@ -86,7 +85,7 @@ const MetricsQueryEditor = ({
   };
 
   return (
-    <span data-testid={selectors.components.queryEditor.metricsQueryEditor.container.input}>
+    <span data-testid="azure-monitor-metrics-query-editor-with-experimental-ui">
       <EditorRows>
         <EditorRow>
           <EditorFieldGroup>

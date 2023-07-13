@@ -11,9 +11,9 @@ import {
 } from '@grafana/data';
 import { IconButton } from '@grafana/ui';
 
-import { Options, UpdateConfig } from './panelcfg.gen';
+import { PanelOptions, UpdateConfig } from './panelcfg.gen';
 
-type Props = PanelProps<Options>;
+type Props = PanelProps<PanelOptions>;
 
 type UpdateCounters = {
   [K in keyof UpdateConfig]: number;
@@ -74,7 +74,7 @@ export class RenderInfoViewer extends Component<Props> {
     return (
       <div>
         <div>
-          <IconButton name="step-backward" title="reset counters" onClick={this.resetCounters} tooltip="Step back" />
+          <IconButton name="step-backward" title="reset counters" onClick={this.resetCounters} />
           <span>
             {showCounters.render && <span>Render: {this.counters.render}&nbsp;</span>}
             {showCounters.dataChanged && <span>Data: {this.counters.dataChanged}&nbsp;</span>}

@@ -8,10 +8,9 @@ import { DashboardModel } from '../state';
 import { createDashboardModelFixture } from '../state/__fixtures__/dashboardFixtures';
 
 import { DashboardGrid, Props } from './DashboardGrid';
-import { Props as LazyLoaderProps } from './LazyLoader';
 
 jest.mock('app/features/dashboard/dashgrid/LazyLoader', () => {
-  const LazyLoader = ({ children }: LazyLoaderProps) => {
+  const LazyLoader: React.FC = ({ children }) => {
     return <>{children}</>;
   };
   return { LazyLoader };

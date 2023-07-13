@@ -6,7 +6,7 @@ import { ReducerID } from '../transformations/fieldReducer';
 import { FieldConfigPropertyItem, MappingType, SpecialValueMatch, ValueMapping } from '../types';
 
 import { getDisplayProcessor } from './displayProcessor';
-import { fixCellTemplateExpressions, getFieldDisplayValues, GetFieldDisplayValuesOptions } from './fieldDisplay';
+import { getFieldDisplayValues, GetFieldDisplayValuesOptions } from './fieldDisplay';
 import { standardFieldConfigEditorRegistry } from './standardFieldConfigEditorRegistry';
 
 describe('FieldDisplay', () => {
@@ -508,25 +508,8 @@ function createEmptyDisplayOptions(extend = {}): GetFieldDisplayValuesOptions {
 }
 
 function createDisplayOptions(extend: Partial<GetFieldDisplayValuesOptions> = {}): GetFieldDisplayValuesOptions {
-  const options = merge(
-    {
-      replaceVariables: (value: string) => {
-        return value;
-      },
-      reduceOptions: {
-        calcs: [],
-      },
-      fieldConfig: {
-        overrides: [],
-        defaults: {},
-      },
-      theme: createTheme(),
-    },
-    extend
-  );
-
-  if (!options.data?.length) {
-    options.data = [
+  const options: GetFieldDisplayValuesOptions = {
+    data: [
       toDataFrame({
         name: 'Series Name',
         fields: [
@@ -535,15 +518,19 @@ function createDisplayOptions(extend: Partial<GetFieldDisplayValuesOptions> = {}
           { name: 'Field 3', values: [2, 4, 6] },
         ],
       }),
-    ];
-  }
-  return options;
-}
+    ],
+    replaceVariables: (value: string) => {
+      return value;
+    },
+    reduceOptions: {
+      calcs: [],
+    },
+    fieldConfig: {
+      overrides: [],
+      defaults: {},
+    },
+    theme: createTheme(),
+  };
 
-describe('fixCellTemplateExpressions', () => {
-  it('Should replace __cell_x correctly', () => {
-    expect(fixCellTemplateExpressions('$__cell_10 asd ${__cell_15} asd [[__cell_20]]')).toEqual(
-      '${__data.fields[10]} asd ${__data.fields[15]} asd ${__data.fields[20]}'
-    );
-  });
-});
+  return merge(options, extend);
+}

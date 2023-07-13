@@ -9,13 +9,14 @@ import {
   DataSourceInstanceSettings,
   DataSourceWithLogsContextSupport,
   LoadingState,
-  LogRowContextOptions,
   LogRowModel,
   ScopedVars,
 } from '@grafana/data';
 import { DataSourceWithBackend } from '@grafana/runtime';
 import { getTimeSrv, TimeSrv } from 'app/features/dashboard/services/TimeSrv';
 import { getTemplateSrv, TemplateSrv } from 'app/features/templating/template_srv';
+
+import { RowContextOptions } from '../../../features/logs/components/LogRowContextProvider';
 
 import { CloudWatchAnnotationSupport } from './annotationSupport';
 import { DEFAULT_METRICS_QUERY, getDefaultLogsQuery } from './defaultQueries';
@@ -135,7 +136,7 @@ export class CloudWatchDatasource
 
   getLogRowContext = async (
     row: LogRowModel,
-    context?: LogRowContextOptions,
+    context?: RowContextOptions,
     query?: CloudWatchLogsQuery
   ): Promise<{ data: DataFrame[] }> => {
     return this.logsQueryRunner.getLogRowContext(row, context, query);

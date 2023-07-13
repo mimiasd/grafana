@@ -1,5 +1,5 @@
 import { css, cx } from '@emotion/css';
-import React, { useId } from 'react';
+import React from 'react';
 import Highlighter from 'react-highlight-words';
 
 import {
@@ -23,7 +23,7 @@ interface DynamicConfigValueEditorProps {
   searchQuery: string;
 }
 
-export const DynamicConfigValueEditor = ({
+export const DynamicConfigValueEditor: React.FC<DynamicConfigValueEditorProps> = ({
   property,
   context,
   registry,
@@ -31,11 +31,9 @@ export const DynamicConfigValueEditor = ({
   onRemove,
   isSystemOverride,
   searchQuery,
-}: DynamicConfigValueEditorProps) => {
+}) => {
   const styles = useStyles2(getStyles);
   const item = registry?.getIfExists(property.id);
-
-  const componentId = useId();
 
   if (!item) {
     return null;
@@ -56,11 +54,7 @@ export const DynamicConfigValueEditor = ({
     (isExpanded = false) =>
       (
         <HorizontalGroup justify="space-between">
-          <Label
-            category={labelCategory}
-            description={includeDescription ? item.description : undefined}
-            htmlFor={componentId}
-          >
+          <Label category={labelCategory} description={includeDescription ? item.description : undefined}>
             <Highlighter
               textToHighlight={item.name}
               searchWords={[searchQuery]}
@@ -72,7 +66,7 @@ export const DynamicConfigValueEditor = ({
           </Label>
           {!isSystemOverride && (
             <div>
-              <IconButton name="times" onClick={onRemove} tooltip="Remove label" />
+              <IconButton name="times" onClick={onRemove} />
             </div>
           )}
         </HorizontalGroup>
@@ -112,7 +106,6 @@ export const DynamicConfigValueEditor = ({
             }}
             item={item}
             context={context}
-            id={componentId}
           />
         </Field>
       </div>

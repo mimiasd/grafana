@@ -11,14 +11,10 @@ keywords:
   - alerting
   - alerts
   - notifications
-title: Legacy Alerting Notification Channels API
+title: 'Alerting Notification Channels HTTP API '
 ---
 
-# Legacy Alerting Notification Channels API
-
-{{% admonition type="note" %}}
-Starting with v9.0, the Legacy Alerting Notification Channels API is deprecated. It will be removed in a future release.
-{{% /admonition %}}
+# Alerting Notification Channels API
 
 This page documents the Alerting Notification Channels API.
 
@@ -29,7 +25,7 @@ The identifier (id) of a notification channel is an auto-incrementing numeric va
 The unique identifier (uid) of a notification channel can be used for uniquely identify a notification channel between
 multiple Grafana installs. It's automatically generated if not provided when creating a notification channel. The uid
 allows having consistent URLs for accessing notification channels and when syncing notification channels between multiple
-Grafana installations, refer to [alert notification channel provisioning]({{< relref "/docs/grafana/latest/administration/provisioning#alert-notification-channels" >}}).
+Grafana installations, refer to [alert notification channel provisioning]({{< relref "../../administration/provisioning/#alert-notification-channels" >}}).
 
 The uid can have a maximum length of 40 characters.
 
@@ -189,7 +185,7 @@ Content-Type: application/json
 
 ## Create notification channel
 
-You can find the full list of [supported notifiers](/docs/grafana/v8.5/alerting/old-alerting/notifications/) on the alert notifiers page.
+You can find the full list of [supported notifiers](https://grafana.com/docs/grafana/v8.5/alerting/old-alerting/notifications/) on the alert notifiers page.
 
 `POST /api/alert-notifications`
 

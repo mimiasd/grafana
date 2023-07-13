@@ -1,18 +1,16 @@
 import { css } from '@emotion/css';
-import React, { useCallback, useId } from 'react';
+import React, { useCallback } from 'react';
 import { useAsync, useLocalStorage } from 'react-use';
 
 import { GrafanaTheme2, toIconName } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
 import { Card, Checkbox, CollapsableSection, Icon, Spinner, useStyles2 } from '@grafana/ui';
-import { config } from 'app/core/config';
 import { t } from 'app/core/internationalization';
 import { getSectionStorageKey } from 'app/features/search/utils';
+import { useUniqueId } from 'app/plugins/datasource/influxdb/components/useUniqueId';
 
 import { SearchItem } from '../..';
-import { GENERAL_FOLDER_UID } from '../../constants';
-import { getGrafanaSearcher } from '../../service';
-import { getFolderChildren } from '../../service/folders';
+import { getGrafanaSearcher, SearchQuery } from '../../service';
 import { queryResultToViewItem } from '../../service/utils';
 import { DashboardViewItem } from '../../types';
 import { SelectionChecker, SelectionToggle } from '../selection';
@@ -25,27 +23,6 @@ interface SectionHeaderProps {
   section: DashboardViewItem;
   renderStandaloneBody?: boolean; // render the body on its own
   tags?: string[];
-}
-
-async function getChildren(section: DashboardViewItem, tags: string[] | undefined): Promise<DashboardViewItem[]> {
-  if (config.featureToggles.nestedFolders) {
-    return getFolderChildren(section.uid, section.title);
-  }
-
-  const query = section.itemsUIDs
-    ? {
-        uid: section.itemsUIDs,
-      }
-    : {
-        query: '*',
-        kind: ['dashboard'],
-        location: section.uid,
-        sort: 'name_sort',
-        limit: 1000, // this component does not have infinite scroll, so we need to load everything upfront
-      };
-
-  const raw = await getGrafanaSearcher().search({ ...query, tags });
-  return raw.view.map((v) => queryResultToViewItem(v, raw.view));
 }
 
 export const FolderSection = ({
@@ -65,10 +42,22 @@ export const FolderSection = ({
     if (!sectionExpanded && !renderStandaloneBody) {
       return Promise.resolve([]);
     }
+    let query: SearchQuery = {
+      query: '*',
+      kind: ['dashboard'],
+      location: section.uid,
+      sort: 'name_sort',
+      limit: 1000, // this component does not have infinate scroll, so we need to load everything upfront
+    };
+    if (section.itemsUIDs) {
+      query = {
+        uid: section.itemsUIDs, // array of UIDs
+      };
+    }
 
-    const childItems = getChildren(section, tags);
-
-    return childItems;
+    const raw = await getGrafanaSearcher().search({ ...query, tags });
+    const items = raw.view.map((v) => queryResultToViewItem(v, raw.view));
+    return items;
   }, [sectionExpanded, tags]);
 
   const onSectionExpand = () => {
@@ -83,14 +72,14 @@ export const FolderSection = ({
       selectionToggle(section.kind, section.uid);
       const sub = results.value ?? [];
       for (const item of sub) {
-        if (selection(item.kind, item.uid!) !== checked) {
-          selectionToggle(item.kind, item.uid!);
+        if (selection('dashboard', item.uid!) !== checked) {
+          selectionToggle('dashboard', item.uid!);
         }
       }
     }
   };
 
-  const id = useId();
+  const id = useUniqueId();
   const labelId = `section-header-label-${id}`;
 
   let icon = toIconName(section.icon ?? '');
@@ -115,10 +104,14 @@ export const FolderSection = ({
           key={item.uid}
           item={item}
           onTagSelected={onTagSelected}
-          onToggleChecked={(item) => selectionToggle?.(item.kind, item.uid)}
+          onToggleChecked={(item) => {
+            if (selectionToggle) {
+              selectionToggle('dashboard', item.uid!);
+            }
+          }}
           editable={Boolean(selection != null)}
           onClickItem={onClickItem}
-          isSelected={selection?.(item.kind, item.uid)}
+          isSelected={selectionToggle && selection?.(item.kind, item.uid)}
         />
       );
     });
@@ -146,11 +139,8 @@ export const FolderSection = ({
       label={
         <>
           {selectionToggle && selection && (
-            // TODO: fix keyboard a11y
-            // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
             <div onClick={onToggleFolder}>
               <Checkbox
-                className={styles.checkbox}
                 value={selection(section.kind, section.uid)}
                 aria-label={t('search.folder-view.select-folder', 'Select folder')}
               />
@@ -163,7 +153,7 @@ export const FolderSection = ({
 
           <div className={styles.text}>
             <span id={labelId}>{section.title}</span>
-            {section.url && section.uid !== GENERAL_FOLDER_UID && (
+            {section.url && section.uid !== 'general' && (
               <a href={section.url} className={styles.link}>
                 <span className={styles.separator}>|</span> <Icon name="folder-upload" />{' '}
                 {t('search.folder-view.go-to-folder', 'Go to folder')}
@@ -180,7 +170,6 @@ export const FolderSection = ({
 
 const getSectionHeaderStyles = (theme: GrafanaTheme2, editable: boolean) => {
   const sm = theme.spacing(1);
-
   return {
     wrapper: css`
       align-items: center;
@@ -234,8 +223,5 @@ const getSectionHeaderStyles = (theme: GrafanaTheme2, editable: boolean) => {
       place-content: center;
       padding-bottom: 1rem;
     `,
-    checkbox: css({
-      marginRight: theme.spacing(1),
-    }),
   };
 };

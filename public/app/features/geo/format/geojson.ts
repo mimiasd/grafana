@@ -1,7 +1,7 @@
 import GeoJSON from 'ol/format/GeoJSON';
 import { Geometry } from 'ol/geom';
 
-import { DataFrame, Field, FieldType, getFieldTypeFromValue } from '@grafana/data';
+import { ArrayVector, DataFrame, Field, FieldType, getFieldTypeFromValue } from '@grafana/data';
 
 interface FieldInfo {
   values: any[];
@@ -75,7 +75,7 @@ export function frameFromGeoJSON(body: Document | Element | Object | string): Da
     fields.push({
       name: getBestName('id', '_id', '__id'),
       type,
-      values: idfield.values,
+      values: new ArrayVector(idfield.values),
       config: {},
     });
   }
@@ -84,7 +84,7 @@ export function frameFromGeoJSON(body: Document | Element | Object | string): Da
   fields.push({
     name: getBestName('geo', 'geometry'),
     type: FieldType.geo,
-    values: geo,
+    values: new ArrayVector(geo),
     config: {},
   });
 
@@ -97,7 +97,7 @@ export function frameFromGeoJSON(body: Document | Element | Object | string): Da
     fields.push({
       name,
       type,
-      values: info.values,
+      values: new ArrayVector(info.values),
       config: {},
     });
   }

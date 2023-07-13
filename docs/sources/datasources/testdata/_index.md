@@ -24,23 +24,22 @@ Only users with the organization administrator role can add data sources.
 
 ## Configure the data source
 
-To configure basic settings for the data source, complete the following steps:
+**To access the data source configuration page:**
 
-1.  Click **Connections** in the left-side menu.
-1.  Under Your connections, click **Data sources**.
-1.  Enter `TestData` in the search bar.
-1.  Select **TestData**.
+1. Hover the cursor over the **Configuration** (gear) icon.
+1. Select **Data Sources**.
+1. Select the TestData data source.
 
-    The **Settings** tab of the data source is displayed. The data source doesn't provide any settings beyond the most basic options common to all data sources:
+The data source doesn't provide any settings beyond the most basic options common to all data sources:
 
-    | Name        | Description                                                              |
-    | ----------- | ------------------------------------------------------------------------ |
-    | **Name**    | Sets the name you use to refer to the data source in panels and queries. |
-    | **Default** | Defines whether this data source is pre-selected for new panels.         |
+| Name        | Description                                                              |
+| ----------- | ------------------------------------------------------------------------ |
+| **Name**    | Sets the name you use to refer to the data source in panels and queries. |
+| **Default** | Defines whether this data source is pre-selected for new panels.         |
 
 ## Create mock data
 
-{{< figure src="/media/docs/grafana/data-sources/screenshot-testdata-add-10.0.png" class="docs-image--no-shadow" caption="Adding test data" >}}
+{{< figure src="/static/img/docs/v41/test_data_add.png" class="docs-image--no-shadow" caption="Adding test data" >}}
 
 Once you've added the TestData data source, your Grafana instance's users can use it as a data source in any metric panel.
 
@@ -50,7 +49,7 @@ Instead of providing a query editor, the TestData data source helps you select a
 
 You can assign an **Alias** to each scenario, and many have their own options that appear when selected.
 
-{{< figure src="/media/docs/grafana/data-sources/screenshot-testdata-csv-example-10.0.png" class="docs-image--no-shadow" caption="Using CSV Metric Values" >}}
+{{< figure src="/static/img/docs/v41/test_data_csv_example.png" class="docs-image--no-shadow" caption="Using CSV Metric Values" >}}
 
 **Available scenarios:**
 
@@ -61,7 +60,6 @@ You can assign an **Alias** to each scenario, and many have their own options th
 - **CSV Metric Values**
 - **Datapoints Outside Range**
 - **Exponential heatmap bucket data**
-- **Flame Graph**
 - **Grafana API**
 - **Grafana Live**
 - **Linear heatmap bucket data**
@@ -79,7 +77,6 @@ You can assign an **Alias** to each scenario, and many have their own options th
 - **Slow Query**
 - **Streaming Client**
 - **Table Static**
-- **Trace**
 - **USA generated data**
 
 ## Import a pre-configured dashboard

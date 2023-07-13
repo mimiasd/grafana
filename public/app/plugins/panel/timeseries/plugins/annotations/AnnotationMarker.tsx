@@ -3,7 +3,6 @@ import React, { HTMLAttributes, useCallback, useRef, useState } from 'react';
 import { usePopper } from 'react-popper';
 
 import { GrafanaTheme2, dateTimeFormat, systemDateFormats, TimeZone } from '@grafana/data';
-import { selectors } from '@grafana/e2e-selectors';
 import { Portal, useStyles2, usePanelContext } from '@grafana/ui';
 import { getTooltipContainerStyles } from '@grafana/ui/src/themes/mixins';
 
@@ -102,6 +101,7 @@ export function AnnotationMarker({ annotation, timeZone, width }: Props) {
       />
     );
   }, [canEditAnnotations, canDeleteAnnotations, onAnnotationDelete, onAnnotationEdit, timeFormatter, annotation]);
+
   const isRegionAnnotation = Boolean(annotation.isRegion) && width > MIN_REGION_ANNOTATION_WIDTH;
 
   let left = `${width / 2}px`;
@@ -127,7 +127,6 @@ export function AnnotationMarker({ annotation, timeZone, width }: Props) {
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         className={!isRegionAnnotation ? styles.markerWrapper : undefined}
-        data-testid={selectors.pages.Dashboard.Annotations.marker}
       >
         {marker}
       </div>

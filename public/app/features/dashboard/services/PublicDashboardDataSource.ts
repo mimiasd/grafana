@@ -5,7 +5,6 @@ import {
   DataQuery,
   DataQueryRequest,
   DataQueryResponse,
-  TestDataSourceResponse,
   DataSourceApi,
   DataSourceJsonData,
   DataSourcePluginMeta,
@@ -113,11 +112,7 @@ export class PublicDashboardDataSource extends DataSourceApi<DataQuery, DataSour
         intervalMs,
         maxDataPoints,
         queryCachingTTL,
-        timeRange: {
-          from: fromRange.valueOf().toString(),
-          to: toRange.valueOf().toString(),
-          timezone: this.getBrowserTimezone(),
-        },
+        timeRange: { from: fromRange.valueOf().toString(), to: toRange.valueOf().toString() },
       };
 
       return getBackendSrv()
@@ -156,12 +151,7 @@ export class PublicDashboardDataSource extends DataSourceApi<DataQuery, DataSour
     return { data: [toDataFrame(annotations)] };
   }
 
-  testDatasource(): Promise<TestDataSourceResponse> {
-    return Promise.resolve({ message: '', status: '' });
-  }
-
-  // Try to get the browser timezone otherwise return blank
-  getBrowserTimezone(): string {
-    return window.Intl?.DateTimeFormat().resolvedOptions()?.timeZone || '';
+  testDatasource(): Promise<null> {
+    return Promise.resolve(null);
   }
 }

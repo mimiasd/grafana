@@ -1,8 +1,7 @@
-import { css } from '@emotion/css';
-import React, { useMemo } from 'react';
+import React, { FC, useMemo } from 'react';
 
-import { GrafanaTheme2, PanelData } from '@grafana/data';
-import { useStyles2 } from '@grafana/ui';
+import { PanelData } from '@grafana/data';
+import { Stack } from '@grafana/experimental';
 import { isExpressionQuery } from 'app/features/expressions/guards';
 import { ExpressionQuery, ExpressionQueryType } from 'app/features/expressions/types';
 import { AlertQuery } from 'app/types/unified-alerting-dto';
@@ -22,7 +21,7 @@ interface Props {
   onUpdateQueryExpression: (query: ExpressionQuery) => void;
 }
 
-export const ExpressionsEditor = ({
+export const ExpressionsEditor: FC<Props> = ({
   condition,
   onSetCondition,
   queries,
@@ -31,16 +30,15 @@ export const ExpressionsEditor = ({
   onRemoveExpression,
   onUpdateExpressionType,
   onUpdateQueryExpression,
-}: Props) => {
+}) => {
   const expressionQueries = useMemo(() => {
     return queries.reduce((acc: ExpressionQuery[], query) => {
       return isExpressionQuery(query.model) ? acc.concat(query.model) : acc;
     }, []);
   }, [queries]);
-  const styles = useStyles2(getStyles);
 
   return (
-    <div className={styles.wrapper}>
+    <Stack direction="row" alignItems="stretch">
       {expressionQueries.map((query) => {
         const data = panelData[query.refId];
 
@@ -65,14 +63,6 @@ export const ExpressionsEditor = ({
           />
         );
       })}
-    </div>
+    </Stack>
   );
 };
-const getStyles = (theme: GrafanaTheme2) => ({
-  wrapper: css`
-    display: flex;
-    gap: ${theme.spacing(2)};
-    align-content: stretch;
-    flex-wrap: wrap;
-  `,
-});

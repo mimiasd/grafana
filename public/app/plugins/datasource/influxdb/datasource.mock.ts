@@ -12,7 +12,6 @@ type FieldReturnValue = { text: string };
  */
 export class InfluxDatasourceMock {
   constructor(private measurements: Measurements) {}
-
   metricFindQuery(query: string) {
     if (isMeasurementsQuery(query)) {
       return this.getMeasurements();

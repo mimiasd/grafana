@@ -1,22 +1,18 @@
-import { String } from '@grafana/lezer-logql';
+import { ArrayVector, DataQueryResponse, QueryResultMetaStat } from '@grafana/data';
 
+import { getMockFrames } from './mocks';
 import {
   getHighlighterExpressionsFromQuery,
-  getLokiQueryType,
+  getNormalizedLokiQuery,
   isLogsQuery,
   isQueryWithLabelFormat,
   isQueryWithParser,
-  isQueryWithError,
+  isValidQuery,
   parseToNodeNamesArray,
   getParserFromQuery,
   obfuscate,
-  requestSupportsSplitting,
-  isQueryWithDistinct,
-  isQueryWithRangeVariable,
-  isQueryPipelineErrorFiltering,
-  getLogQueryFromMetricsQuery,
-  getNormalizedLokiQuery,
-  getNodePositionsFromQuery,
+  combineResponses,
+  cloneQueryResponse,
 } from './queryUtils';
 import { LokiQuery, LokiQueryType } from './types';
 
@@ -122,78 +118,59 @@ describe('getHighlighterExpressionsFromQuery', () => {
 });
 
 describe('getNormalizedLokiQuery', () => {
-  it('removes deprecated instant property', () => {
-    const input: LokiQuery = { refId: 'A', expr: 'test1', instant: true };
-    const output = getNormalizedLokiQuery(input);
-    expect(output).toStrictEqual({ refId: 'A', expr: 'test1', queryType: LokiQueryType.Instant });
-  });
-
-  it('removes deprecated range property', () => {
-    const input: LokiQuery = { refId: 'A', expr: 'test1', range: true };
-    const output = getNormalizedLokiQuery(input);
-    expect(output).toStrictEqual({ refId: 'A', expr: 'test1', queryType: LokiQueryType.Range });
-  });
-
-  it('removes deprecated range and instant properties if query with queryType', () => {
-    const input: LokiQuery = { refId: 'A', expr: 'test1', range: true, instant: false, queryType: LokiQueryType.Range };
-    const output = getNormalizedLokiQuery(input);
-    expect(output).toStrictEqual({ refId: 'A', expr: 'test1', queryType: LokiQueryType.Range });
-  });
-});
-describe('getLokiQueryType', () => {
-  function expectCorrectQueryType(inputProps: Object, outputQueryType: LokiQueryType) {
+  function expectNormalized(inputProps: Object, outputQueryType: LokiQueryType) {
     const input: LokiQuery = { refId: 'A', expr: 'test1', ...inputProps };
-    const output = getLokiQueryType(input);
-    expect(output).toStrictEqual(outputQueryType);
+    const output = getNormalizedLokiQuery(input);
+    expect(output).toStrictEqual({ refId: 'A', expr: 'test1', queryType: outputQueryType });
   }
 
   it('handles no props case', () => {
-    expectCorrectQueryType({}, LokiQueryType.Range);
+    expectNormalized({}, LokiQueryType.Range);
   });
 
   it('handles old-style instant case', () => {
-    expectCorrectQueryType({ instant: true, range: false }, LokiQueryType.Instant);
+    expectNormalized({ instant: true, range: false }, LokiQueryType.Instant);
   });
 
   it('handles old-style range case', () => {
-    expectCorrectQueryType({ instant: false, range: true }, LokiQueryType.Range);
+    expectNormalized({ instant: false, range: true }, LokiQueryType.Range);
   });
 
   it('handles new+old style instant', () => {
-    expectCorrectQueryType({ instant: true, range: false, queryType: LokiQueryType.Range }, LokiQueryType.Range);
+    expectNormalized({ instant: true, range: false, queryType: LokiQueryType.Range }, LokiQueryType.Range);
   });
 
   it('handles new+old style range', () => {
-    expectCorrectQueryType({ instant: false, range: true, queryType: LokiQueryType.Instant }, LokiQueryType.Instant);
+    expectNormalized({ instant: false, range: true, queryType: LokiQueryType.Instant }, LokiQueryType.Instant);
   });
 
   it('handles new<>old conflict (new wins), range', () => {
-    expectCorrectQueryType({ instant: false, range: true, queryType: LokiQueryType.Range }, LokiQueryType.Range);
+    expectNormalized({ instant: false, range: true, queryType: LokiQueryType.Range }, LokiQueryType.Range);
   });
 
   it('handles new<>old conflict (new wins), instant', () => {
-    expectCorrectQueryType({ instant: true, range: false, queryType: LokiQueryType.Instant }, LokiQueryType.Instant);
+    expectNormalized({ instant: true, range: false, queryType: LokiQueryType.Instant }, LokiQueryType.Instant);
   });
 
   it('handles invalid new, range', () => {
-    expectCorrectQueryType({ queryType: 'invalid' }, LokiQueryType.Range);
+    expectNormalized({ queryType: 'invalid' }, LokiQueryType.Range);
   });
 
   it('handles invalid new, when old-range exists, use old', () => {
-    expectCorrectQueryType({ instant: false, range: true, queryType: 'invalid' }, LokiQueryType.Range);
+    expectNormalized({ instant: false, range: true, queryType: 'invalid' }, LokiQueryType.Range);
   });
 
   it('handles invalid new, when old-instant exists, use old', () => {
-    expectCorrectQueryType({ instant: true, range: false, queryType: 'invalid' }, LokiQueryType.Instant);
+    expectNormalized({ instant: true, range: false, queryType: 'invalid' }, LokiQueryType.Instant);
   });
 });
 
-describe('isQueryWithError', () => {
+describe('isValidQuery', () => {
   it('returns false if invalid query', () => {
-    expect(isQueryWithError('{job="grafana')).toBe(true);
+    expect(isValidQuery('{job="grafana')).toBe(false);
   });
   it('returns true if valid query', () => {
-    expect(isQueryWithError('{job="grafana"}')).toBe(false);
+    expect(isValidQuery('{job="grafana"}')).toBe(true);
   });
 });
 
@@ -308,40 +285,6 @@ describe('isQueryWithLabelFormat', () => {
   });
 });
 
-describe('isQueryWithDistinct', () => {
-  it('identifies queries using distinct', () => {
-    expect(isQueryWithDistinct('{job="grafana"} | distinct id')).toBe(true);
-    expect(isQueryWithDistinct('count_over_time({job="grafana"} | distinct id [1m])')).toBe(true);
-  });
-
-  it('does not return false positives', () => {
-    expect(isQueryWithDistinct('{label="distinct"} | logfmt')).toBe(false);
-    expect(isQueryWithDistinct('count_over_time({job="distinct"} | json [1m])')).toBe(false);
-  });
-});
-
-describe('isQueryWithRangeVariableDuration', () => {
-  it('identifies queries using $__range variable', () => {
-    expect(isQueryWithRangeVariable('rate({job="grafana"}[$__range])')).toBe(true);
-  });
-
-  it('identifies queries using $__range_s variable', () => {
-    expect(isQueryWithRangeVariable('rate({job="grafana"}[$__range_s])')).toBe(true);
-  });
-
-  it('identifies queries using $__range_ms variable', () => {
-    expect(isQueryWithRangeVariable('rate({job="grafana"}[$__range_ms])')).toBe(true);
-  });
-
-  it('does not return false positives', () => {
-    expect(isQueryWithRangeVariable('rate({job="grafana"} | logfmt | value="$__range" [5m])')).toBe(false);
-    expect(isQueryWithRangeVariable('rate({job="grafana"} | logfmt | value="[$__range]" [5m])')).toBe(false);
-    expect(isQueryWithRangeVariable('rate({job="grafana"} [$range])')).toBe(false);
-    expect(isQueryWithRangeVariable('rate({job="grafana"} [$_range])')).toBe(false);
-    expect(isQueryWithRangeVariable('rate({job="grafana"} [$_range_ms])')).toBe(false);
-  });
-});
-
 describe('getParserFromQuery', () => {
   it('returns no parser', () => {
     expect(getParserFromQuery('{job="grafana"}')).toBeUndefined();
@@ -355,88 +298,231 @@ describe('getParserFromQuery', () => {
   });
 });
 
-describe('requestSupportsSplitting', () => {
-  it('hidden requests are not partitioned', () => {
-    const requests: LokiQuery[] = [
-      {
-        expr: '{a="b"}',
-        refId: 'A',
-        hide: true,
-      },
-    ];
-    expect(requestSupportsSplitting(requests)).toBe(false);
-  });
-  it('special requests are not partitioned', () => {
-    const requests: LokiQuery[] = [
-      {
-        expr: '{a="b"}',
-        refId: 'do-not-chunk',
-      },
-    ];
-    expect(requestSupportsSplitting(requests)).toBe(false);
-  });
-  it('empty requests are not partitioned', () => {
-    const requests: LokiQuery[] = [
-      {
-        expr: '',
-        refId: 'A',
-      },
-    ];
-    expect(requestSupportsSplitting(requests)).toBe(false);
-  });
-  it('all other requests are partitioned', () => {
-    const requests: LokiQuery[] = [
-      {
-        expr: '{a="b"}',
-        refId: 'A',
-      },
-      {
-        expr: 'count_over_time({a="b"}[1h])',
-        refId: 'B',
-      },
-    ];
-    expect(requestSupportsSplitting(requests)).toBe(true);
+describe('cloneQueryResponse', () => {
+  const { logFrameA } = getMockFrames();
+  const responseA: DataQueryResponse = {
+    data: [logFrameA],
+  };
+  it('clones query responses', () => {
+    const clonedA = cloneQueryResponse(responseA);
+    expect(clonedA).not.toBe(responseA);
+    expect(clonedA).toEqual(clonedA);
   });
 });
 
-describe('isQueryPipelineErrorFiltering', () => {
-  it('identifies pipeline error filters', () => {
-    expect(isQueryPipelineErrorFiltering('{job="grafana"} | logfmt | __error__=""')).toBe(true);
-    expect(isQueryPipelineErrorFiltering('{job="grafana"} | logfmt | error=""')).toBe(false);
+describe('combineResponses', () => {
+  it('combines logs frames', () => {
+    const { logFrameA, logFrameB } = getMockFrames();
+    const responseA: DataQueryResponse = {
+      data: [logFrameA],
+    };
+    const responseB: DataQueryResponse = {
+      data: [logFrameB],
+    };
+    expect(combineResponses(responseA, responseB)).toEqual({
+      data: [
+        {
+          fields: [
+            {
+              config: {},
+              name: 'Time',
+              type: 'time',
+              values: new ArrayVector([1, 2, 3, 4]),
+            },
+            {
+              config: {},
+              name: 'Line',
+              type: 'string',
+              values: new ArrayVector(['line3', 'line4', 'line1', 'line2']),
+            },
+            {
+              config: {},
+              name: 'labels',
+              type: 'other',
+              values: new ArrayVector([
+                {
+                  otherLabel: 'other value',
+                },
+                {
+                  label: 'value',
+                },
+                {
+                  otherLabel: 'other value',
+                },
+              ]),
+            },
+            {
+              config: {},
+              name: 'tsNs',
+              type: 'string',
+              values: new ArrayVector(['1000000', '2000000', '3000000', '4000000']),
+            },
+            {
+              config: {},
+              name: 'id',
+              type: 'string',
+              values: new ArrayVector(['id3', 'id4', 'id1', 'id2']),
+            },
+          ],
+          length: 4,
+          meta: {
+            stats: [
+              {
+                displayName: 'Summary: total bytes processed',
+                unit: 'decbytes',
+                value: 33,
+              },
+            ],
+          },
+          refId: 'A',
+        },
+      ],
+    });
   });
-});
 
-describe('getLogQueryFromMetricsQuery', () => {
-  it('returns the log query from a metric query', () => {
-    expect(getLogQueryFromMetricsQuery('count_over_time({job="grafana"} | logfmt | label="value" [1m])')).toBe(
-      '{job="grafana"} | logfmt | label="value"'
-    );
-    expect(getLogQueryFromMetricsQuery('count_over_time({job="grafana"} [1m])')).toBe('{job="grafana"}');
-    expect(
-      getLogQueryFromMetricsQuery(
-        'sum(quantile_over_time(0.5, {label="$var"} | logfmt | __error__=`` | unwrap latency | __error__=`` [$__interval]))'
-      )
-    ).toBe('{label="$var"} | logfmt | __error__=``');
+  it('combines metric frames', () => {
+    const { metricFrameA, metricFrameB } = getMockFrames();
+    const responseA: DataQueryResponse = {
+      data: [metricFrameA],
+    };
+    const responseB: DataQueryResponse = {
+      data: [metricFrameB],
+    };
+    expect(combineResponses(responseA, responseB)).toEqual({
+      data: [
+        {
+          fields: [
+            {
+              config: {},
+              name: 'Time',
+              type: 'time',
+              values: new ArrayVector([1000000, 2000000, 3000000, 4000000]),
+            },
+            {
+              config: {},
+              name: 'Value',
+              type: 'number',
+              values: new ArrayVector([6, 7, 5, 4]),
+            },
+          ],
+          length: 4,
+          meta: {
+            stats: [
+              {
+                displayName: 'Summary: total bytes processed',
+                unit: 'decbytes',
+                value: 33,
+              },
+            ],
+          },
+          refId: 'A',
+        },
+      ],
+    });
   });
-});
 
-describe('getNodePositionsFromQuery', () => {
-  it('returns the right amount of positions without type', () => {
-    // LogQL, Expr, LogExpr, Selector, Matchers, Matcher, Identifier, Eq, String
-    expect(getNodePositionsFromQuery('{job="grafana"}').length).toBe(9);
+  it('combines and identifies new frames in the response', () => {
+    const { metricFrameA, metricFrameB, metricFrameC } = getMockFrames();
+    const responseA: DataQueryResponse = {
+      data: [metricFrameA],
+    };
+    const responseB: DataQueryResponse = {
+      data: [metricFrameB, metricFrameC],
+    };
+    expect(combineResponses(responseA, responseB)).toEqual({
+      data: [
+        {
+          fields: [
+            {
+              config: {},
+              name: 'Time',
+              type: 'time',
+              values: new ArrayVector([1000000, 2000000, 3000000, 4000000]),
+            },
+            {
+              config: {},
+              name: 'Value',
+              type: 'number',
+              values: new ArrayVector([6, 7, 5, 4]),
+            },
+          ],
+          length: 4,
+          meta: {
+            stats: [
+              {
+                displayName: 'Summary: total bytes processed',
+                unit: 'decbytes',
+                value: 33,
+              },
+            ],
+          },
+          refId: 'A',
+        },
+        metricFrameC,
+      ],
+    });
   });
 
-  it('returns the right position of a string in a stream selector', () => {
-    // LogQL, Expr, LogExpr, Selector, Matchers, Matcher, Identifier, Eq, String
-    const nodePositions = getNodePositionsFromQuery('{job="grafana"}', [String]);
-    expect(nodePositions.length).toBe(1);
-    expect(nodePositions[0].from).toBe(5);
-    expect(nodePositions[0].to).toBe(14);
+  it('combines frames in a new response instance', () => {
+    const { metricFrameA, metricFrameB } = getMockFrames();
+    const responseA: DataQueryResponse = {
+      data: [metricFrameA],
+    };
+    const responseB: DataQueryResponse = {
+      data: [metricFrameB],
+    };
+    expect(combineResponses(null, responseA)).not.toBe(responseA);
+    expect(combineResponses(null, responseB)).not.toBe(responseB);
   });
 
-  it('returns an empty array with a wrong expr', () => {
-    // LogQL, Expr, LogExpr, Selector, Matchers, Matcher, Identifier, Eq, String
-    const nodePositions = getNodePositionsFromQuery('not loql', [String]);
-    expect(nodePositions.length).toBe(0);
+  describe('combine stats', () => {
+    const { metricFrameA } = getMockFrames();
+    const makeResponse = (stats?: QueryResultMetaStat[]): DataQueryResponse => ({
+      data: [
+        {
+          ...metricFrameA,
+          meta: {
+            ...metricFrameA.meta,
+            stats,
+          },
+        },
+      ],
+    });
+    it('two values', () => {
+      const responseA = makeResponse([
+        { displayName: 'Ingester: total reached', value: 1 },
+        { displayName: 'Summary: total bytes processed', unit: 'decbytes', value: 11 },
+      ]);
+      const responseB = makeResponse([
+        { displayName: 'Ingester: total reached', value: 2 },
+        { displayName: 'Summary: total bytes processed', unit: 'decbytes', value: 22 },
+      ]);
+
+      expect(combineResponses(responseA, responseB).data[0].meta.stats).toStrictEqual([
+        { displayName: 'Summary: total bytes processed', unit: 'decbytes', value: 33 },
+      ]);
+    });
+
+    it('one value', () => {
+      const responseA = makeResponse([
+        { displayName: 'Ingester: total reached', value: 1 },
+        { displayName: 'Summary: total bytes processed', unit: 'decbytes', value: 11 },
+      ]);
+      const responseB = makeResponse();
+
+      expect(combineResponses(responseA, responseB).data[0].meta.stats).toStrictEqual([
+        { displayName: 'Summary: total bytes processed', unit: 'decbytes', value: 11 },
+      ]);
+
+      expect(combineResponses(responseB, responseA).data[0].meta.stats).toStrictEqual([
+        { displayName: 'Summary: total bytes processed', unit: 'decbytes', value: 11 },
+      ]);
+    });
+
+    it('no value', () => {
+      const responseA = makeResponse();
+      const responseB = makeResponse();
+      expect(combineResponses(responseA, responseB).data[0].meta.stats).toHaveLength(0);
+    });
   });
 });

@@ -1,5 +1,5 @@
 import { clamp } from 'lodash';
-import { useLayoutEffect } from 'react';
+import React, { useLayoutEffect } from 'react';
 import uPlot from 'uplot';
 
 import { UPlotConfigBuilder } from '../config/UPlotConfigBuilder';
@@ -13,12 +13,12 @@ const SHIFT_MULTIPLIER = 2 as const;
 const KNOWN_KEYS = new Set(['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Shift', ' ']);
 
 const initHook = (u: uPlot) => {
-  let parentWithFocus: HTMLElement | null = u.root.closest('[tabindex]');
+  let vizLayoutViz: HTMLElement | null = u.root.closest('[tabindex]');
   let pressedKeys = new Set<string>();
   let dragStartX: number | null = null;
   let keysLastHandledAt: number | null = null;
 
-  if (!parentWithFocus) {
+  if (!vizLayoutViz) {
     return;
   }
 
@@ -133,7 +133,7 @@ const initHook = (u: uPlot) => {
 
   const onFocus = () => {
     // We only want to initialize the cursor if the user is using keyboard controls
-    if (!parentWithFocus?.matches(':focus-visible')) {
+    if (!vizLayoutViz?.matches(':focus-visible')) {
       return;
     }
 
@@ -150,17 +150,18 @@ const initHook = (u: uPlot) => {
     u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
   };
 
-  parentWithFocus.addEventListener('keydown', onKeyDown);
-  parentWithFocus.addEventListener('keyup', onKeyUp);
-  parentWithFocus.addEventListener('focus', onFocus);
-  parentWithFocus.addEventListener('blur', onBlur);
+  vizLayoutViz.addEventListener('keydown', onKeyDown);
+  vizLayoutViz.addEventListener('keyup', onKeyUp);
+  vizLayoutViz.addEventListener('focus', onFocus);
+  vizLayoutViz.addEventListener('blur', onBlur);
 
   const onDestroy = () => {
-    parentWithFocus?.removeEventListener('keydown', onKeyDown);
-    parentWithFocus?.removeEventListener('keyup', onKeyUp);
-    parentWithFocus?.removeEventListener('focus', onFocus);
-    parentWithFocus?.removeEventListener('blur', onBlur);
-    parentWithFocus = null;
+    vizLayoutViz?.removeEventListener('keydown', onKeyDown);
+    vizLayoutViz?.removeEventListener('keyup', onKeyUp);
+    vizLayoutViz?.removeEventListener('focus', onFocus);
+    vizLayoutViz?.removeEventListener('blur', onBlur);
+
+    vizLayoutViz = null;
   };
 
   (u.hooks.destroy ??= []).push(onDestroy);
@@ -169,7 +170,7 @@ const initHook = (u: uPlot) => {
 /**
  * @alpha
  */
-export const KeyboardPlugin = ({ config }: KeyboardPluginProps) => {
+export const KeyboardPlugin: React.FC<KeyboardPluginProps> = ({ config }) => {
   useLayoutEffect(() => config.addHook('init', initHook), [config]);
 
   return null;

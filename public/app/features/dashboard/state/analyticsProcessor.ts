@@ -4,7 +4,6 @@ import { DashboardModel } from './DashboardModel';
 
 export function emitDashboardViewEvent(dashboard: DashboardModel) {
   const eventData: DashboardViewEventPayload = {
-    /** @deprecated */
     dashboardId: dashboard.id,
     dashboardName: dashboard.title,
     dashboardUid: dashboard.uid,

@@ -6,10 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
-	"sync"
 	"testing"
-	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/stretchr/testify/assert"
@@ -19,19 +16,17 @@ import (
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/grafana/grafana/pkg/expr"
 	"github.com/grafana/grafana/pkg/infra/db"
-	"github.com/grafana/grafana/pkg/infra/localcache"
 	"github.com/grafana/grafana/pkg/infra/log"
-	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/grafana/grafana/pkg/models/roletype"
 	"github.com/grafana/grafana/pkg/plugins"
-	"github.com/grafana/grafana/pkg/services/contexthandler"
+	acmock "github.com/grafana/grafana/pkg/services/accesscontrol/mock"
 	"github.com/grafana/grafana/pkg/services/contexthandler/ctxkey"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
 	"github.com/grafana/grafana/pkg/services/datasources"
 	fakeDatasources "github.com/grafana/grafana/pkg/services/datasources/fakes"
+	dsSvc "github.com/grafana/grafana/pkg/services/datasources/service"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
-	"github.com/grafana/grafana/pkg/services/pluginsintegration/plugincontext"
-	pluginSettings "github.com/grafana/grafana/pkg/services/pluginsintegration/pluginsettings/service"
+	"github.com/grafana/grafana/pkg/services/quota/quotatest"
 	"github.com/grafana/grafana/pkg/services/secrets/fakes"
 	secretskvs "github.com/grafana/grafana/pkg/services/secrets/kvstore"
 	secretsmng "github.com/grafana/grafana/pkg/services/secrets/manager"
@@ -293,23 +288,9 @@ func TestQueryDataMultipleSources(t *testing.T) {
 			PublicDashboardAccessToken: "abc123",
 		}
 
-		req, err := http.NewRequest("POST", "http://localhost:3000", nil)
-		require.NoError(t, err)
-		reqCtx := &contextmodel.ReqContext{
-			SkipQueryCache: false,
-			Context: &web.Context{
-				Resp: web.NewResponseWriter(http.MethodGet, httptest.NewRecorder()),
-				Req:  req,
-			},
-		}
-		ctx := ctxkey.Set(context.Background(), reqCtx)
+		_, err = tc.queryService.QueryData(context.Background(), tc.signedInUser, true, reqDTO)
 
-		_, err = tc.queryService.QueryData(ctx, tc.signedInUser, true, reqDTO)
 		require.NoError(t, err)
-
-		// response headers should be merged
-		header := contexthandler.FromContext(ctx).Resp.Header()
-		assert.Len(t, header.Values("test"), 2)
 	})
 
 	t.Run("can query multiple datasources with an expression present", func(t *testing.T) {
@@ -449,42 +430,28 @@ func TestQueryDataMultipleSources(t *testing.T) {
 }
 
 func setup(t *testing.T) *testContext {
-	dss := []*datasources.DataSource{
-		{UID: "gIEkMvIVz", Type: "postgres"},
-		{UID: "sEx6ZvSVk", Type: "testdata"},
-		{UID: "ds1", Type: "mysql"},
-		{UID: "ds2", Type: "mysql"},
-	}
-
 	t.Helper()
 	pc := &fakePluginClient{}
-	dc := &fakeDataSourceCache{cache: dss}
+	dc := &fakeDataSourceCache{ds: &datasources.DataSource{}}
 	rv := &fakePluginRequestValidator{}
 
 	sqlStore := db.InitTestDB(t)
 	secretsService := secretsmng.SetupTestService(t, fakes.NewFakeSecretsStore())
 	ss := secretskvs.NewSQLSecretsKVStore(sqlStore, secretsService, log.New("test.logger"))
+	ssvc := secretsmng.SetupTestService(t, fakes.NewFakeSecretsStore())
+	quotaService := quotatest.New(false, nil)
+	ds, err := dsSvc.ProvideService(nil, ssvc, ss, nil, featuremgmt.WithFeatures(), acmock.New(), acmock.NewMockedPermissionsService(), quotaService)
+	require.NoError(t, err)
 	fakeDatasourceService := &fakeDatasources.FakeDataSourceService{
-		DataSources:           dss,
+		DataSources:           nil,
 		SimulatePluginFailure: false,
 	}
-
-	pCtxProvider := plugincontext.ProvideService(
-		localcache.ProvideService(), &plugins.FakePluginStore{
-			PluginList: []plugins.PluginDTO{
-				{JSONData: plugins.JSONData{ID: "postgres"}},
-				{JSONData: plugins.JSONData{ID: "testdata"}},
-				{JSONData: plugins.JSONData{ID: "mysql"}},
-			},
-		}, fakeDatasourceService,
-		pluginSettings.ProvideService(sqlStore, secretsService),
-	)
-	exprService := expr.ProvideService(&setting.Cfg{ExpressionsEnabled: true}, pc, pCtxProvider,
-		&featuremgmt.FeatureManager{}, nil, tracing.InitializeTracerForTest())
-	queryService := ProvideService(setting.NewCfg(), dc, exprService, rv, pc, pCtxProvider) // provider belonging to this package
+	exprService := expr.ProvideService(&setting.Cfg{ExpressionsEnabled: true}, pc, fakeDatasourceService)
+	queryService := ProvideService(setting.NewCfg(), dc, exprService, rv, ds, pc) // provider belonging to this package
 	return &testContext{
 		pluginContext:          pc,
 		secretStore:            ss,
+		dataSourceCache:        dc,
 		pluginRequestValidator: rv,
 		queryService:           queryService,
 		signedInUser:           &user.SignedInUser{OrgID: 1, Login: "login", Name: "name", Email: "email", OrgRole: roletype.RoleAdmin},
@@ -494,8 +461,9 @@ func setup(t *testing.T) *testContext {
 type testContext struct {
 	pluginContext          *fakePluginClient
 	secretStore            secretskvs.SecretsKVStore
+	dataSourceCache        *fakeDataSourceCache
 	pluginRequestValidator *fakePluginRequestValidator
-	queryService           *ServiceImpl // implementation belonging to this package
+	queryService           *Service // implementation belonging to this package
 	signedInUser           *user.SignedInUser
 }
 
@@ -524,7 +492,7 @@ func (rv *fakePluginRequestValidator) Validate(dsURL string, req *http.Request) 
 }
 
 type fakeDataSourceCache struct {
-	cache []*datasources.DataSource
+	ds *datasources.DataSource
 }
 
 func (c *fakeDataSourceCache) GetDatasource(ctx context.Context, datasourceID int64, user *user.SignedInUser, skipCache bool) (*datasources.DataSource, error) {
@@ -533,25 +501,17 @@ func (c *fakeDataSourceCache) GetDatasource(ctx context.Context, datasourceID in
 }
 
 func (c *fakeDataSourceCache) GetDatasourceByUID(ctx context.Context, datasourceUID string, user *user.SignedInUser, skipCache bool) (*datasources.DataSource, error) {
-	for _, ds := range c.cache {
-		if ds.UID == datasourceUID {
-			return ds, nil
-		}
-	}
-
-	return nil, fmt.Errorf("not found")
+	return &datasources.DataSource{
+		UID: datasourceUID,
+	}, nil
 }
 
 type fakePluginClient struct {
 	plugins.Client
 	req *backend.QueryDataRequest
-	mu  sync.Mutex
 }
 
 func (c *fakePluginClient) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	c.req = req
 
 	// If an expression query ends up getting directly queried, we want it to return an error in our test.
@@ -561,10 +521,6 @@ func (c *fakePluginClient) QueryData(ctx context.Context, req *backend.QueryData
 
 	if req.Queries[0].QueryType == "FAIL" {
 		return nil, errors.New("plugin client failed")
-	}
-
-	if reqCtx := contexthandler.FromContext(ctx); reqCtx != nil && reqCtx.Resp != nil {
-		reqCtx.Resp.Header().Add("test", fmt.Sprintf("header-%d", time.Now().Nanosecond()))
 	}
 
 	return &backend.QueryDataResponse{Responses: make(backend.Responses)}, nil

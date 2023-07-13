@@ -26,14 +26,14 @@ import { FacetedData } from '@grafana/ui/src/components/uPlot/types';
 import { CloseButton } from 'app/core/components/CloseButton/CloseButton';
 
 import { TooltipView } from './TooltipView';
-import { Options, SeriesMapping } from './panelcfg.gen';
+import { SeriesMapping } from './models.gen';
 import { prepData, prepScatter, ScatterPanelInfo } from './scatter';
-import { ScatterHoverEvent, ScatterSeries } from './types';
+import { PanelOptions, ScatterHoverEvent, ScatterSeries } from './types';
 
-type Props = PanelProps<Options>;
+type Props = PanelProps<PanelOptions>;
 const TOOLTIP_OFFSET = 10;
 
-export const XYChartPanel2 = (props: Props) => {
+export const XYChartPanel2: React.FC<Props> = (props: Props) => {
   const [error, setError] = useState<string | undefined>();
   const [series, setSeries] = useState<ScatterSeries[]>([]);
   const [builder, setBuilder] = useState<UPlotConfigBuilder | undefined>();
@@ -90,7 +90,7 @@ export const XYChartPanel2 = (props: Props) => {
   useEffect(() => {
     if (oldOptions !== props.options || oldData?.structureRev !== props.data.structureRev) {
       initSeries();
-    } else if (oldData?.series !== props.data.series) {
+    } else if (oldData !== props.data) {
       initFacets();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -215,7 +215,7 @@ export const XYChartPanel2 = (props: Props) => {
     <>
       <VizLayout width={props.width} height={props.height} legend={renderLegend()}>
         {(vizWidth: number, vizHeight: number) => (
-          <UPlotChart config={builder} data={facets} width={vizWidth} height={vizHeight} />
+          <UPlotChart config={builder} data={facets} width={vizWidth} height={vizHeight} timeRange={props.timeRange} />
         )}
       </VizLayout>
       <Portal>
@@ -252,6 +252,7 @@ export const XYChartPanel2 = (props: Props) => {
               rowIndex={hover.xIndex}
               hoveredPointIndex={hover.scatterIndex}
               data={props.data.series}
+              range={props.timeRange}
             />
           </VizTooltipContainer>
         )}

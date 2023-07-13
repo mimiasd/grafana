@@ -47,14 +47,6 @@ describe('<SpanDetail>', () => {
     createFocusSpanLink: jest.fn().mockReturnValue({}),
     topOfViewRefType: 'Explore',
   };
-
-  span.kind = 'test-kind';
-  span.statusCode = 2;
-  span.statusMessage = 'test-message';
-  span.instrumentationLibraryName = 'test-name';
-  span.instrumentationLibraryVersion = 'test-version';
-  span.traceState = 'test-state';
-
   span.logs = [
     {
       timestamp: 10,
@@ -133,22 +125,11 @@ describe('<SpanDetail>', () => {
     expect(screen.getByRole('heading', { name: span.operationName })).toBeInTheDocument();
   });
 
-  it('lists the service name, duration, start time and kind', () => {
+  it('lists the service name, duration and start time', () => {
     render(<SpanDetail {...(props as unknown as SpanDetailProps)} />);
     expect(screen.getByText('Duration:')).toBeInTheDocument();
     expect(screen.getByText('Service:')).toBeInTheDocument();
     expect(screen.getByText('Start Time:')).toBeInTheDocument();
-    expect(screen.getByText('Kind:')).toBeInTheDocument();
-    expect(screen.getByText('test-kind')).toBeInTheDocument();
-    expect(screen.getByText('Status:')).toBeInTheDocument();
-    expect(screen.getByText('Status Message:')).toBeInTheDocument();
-    expect(screen.getByText('test-message')).toBeInTheDocument();
-    expect(screen.getByText('Library Name:')).toBeInTheDocument();
-    expect(screen.getByText('test-name')).toBeInTheDocument();
-    expect(screen.getByText('Library Version:')).toBeInTheDocument();
-    expect(screen.getByText('test-version')).toBeInTheDocument();
-    expect(screen.getByText('Trace State:')).toBeInTheDocument();
-    expect(screen.getByText('test-state')).toBeInTheDocument();
   });
 
   it('start time shows the absolute time', () => {
@@ -163,13 +144,13 @@ describe('<SpanDetail>', () => {
 
   it('renders the span tags', async () => {
     render(<SpanDetail {...(props as unknown as SpanDetailProps)} />);
-    await userEvent.click(screen.getByRole('switch', { name: /Span Attributes/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Attributes/ }));
     expect(props.tagsToggle).toHaveBeenLastCalledWith(span.spanID);
   });
 
   it('renders the process tags', async () => {
     render(<SpanDetail {...(props as unknown as SpanDetailProps)} />);
-    await userEvent.click(screen.getByRole('switch', { name: /Resource Attributes/ }));
+    await userEvent.click(screen.getByRole('switch', { name: /Resource/ }));
     expect(props.processToggle).toHaveBeenLastCalledWith(span.spanID);
   });
 

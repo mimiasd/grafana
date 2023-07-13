@@ -187,6 +187,7 @@ describe('opentsdb', () => {
         requestId: 'Q103',
         timezone: 'browser',
         panelId: 2,
+        dashboardId: 189,
         dashboardUID: 'tyzmfPIVz',
         publicDashboardAccessToken: '',
         range: {

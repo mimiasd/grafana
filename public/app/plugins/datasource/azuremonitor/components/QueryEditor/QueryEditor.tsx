@@ -18,7 +18,6 @@ import LogsQueryEditor from '../LogsQueryEditor';
 import NewMetricsQueryEditor from '../MetricsQueryEditor/MetricsQueryEditor';
 import { QueryHeader } from '../QueryHeader';
 import { Space } from '../Space';
-import TracesQueryEditor from '../TracesQueryEditor';
 
 import usePreparedQuery from './usePreparedQuery';
 
@@ -28,13 +27,13 @@ export type AzureMonitorQueryEditorProps = QueryEditorProps<
   AzureDataSourceJsonData
 >;
 
-const QueryEditor = ({
+const QueryEditor: React.FC<AzureMonitorQueryEditorProps> = ({
   query: baseQuery,
   datasource,
   onChange,
   onRunQuery: baseOnRunQuery,
   data,
-}: AzureMonitorQueryEditorProps) => {
+}) => {
   const [errorMessage, setError] = useLastError();
   const onRunQuery = useMemo(() => debounce(baseOnRunQuery, 500), [baseOnRunQuery]);
 
@@ -72,7 +71,7 @@ const QueryEditor = ({
         <>
           <Space v={2} />
           <Alert severity="error" title="An error occurred while requesting metadata from Azure Monitor">
-            {errorMessage instanceof Error ? errorMessage.message : errorMessage}
+            {errorMessage}
           </Alert>
         </>
       )}
@@ -86,7 +85,7 @@ interface EditorForQueryTypeProps extends Omit<AzureMonitorQueryEditorProps, 'on
   setError: (source: string, error: AzureMonitorErrorish | undefined) => void;
 }
 
-const EditorForQueryType = ({
+const EditorForQueryType: React.FC<EditorForQueryTypeProps> = ({
   data,
   subscriptionId,
   query,
@@ -94,7 +93,7 @@ const EditorForQueryType = ({
   variableOptionGroup,
   onChange,
   setError,
-}: EditorForQueryTypeProps) => {
+}) => {
   switch (query.queryType) {
     case AzureQueryType.AzureMonitor:
       return (
@@ -123,18 +122,6 @@ const EditorForQueryType = ({
     case AzureQueryType.AzureResourceGraph:
       return (
         <ArgQueryEditor
-          subscriptionId={subscriptionId}
-          query={query}
-          datasource={datasource}
-          onChange={onChange}
-          variableOptionGroup={variableOptionGroup}
-          setError={setError}
-        />
-      );
-
-    case AzureQueryType.AzureTraces:
-      return (
-        <TracesQueryEditor
           subscriptionId={subscriptionId}
           query={query}
           datasource={datasource}

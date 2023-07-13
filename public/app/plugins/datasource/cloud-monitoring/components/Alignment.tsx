@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { FC, useMemo } from 'react';
 
 import { SelectableValue } from '@grafana/data';
 import { EditorField, EditorFieldGroup } from '@grafana/experimental';
@@ -6,8 +6,7 @@ import { EditorField, EditorFieldGroup } from '@grafana/experimental';
 import { ALIGNMENT_PERIODS } from '../constants';
 import CloudMonitoringDatasource from '../datasource';
 import { alignmentPeriodLabel } from '../functions';
-import { PreprocessorType, TimeSeriesList } from '../types/query';
-import { CustomMetaData, MetricDescriptor } from '../types/types';
+import { CustomMetaData, MetricDescriptor, PreprocessorType, TimeSeriesList } from '../types';
 
 import { AlignmentFunction } from './AlignmentFunction';
 import { PeriodSelect } from './PeriodSelect';
@@ -23,7 +22,7 @@ export interface Props {
   preprocessor?: PreprocessorType;
 }
 
-export const Alignment = ({
+export const Alignment: FC<Props> = ({
   refId,
   templateVariableOptions,
   onChange,
@@ -32,7 +31,7 @@ export const Alignment = ({
   datasource,
   metricDescriptor,
   preprocessor,
-}: Props) => {
+}) => {
   const alignmentLabel = useMemo(() => alignmentPeriodLabel(customMetaData, datasource), [customMetaData, datasource]);
   return (
     <EditorFieldGroup>

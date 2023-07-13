@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Masterminds/semver"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 
 	es "github.com/grafana/grafana/pkg/tsdb/elasticsearch/client"
@@ -48,6 +49,7 @@ func newFlowTestDsInfo(body []byte, statusCode int, requestCallback func(req *ht
 	}
 
 	return &es.DatasourceInfo{
+		ESVersion:                  semver.MustParse("8.5.0"),
 		Interval:                   "Daily",
 		Database:                   "[testdb-]YYYY.MM.DD",
 		ConfiguredFields:           configuredFields,

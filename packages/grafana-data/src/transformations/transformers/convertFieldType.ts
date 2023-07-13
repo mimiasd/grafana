@@ -3,6 +3,7 @@ import { map } from 'rxjs/operators';
 import { dateTimeParse } from '../../datetime';
 import { SynchronousDataTransformerInfo } from '../../types';
 import { DataFrame, EnumFieldConfig, Field, FieldType } from '../../types/dataFrame';
+import { ArrayVector } from '../../vector';
 import { fieldMatchers } from '../matchers';
 import { FieldMatcherID } from '../matchers/ids';
 
@@ -33,7 +34,7 @@ export interface ConvertFieldTypeOptions {
 export const convertFieldTypeTransformer: SynchronousDataTransformerInfo<ConvertFieldTypeTransformerOptions> = {
   id: DataTransformerID.convertFieldType,
   name: 'Convert field type',
-  description: 'Convert a field to a specified field type.',
+  description: 'Convert a field to a specified field type',
   defaultOptions: {
     fields: {},
     conversions: [{ targetField: undefined, destinationType: undefined, dateFormat: undefined }],
@@ -108,8 +109,8 @@ export function convertFieldType(field: Field, opts: ConvertFieldTypeOptions): F
   }
 }
 
-// matches common ISO 8601 (see tests)
-const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3,})?(?:Z|[-+]\d{2}:?\d{2})$/;
+// matches ISO 8601, e.g. 2021-11-11T19:45:00.000Z (float portion optional)
+const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 /**
  * @internal
@@ -117,7 +118,7 @@ const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3,})?(?:Z|[-+]
 export function fieldToTimeField(field: Field, dateFormat?: string): Field {
   let opts = dateFormat ? { format: dateFormat } : undefined;
 
-  const timeValues = field.values.slice();
+  const timeValues = field.values.toArray().slice();
 
   let firstDefined = timeValues.find((v) => v != null);
 
@@ -135,19 +136,19 @@ export function fieldToTimeField(field: Field, dateFormat?: string): Field {
   return {
     ...field,
     type: FieldType.time,
-    values: timeValues,
+    values: new ArrayVector(timeValues),
   };
 }
 
 function fieldToNumberField(field: Field): Field {
-  const numValues = field.values.slice();
+  const numValues = field.values.toArray().slice();
 
   const valuesAsStrings = numValues.some((v) => typeof v === 'string');
 
   for (let n = 0; n < numValues.length; n++) {
     let toBeConverted = numValues[n];
 
-    if (valuesAsStrings && toBeConverted != null && typeof toBeConverted === 'string') {
+    if (valuesAsStrings) {
       // some numbers returned from datasources have commas
       // strip the commas, coerce the string to a number
       toBeConverted = toBeConverted.replace(/,/g, '');
@@ -161,12 +162,12 @@ function fieldToNumberField(field: Field): Field {
   return {
     ...field,
     type: FieldType.number,
-    values: numValues,
+    values: new ArrayVector(numValues),
   };
 }
 
 function fieldToBooleanField(field: Field): Field {
-  const booleanValues = field.values.slice();
+  const booleanValues = field.values.toArray().slice();
 
   for (let b = 0; b < booleanValues.length; b++) {
     booleanValues[b] = Boolean(!!booleanValues[b]);
@@ -175,12 +176,12 @@ function fieldToBooleanField(field: Field): Field {
   return {
     ...field,
     type: FieldType.boolean,
-    values: booleanValues,
+    values: new ArrayVector(booleanValues),
   };
 }
 
 function fieldToStringField(field: Field, dateFormat?: string): Field {
-  let values = field.values;
+  let values = field.values.toArray();
 
   switch (field.type) {
     case FieldType.time:
@@ -198,12 +199,12 @@ function fieldToStringField(field: Field, dateFormat?: string): Field {
   return {
     ...field,
     type: FieldType.string,
-    values: values,
+    values: new ArrayVector(values),
   };
 }
 
 function fieldToComplexField(field: Field): Field {
-  const complexValues = field.values.slice();
+  const complexValues = field.values.toArray().slice();
 
   for (let s = 0; s < complexValues.length; s++) {
     try {
@@ -216,7 +217,7 @@ function fieldToComplexField(field: Field): Field {
   return {
     ...field,
     type: FieldType.other,
-    values: complexValues,
+    values: new ArrayVector(complexValues),
   };
 }
 
@@ -229,7 +230,7 @@ function fieldToComplexField(field: Field): Field {
  * @public
  */
 export function ensureTimeField(field: Field, dateFormat?: string): Field {
-  const firstValueTypeIsNumber = typeof field.values[0] === 'number';
+  const firstValueTypeIsNumber = typeof field.values.get(0) === 'number';
   if (field.type === FieldType.time && firstValueTypeIsNumber) {
     return field; //already time
   }
@@ -244,7 +245,7 @@ export function ensureTimeField(field: Field, dateFormat?: string): Field {
 
 function fieldToEnumField(field: Field, cfg?: EnumFieldConfig): Field {
   const enumConfig = { ...cfg };
-  const enumValues = field.values.slice();
+  const enumValues = field.values.toArray().slice();
   const lookup = new Map<unknown, number>();
   if (enumConfig.text) {
     for (let i = 0; i < enumConfig.text.length; i++) {
@@ -272,6 +273,6 @@ function fieldToEnumField(field: Field, cfg?: EnumFieldConfig): Field {
       },
     },
     type: FieldType.enum,
-    values: enumValues,
+    values: new ArrayVector(enumValues),
   };
 }

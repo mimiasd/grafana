@@ -1,7 +1,4 @@
-import { trimEnd } from 'lodash';
-
 import { escapeLabelValueInExactSelector } from '../../../languageUtils';
-import { isQueryWithParser } from '../../../queryUtils';
 import { explainOperator } from '../../../querybuilder/operations';
 import { LokiOperationId } from '../../../querybuilder/types';
 import { AGGREGATION_OPERATORS, RANGE_VEC_FUNCTIONS, BUILT_IN_FUNCTIONS } from '../../../syntax';
@@ -174,43 +171,28 @@ async function getParserCompletions(
   prefix: string,
   hasJSON: boolean,
   hasLogfmt: boolean,
-  hasPack: boolean,
-  extractedLabelKeys: string[],
-  hasParserInQuery: boolean
+  extractedLabelKeys: string[]
 ) {
   const allParsers = new Set(PARSERS);
   const completions: Completion[] = [];
-  // We use this to improve documentation specifically for level label as it is tied to showing color-coded logs volume
   const hasLevelInExtractedLabels = extractedLabelKeys.some((key) => key === 'level');
 
   if (hasJSON) {
-    // We show "detected" label only if there is no previous parser in the query
-    const extra = hasParserInQuery ? '' : ' (detected)';
-    if (hasPack) {
-      allParsers.delete('unpack');
-      completions.push({
-        type: 'PARSER',
-        label: `unpack${extra}`,
-        insertText: `${prefix}unpack`,
-        documentation: explainOperator(LokiOperationId.Unpack),
-      });
-    } else {
-      allParsers.delete('json');
-      completions.push({
-        type: 'PARSER',
-        label: `json${extra}`,
-        insertText: `${prefix}json`,
-        documentation: hasLevelInExtractedLabels
-          ? 'Use it to get log-levels in the histogram'
-          : explainOperator(LokiOperationId.Json),
-      });
-    }
+    allParsers.delete('json');
+    const extra = hasLevelInExtractedLabels ? '' : ' (detected)';
+    completions.push({
+      type: 'PARSER',
+      label: `json${extra}`,
+      insertText: `${prefix}json`,
+      documentation: hasLevelInExtractedLabels
+        ? 'Use it to get log-levels in the histogram'
+        : explainOperator(LokiOperationId.Json),
+    });
   }
 
   if (hasLogfmt) {
     allParsers.delete('logfmt');
-    // We show "detected" label only if there is no previous parser in the query
-    const extra = hasParserInQuery ? '' : ' (detected)';
+    const extra = hasLevelInExtractedLabels ? '' : ' (detected)';
     completions.push({
       type: 'PARSER',
       label: `logfmt${extra}`,
@@ -234,29 +216,31 @@ async function getParserCompletions(
   return completions;
 }
 
-export async function getAfterSelectorCompletions(
+async function getAfterSelectorCompletions(
   logQuery: string,
   afterPipe: boolean,
   hasSpace: boolean,
   dataProvider: CompletionDataProvider
 ): Promise<Completion[]> {
-  let query = logQuery;
-  if (afterPipe) {
-    query = trimEnd(logQuery, '| ');
-  }
-
-  const { extractedLabelKeys, hasJSON, hasLogfmt, hasPack } = await dataProvider.getParserAndLabelKeys(query);
-  const hasQueryParser = isQueryWithParser(query).queryWithParser;
+  const { extractedLabelKeys, hasJSON, hasLogfmt } = await dataProvider.getParserAndLabelKeys(logQuery);
 
   const prefix = `${hasSpace ? '' : ' '}${afterPipe ? '' : '| '}`;
-  const completions: Completion[] = await getParserCompletions(
-    prefix,
-    hasJSON,
-    hasLogfmt,
-    hasPack,
-    extractedLabelKeys,
-    hasQueryParser
-  );
+  const completions: Completion[] = await getParserCompletions(prefix, hasJSON, hasLogfmt, extractedLabelKeys);
+
+  extractedLabelKeys.forEach((key) => {
+    completions.push({
+      type: 'PIPE_OPERATION',
+      label: `unwrap ${key}`,
+      insertText: `${prefix}unwrap ${key}`,
+    });
+  });
+
+  completions.push({
+    type: 'PIPE_OPERATION',
+    label: 'unwrap',
+    insertText: `${prefix}unwrap`,
+    documentation: explainOperator(LokiOperationId.Unwrap),
+  });
 
   completions.push({
     type: 'PIPE_OPERATION',
@@ -274,46 +258,10 @@ export async function getAfterSelectorCompletions(
     documentation: explainOperator(LokiOperationId.LabelFormat),
   });
 
-  completions.push({
-    type: 'PIPE_OPERATION',
-    label: 'unwrap',
-    insertText: `${prefix}unwrap`,
-    documentation: explainOperator(LokiOperationId.Unwrap),
-  });
-
-  completions.push({
-    type: 'PIPE_OPERATION',
-    label: 'decolorize',
-    insertText: `${prefix}decolorize`,
-    documentation: explainOperator(LokiOperationId.Decolorize),
-  });
-
-  completions.push({
-    type: 'PIPE_OPERATION',
-    label: 'distinct',
-    insertText: `${prefix}distinct`,
-    documentation: explainOperator(LokiOperationId.Distinct),
-  });
-
-  // Let's show label options only if query has parser
-  if (hasQueryParser) {
-    extractedLabelKeys.forEach((key) => {
-      completions.push({
-        type: 'LABEL_NAME',
-        label: `${key} (detected)`,
-        insertText: `${prefix}${key}`,
-        documentation: `"${key}" was suggested based on the content of your log lines for the label filter expression.`,
-      });
-    });
-  }
-
-  // If we have parser, we don't need to consider line filters
-  if (hasQueryParser) {
-    return [...completions];
-  }
   // With a space between the pipe and the cursor, we omit line filters
   // E.g. `{label="value"} | `
   const lineFilters = afterPipe && hasSpace ? [] : getLineFilterCompletions(afterPipe);
+
   return [...lineFilters, ...completions];
 }
 
@@ -345,18 +293,6 @@ async function getAfterUnwrapCompletions(
   }));
 
   return [...labelCompletions, ...UNWRAP_FUNCTION_COMPLETIONS];
-}
-
-async function getAfterDistinctCompletions(logQuery: string, dataProvider: CompletionDataProvider) {
-  const { extractedLabelKeys } = await dataProvider.getParserAndLabelKeys(logQuery);
-  const labelCompletions: Completion[] = extractedLabelKeys.map((label) => ({
-    type: 'LABEL_NAME',
-    label,
-    insertText: label,
-    triggerOnInsert: false,
-  }));
-
-  return [...labelCompletions];
 }
 
 export async function getCompletions(
@@ -393,8 +329,6 @@ export async function getCompletions(
       return getAfterUnwrapCompletions(situation.logQuery, dataProvider);
     case 'IN_AGGREGATION':
       return [...FUNCTION_COMPLETIONS, ...AGGREGATION_COMPLETIONS];
-    case 'AFTER_DISTINCT':
-      return getAfterDistinctCompletions(situation.logQuery, dataProvider);
     default:
       throw new NeverCaseError(situation);
   }

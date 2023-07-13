@@ -34,7 +34,7 @@ export const getMockPlugins = (amount: number): PluginMeta[] => {
     });
   }
 
-  return plugins;
+  return plugins as any;
 };
 
 export function getPanelPlugin(
@@ -66,7 +66,6 @@ export function getPanelPlugin(
     hideFromList: options.hideFromList === true,
     module: options.module ?? '',
     baseUrl: '',
-    skipDataQuery: options.skipDataQuery,
   };
   return plugin;
 }

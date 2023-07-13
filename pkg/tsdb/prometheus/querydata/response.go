@@ -14,7 +14,6 @@ import (
 
 	"github.com/grafana/grafana/pkg/tsdb/prometheus/models"
 	"github.com/grafana/grafana/pkg/tsdb/prometheus/querydata/exemplar"
-	"github.com/grafana/grafana/pkg/tsdb/prometheus/utils"
 	"github.com/grafana/grafana/pkg/util/converter"
 )
 
@@ -25,14 +24,10 @@ func (s *QueryData) parseResponse(ctx context.Context, q *models.Query, res *htt
 		}
 	}()
 
-	ctx, endSpan := utils.StartTrace(ctx, s.tracer, "datasource.prometheus.parseResponse", []utils.Attribute{})
-	defer endSpan()
-
 	iter := jsoniter.Parse(jsoniter.ConfigDefault, res.Body, 1024)
 	r := converter.ReadPrometheusStyleResult(iter, converter.Options{
 		MatrixWideSeries: s.enableWideSeries,
 		VectorWideSeries: s.enableWideSeries,
-		Dataplane:        s.enableDataplane,
 	})
 
 	// Add frame to attach metadata
@@ -45,20 +40,18 @@ func (s *QueryData) parseResponse(ctx context.Context, q *models.Query, res *htt
 		if s.enableWideSeries {
 			addMetadataToWideFrame(q, frame)
 		} else {
-			addMetadataToMultiFrame(q, frame, s.enableDataplane)
+			addMetadataToMultiFrame(q, frame)
 		}
 	}
 
 	if r.Error == nil {
-		r = s.processExemplars(ctx, q, r)
+		r = s.processExemplars(q, r)
 	}
 
 	return r
 }
 
-func (s *QueryData) processExemplars(ctx context.Context, q *models.Query, dr backend.DataResponse) backend.DataResponse {
-	_, endSpan := utils.StartTrace(ctx, s.tracer, "datasource.prometheus.processExemplars", []utils.Attribute{})
-	defer endSpan()
+func (s *QueryData) processExemplars(q *models.Query, dr backend.DataResponse) backend.DataResponse {
 	sampler := s.exemplarSampler()
 	labelTracker := exemplar.NewLabelTracker()
 
@@ -85,15 +78,14 @@ func (s *QueryData) processExemplars(ctx context.Context, q *models.Query, dr ba
 
 		seriesLabels := getSeriesLabels(frame)
 		labelTracker.Add(seriesLabels)
-		labelTracker.AddFields(frame.Fields[2:])
 		for rowIdx := 0; rowIdx < frame.Fields[0].Len(); rowIdx++ {
-			ts := frame.CopyAt(0, rowIdx).(time.Time)
-			val := frame.CopyAt(1, rowIdx).(float64)
+			row := frame.RowCopy(rowIdx)
+			labels := getLabels(frame, row)
+			labelTracker.Add(labels)
 			ex := models.Exemplar{
-				RowIdx:       rowIdx,
-				Fields:       frame.Fields[2:],
-				Value:        val,
-				Timestamp:    ts,
+				Labels:       labels,
+				Value:        row[1].(float64),
+				Timestamp:    row[0].(time.Time),
 				SeriesLabels: seriesLabels,
 			}
 			sampler.Add(ex)
@@ -108,7 +100,7 @@ func (s *QueryData) processExemplars(ctx context.Context, q *models.Query, dr ba
 	}
 }
 
-func addMetadataToMultiFrame(q *models.Query, frame *data.Frame, enableDataplane bool) {
+func addMetadataToMultiFrame(q *models.Query, frame *data.Frame) {
 	if frame.Meta == nil {
 		frame.Meta = &data.FrameMeta{}
 	}
@@ -116,20 +108,10 @@ func addMetadataToMultiFrame(q *models.Query, frame *data.Frame, enableDataplane
 	if len(frame.Fields) < 2 {
 		return
 	}
+	frame.Name = getName(q, frame.Fields[1])
 	frame.Fields[0].Config = &data.FieldConfig{Interval: float64(q.Step.Milliseconds())}
-
-	customName := getName(q, frame.Fields[1])
-	if customName != "" {
-		frame.Fields[1].Config = &data.FieldConfig{DisplayNameFromDS: customName}
-	}
-
-	if enableDataplane {
-		valueField := frame.Fields[1]
-		if n, ok := valueField.Labels["__name__"]; ok {
-			valueField.Name = n
-		}
-	} else {
-		frame.Name = customName
+	if frame.Name != "" {
+		frame.Fields[1].Config = &data.FieldConfig{DisplayNameFromDS: frame.Name}
 	}
 }
 
@@ -217,4 +199,12 @@ func isExemplarFrame(frame *data.Frame) bool {
 func getSeriesLabels(frame *data.Frame) data.Labels {
 	// series labels are stored on the value field (index 1)
 	return frame.Fields[1].Labels.Copy()
+}
+
+func getLabels(frame *data.Frame, row []interface{}) map[string]string {
+	labels := make(map[string]string)
+	for i := 2; i < len(row); i++ {
+		labels[frame.Fields[i].Name] = row[i].(string)
+	}
+	return labels
 }

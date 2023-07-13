@@ -12,17 +12,17 @@ type VersionHistoryHeaderProps = {
   isNewLatest?: boolean;
 };
 
-export const VersionHistoryHeader = ({
+export const VersionHistoryHeader: React.FC<VersionHistoryHeaderProps> = ({
   onClick = noop,
   baseVersion = 0,
   newVersion = 0,
   isNewLatest = false,
-}: VersionHistoryHeaderProps) => {
+}) => {
   const styles = useStyles2(getStyles);
 
   return (
     <h3 className={styles.header}>
-      <IconButton name="arrow-left" size="xl" onClick={onClick} tooltip="Reset version" />
+      <IconButton name="arrow-left" size="xl" onClick={onClick} />
       <span>
         Comparing {baseVersion} <Icon name="arrows-h" /> {newVersion}{' '}
         {isNewLatest && <cite className="muted">(Latest)</cite>}

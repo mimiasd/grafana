@@ -1,7 +1,7 @@
 import { css } from '@emotion/css';
 import React from 'react';
 
-import { Button } from '@grafana/ui';
+import { IconButton } from './IconButton';
 
 interface Props {
   index: number;
@@ -21,13 +21,9 @@ export const AddRemove = ({ index, onAdd, onRemove, elements }: Props) => {
         display: flex;
       `}
     >
-      {index === 0 && (
-        <Button variant="secondary" fill="text" icon="plus" onClick={onAdd} tooltip="Add" aria-label="Add" />
-      )}
+      {index === 0 && <IconButton iconName="plus" onClick={onAdd} label="add" />}
 
-      {elements.length >= 2 && (
-        <Button variant="secondary" fill="text" icon="minus" onClick={onRemove} tooltip="Remove" aria-label="Remove" />
-      )}
+      {elements.length >= 2 && <IconButton iconName="minus" onClick={onRemove} label="remove" />}
     </div>
   );
 };

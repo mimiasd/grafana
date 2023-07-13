@@ -1,7 +1,7 @@
 import { css, cx } from '@emotion/css';
 import React, { useState, useCallback } from 'react';
 
-import { SelectableValue } from '@grafana/data';
+import { DataSourceSettings, SelectableValue } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
 
 import { useTheme2 } from '../../themes';
@@ -17,7 +17,6 @@ import { TagsInput } from '../TagsInput/TagsInput';
 import { BasicAuthSettings } from './BasicAuthSettings';
 import { CustomHeadersSettings } from './CustomHeadersSettings';
 import { HttpProxySettings } from './HttpProxySettings';
-import { SecureSocksProxySettings } from './SecureSocksProxySettings';
 import { TLSAuthSettings } from './TLSAuthSettings';
 import { HttpSettingsProps } from './types';
 
@@ -62,7 +61,7 @@ const HttpAccessHelp = () => (
 
 const LABEL_WIDTH = 26;
 
-export const DataSourceHttpSettings = (props: HttpSettingsProps) => {
+export const DataSourceHttpSettings: React.FC<HttpSettingsProps> = (props) => {
   const {
     defaultUrl,
     dataSourceConfig,
@@ -72,17 +71,13 @@ export const DataSourceHttpSettings = (props: HttpSettingsProps) => {
     showForwardOAuthIdentityOption,
     azureAuthSettings,
     renderSigV4Editor,
-    secureSocksDSProxyEnabled,
-    urlLabel,
-    urlDocs,
   } = props;
-
+  let urlTooltip;
   const [isAccessHelpVisible, setIsAccessHelpVisible] = useState(false);
   const theme = useTheme2();
-  let urlTooltip;
 
   const onSettingsChange = useCallback(
-    (change: Partial<typeof dataSourceConfig>) => {
+    (change: Partial<DataSourceSettings<any, any>>) => {
       onChange({
         ...dataSourceConfig,
         ...change,
@@ -96,7 +91,6 @@ export const DataSourceHttpSettings = (props: HttpSettingsProps) => {
       urlTooltip = (
         <>
           Your access method is <em>Browser</em>, this means the URL needs to be accessible from the browser.
-          {urlDocs}
         </>
       );
       break;
@@ -105,12 +99,11 @@ export const DataSourceHttpSettings = (props: HttpSettingsProps) => {
         <>
           Your access method is <em>Server</em>, this means the URL needs to be accessible from the grafana
           backend/server.
-          {urlDocs}
         </>
       );
       break;
     default:
-      urlTooltip = <>Specify a complete HTTP URL (for example http://your_server:8080) {urlDocs}</>;
+      urlTooltip = 'Specify a complete HTTP URL (for example http://your_server:8080)';
   }
 
   const accessSelect = (
@@ -154,13 +147,7 @@ export const DataSourceHttpSettings = (props: HttpSettingsProps) => {
         <h3 className="page-heading">HTTP</h3>
         <div className="gf-form-group">
           <div className="gf-form">
-            <FormField
-              interactive={urlDocs ? true : false}
-              label={urlLabel ?? 'URL'}
-              labelWidth={13}
-              tooltip={urlTooltip}
-              inputEl={urlInput}
-            />
+            <FormField label="URL" labelWidth={13} tooltip={urlTooltip} inputEl={urlInput} />
           </div>
 
           {showAccessOptions && (
@@ -321,7 +308,6 @@ export const DataSourceHttpSettings = (props: HttpSettingsProps) => {
           <CustomHeadersSettings dataSourceConfig={dataSourceConfig} onChange={onChange} />
         )}
       </>
-      {secureSocksDSProxyEnabled && <SecureSocksProxySettings options={dataSourceConfig} onOptionsChange={onChange} />}
     </div>
   );
 };

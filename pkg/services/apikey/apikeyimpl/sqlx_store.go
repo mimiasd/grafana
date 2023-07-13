@@ -20,7 +20,7 @@ type sqlxStore struct {
 	cfg  *setting.Cfg
 }
 
-func (ss *sqlxStore) GetAPIKeys(ctx context.Context, query *apikey.GetApiKeysQuery) ([]*apikey.APIKey, error) {
+func (ss *sqlxStore) GetAPIKeys(ctx context.Context, query *apikey.GetApiKeysQuery) error {
 	var where []string
 	var args []interface{}
 
@@ -34,18 +34,20 @@ func (ss *sqlxStore) GetAPIKeys(ctx context.Context, query *apikey.GetApiKeysQue
 
 	where = append(where, "service_account_id IS NULL")
 
-	filter, err := accesscontrol.Filter(query.User, "id", "apikeys:id:", accesscontrol.ActionAPIKeyRead)
-	if err != nil {
-		return nil, err
+	if !accesscontrol.IsDisabled(ss.cfg) {
+		filter, err := accesscontrol.Filter(query.User, "id", "apikeys:id:", accesscontrol.ActionAPIKeyRead)
+		if err != nil {
+			return err
+		}
+		where = append(where, filter.Where)
+		args = append(args, filter.Args...)
 	}
-	where = append(where, filter.Where)
-	args = append(args, filter.Args...)
 
 	ws := fmt.Sprint(strings.Join(where[:], " AND "))
 	qr := fmt.Sprintf(`SELECT * FROM api_key WHERE %s ORDER BY name ASC LIMIT 100`, ws)
-	keys := make([]*apikey.APIKey, 0)
-	err = ss.sess.Select(ctx, &keys, qr, args...)
-	return keys, err
+	query.Result = make([]*apikey.APIKey, 0)
+	err := ss.sess.Select(ctx, &query.Result, qr, args...)
+	return err
 }
 
 func (ss *sqlxStore) GetAllAPIKeys(ctx context.Context, orgID int64) ([]*apikey.APIKey, error) {
@@ -85,20 +87,20 @@ func (ss *sqlxStore) DeleteApiKey(ctx context.Context, cmd *apikey.DeleteCommand
 	return err
 }
 
-func (ss *sqlxStore) AddAPIKey(ctx context.Context, cmd *apikey.AddCommand) (*apikey.APIKey, error) {
+func (ss *sqlxStore) AddAPIKey(ctx context.Context, cmd *apikey.AddCommand) error {
 	updated := timeNow()
 	var expires *int64 = nil
 	if cmd.SecondsToLive > 0 {
 		v := updated.Add(time.Second * time.Duration(cmd.SecondsToLive)).Unix()
 		expires = &v
 	} else if cmd.SecondsToLive < 0 {
-		return nil, apikey.ErrInvalidExpiration
+		return apikey.ErrInvalidExpiration
 	}
 
-	_, err := ss.GetApiKeyByName(ctx, &apikey.GetByNameQuery{OrgID: cmd.OrgID, KeyName: cmd.Name})
+	err := ss.GetApiKeyByName(ctx, &apikey.GetByNameQuery{OrgID: cmd.OrgID, KeyName: cmd.Name})
 	// If key with the same orgId and name already exist return err
 	if !errors.Is(err, apikey.ErrInvalid) {
-		return nil, apikey.ErrDuplicate
+		return apikey.ErrDuplicate
 	}
 	isRevoked := false
 	t := apikey.APIKey{
@@ -115,25 +117,28 @@ func (ss *sqlxStore) AddAPIKey(ctx context.Context, cmd *apikey.AddCommand) (*ap
 
 	t.ID, err = ss.sess.ExecWithReturningId(ctx,
 		`INSERT INTO api_key (org_id, name, role, "key", created, updated, expires, service_account_id, is_revoked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, t.OrgID, t.Name, t.Role, t.Key, t.Created, t.Updated, t.Expires, t.ServiceAccountId, t.IsRevoked)
-	return &t, err
+	cmd.Result = &t
+	return err
 }
 
-func (ss *sqlxStore) GetApiKeyById(ctx context.Context, query *apikey.GetByIDQuery) (*apikey.APIKey, error) {
+func (ss *sqlxStore) GetApiKeyById(ctx context.Context, query *apikey.GetByIDQuery) error {
 	var key apikey.APIKey
 	err := ss.sess.Get(ctx, &key, "SELECT * FROM api_key WHERE id=?", query.ApiKeyID)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return nil, apikey.ErrInvalid
+		return apikey.ErrInvalid
 	}
-	return &key, err
+	query.Result = &key
+	return err
 }
 
-func (ss *sqlxStore) GetApiKeyByName(ctx context.Context, query *apikey.GetByNameQuery) (*apikey.APIKey, error) {
+func (ss *sqlxStore) GetApiKeyByName(ctx context.Context, query *apikey.GetByNameQuery) error {
 	var key apikey.APIKey
 	err := ss.sess.Get(ctx, &key, "SELECT * FROM api_key WHERE org_id=? AND name=?", query.OrgID, query.KeyName)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return nil, apikey.ErrInvalid
+		return apikey.ErrInvalid
 	}
-	return &key, err
+	query.Result = &key
+	return err
 }
 
 func (ss *sqlxStore) GetAPIKeyByHash(ctx context.Context, hash string) (*apikey.APIKey, error) {

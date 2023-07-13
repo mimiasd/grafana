@@ -9,48 +9,43 @@ type FeatureToggles interface {
 	IsEnabled(flag string) bool
 }
 
-// FeatureFlagStage indicates the quality level
-type FeatureFlagStage int
+// FeatureFlagState indicates the quality level
+type FeatureFlagState int
 
 const (
-	// FeatureStageUnknown indicates that no state is specified
-	FeatureStageUnknown FeatureFlagStage = iota
+	// FeatureStateUnknown indicates that no state is specified
+	FeatureStateUnknown FeatureFlagState = iota
 
-	// FeatureStageExperimental -- Does this work for Grafana Labs?
-	FeatureStageExperimental
+	// FeatureStateAlpha the feature is in active development and may change at any time
+	FeatureStateAlpha
 
-	// FeatureStagePrivatePreview -- Does this work for a limited number of customers?
-	FeatureStagePrivatePreview
+	// FeatureStateBeta the feature is still in development, but settings will have migrations
+	FeatureStateBeta
 
-	// FeatureStagePublicPreview -- Does this work for most customers?
-	FeatureStagePublicPreview
+	// FeatureStateStable this is a stable feature
+	FeatureStateStable
 
-	// FeatureStageGeneralAvailability -- Feature is available to all applicable customers
-	FeatureStageGeneralAvailability
-
-	// FeatureStageDeprecated the feature will be removed in the future
-	FeatureStageDeprecated
+	// FeatureStateDeprecated the feature will be removed in the future
+	FeatureStateDeprecated
 )
 
-func (s FeatureFlagStage) String() string {
+func (s FeatureFlagState) String() string {
 	switch s {
-	case FeatureStageExperimental:
-		return "experimental"
-	case FeatureStagePrivatePreview:
-		return "privatePreview"
-	case FeatureStagePublicPreview:
-		return "preview"
-	case FeatureStageGeneralAvailability:
-		return "GA"
-	case FeatureStageDeprecated:
+	case FeatureStateAlpha:
+		return "alpha"
+	case FeatureStateBeta:
+		return "beta"
+	case FeatureStateStable:
+		return "stable"
+	case FeatureStateDeprecated:
 		return "deprecated"
-	case FeatureStageUnknown:
+	case FeatureStateUnknown:
 	}
 	return "unknown"
 }
 
 // MarshalJSON marshals the enum as a quoted json string
-func (s FeatureFlagStage) MarshalJSON() ([]byte, error) {
+func (s FeatureFlagState) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString(`"`)
 	buffer.WriteString(s.String())
 	buffer.WriteString(`"`)
@@ -58,7 +53,7 @@ func (s FeatureFlagStage) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON unmarshals a quoted json string to the enum value
-func (s *FeatureFlagStage) UnmarshalJSON(b []byte) error {
+func (s *FeatureFlagState) UnmarshalJSON(b []byte) error {
 	var j string
 	err := json.Unmarshal(b, &j)
 	if err != nil {
@@ -67,30 +62,19 @@ func (s *FeatureFlagStage) UnmarshalJSON(b []byte) error {
 
 	switch j {
 	case "alpha":
-		fallthrough
-	case "experimental":
-		*s = FeatureStageExperimental
-
-	case "privatePreview":
-		*s = FeatureStagePrivatePreview
+		*s = FeatureStateAlpha
 
 	case "beta":
-		fallthrough
-	case "preview":
-		*s = FeatureStagePublicPreview
+		*s = FeatureStateBeta
 
 	case "stable":
-		fallthrough
-	case "ga":
-		fallthrough
-	case "GA":
-		*s = FeatureStageGeneralAvailability
+		*s = FeatureStateStable
 
 	case "deprecated":
-		*s = FeatureStageDeprecated
+		*s = FeatureStateDeprecated
 
 	default:
-		*s = FeatureStageUnknown
+		*s = FeatureStateUnknown
 	}
 	return nil
 }
@@ -98,11 +82,8 @@ func (s *FeatureFlagStage) UnmarshalJSON(b []byte) error {
 type FeatureFlag struct {
 	Name        string           `json:"name" yaml:"name"` // Unique name
 	Description string           `json:"description"`
-	Stage       FeatureFlagStage `json:"stage,omitempty"`
+	State       FeatureFlagState `json:"state,omitempty"`
 	DocsURL     string           `json:"docsURL,omitempty"`
-
-	// Owner person or team that owns this feature flag
-	Owner codeowner `json:"-"`
 
 	// CEL-GO expression.  Using the value "true" will mean this is on by default
 	Expression string `json:"expression,omitempty"`
@@ -112,5 +93,4 @@ type FeatureFlag struct {
 	RequiresRestart bool `json:"requiresRestart,omitempty"` // The server must be initialized with the value
 	RequiresLicense bool `json:"requiresLicense,omitempty"` // Must be enabled in the license
 	FrontendOnly    bool `json:"frontend,omitempty"`        // change is only seen in the frontend
-	HideFromDocs    bool `json:"hideFromDocs,omitempty"`    // don't add the values to docs
 }

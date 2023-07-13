@@ -1,4 +1,4 @@
-import { reportInteraction } from '@grafana/runtime';
+import { config, reportInteraction } from '@grafana/runtime';
 import { InspectTab } from 'app/features/inspector/types';
 
 import { EventTrackingNamespace, SearchLayout } from '../types';
@@ -40,7 +40,12 @@ export const reportPanelInspectInteraction = (
 };
 
 const getQuerySearchContext = (query: QueryProps) => {
+  const showPreviews = query.layout === SearchLayout.Grid;
+  const previewsEnabled = Boolean(config.featureToggles.panelTitleSearch);
+  const previews = previewsEnabled ? (showPreviews ? 'on' : 'off') : 'feature_disabled';
+
   return {
+    previews,
     layout: query.layout,
     starredFilter: query.starred ?? false,
     sort: query.sortValue ?? '',

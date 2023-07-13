@@ -1,9 +1,10 @@
 import { css } from '@emotion/css';
-import React, { ChangeEvent } from 'react';
+import React, { ChangeEvent, FC } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { Stack } from '@grafana/experimental';
-import { Icon, InlineField, InlineLabel, TextArea, Toggletip, useStyles2 } from '@grafana/ui';
+import { Icon, InlineField, InlineLabel, TextArea, useStyles2 } from '@grafana/ui';
+import { HoverCard } from 'app/features/alerting/unified/components/HoverCard';
 
 import { ExpressionQuery } from '../types';
 
@@ -18,7 +19,7 @@ const mathPlaceholder =
   'Math operations on one or more queries. You reference the query by ${refId} ie. $A, $B, $C etc\n' +
   'The sum of two scalar values: $A + $B > 10';
 
-export const Math = ({ labelWidth, onChange, query, onRunQuery }: Props) => {
+export const Math: FC<Props> = ({ labelWidth, onChange, query, onRunQuery }) => {
   const onExpressionChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     onChange({ ...query, expression: event.target.value });
   };
@@ -36,10 +37,12 @@ export const Math = ({ labelWidth, onChange, query, onRunQuery }: Props) => {
       <InlineField
         label={
           <InlineLabel width="auto">
-            <Toggletip
-              fitContent
+            <HoverCard
               content={
                 <div className={styles.documentationContainer}>
+                  <header className={styles.documentationHeader}>
+                    <Icon name="book-open" /> Math operator
+                  </header>
                   <div>
                     Run math operations on one or more queries. You reference the query by {'${refId}'} ie. $A, $B, $C
                     etc.
@@ -89,34 +92,25 @@ export const Math = ({ labelWidth, onChange, query, onRunQuery }: Props) => {
                       description="rounds the number down to the nearest integer value. It's able to operate on series or escalar values."
                     />
                   </div>
+                  <div>
+                    See our additional documentation on{' '}
+                    <a
+                      className={styles.documentationLink}
+                      target="_blank"
+                      href="https://grafana.com/docs/grafana/latest/panels/query-a-data-source/use-expressions-to-manipulate-data/about-expressions/#math"
+                      rel="noreferrer"
+                    >
+                      <Icon size="xs" name="external-link-alt" /> Math expressions
+                    </a>
+                    .
+                  </div>
                 </div>
               }
-              title={
-                <Stack gap={1} direction="row">
-                  <Icon name="book-open" /> Math operator
-                </Stack>
-              }
-              footer={
-                <div>
-                  See our additional documentation on{' '}
-                  <a
-                    className={styles.documentationLink}
-                    target="_blank"
-                    href="https://grafana.com/docs/grafana/latest/panels/query-a-data-source/use-expressions-to-manipulate-data/about-expressions/#math"
-                    rel="noreferrer"
-                  >
-                    <Icon size="xs" name="external-link-alt" /> Math expressions
-                  </a>
-                  .
-                </div>
-              }
-              closeButton={true}
-              placement="bottom-start"
             >
-              <div className={styles.info}>
+              <span>
                 Expression <Icon name="info-circle" />
-              </div>
-            </Toggletip>
+              </span>
+            </HoverCard>
           </InlineLabel>
         }
         labelWidth={labelWidth}
@@ -171,13 +165,6 @@ const getStyles = (theme: GrafanaTheme2) => ({
     display: grid;
     grid-template-columns: max-content auto;
     column-gap: ${theme.spacing(2)};
-  `,
-  info: css`
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    cursor: pointer;
-    gap: ${theme.spacing(1)};
   `,
 });
 

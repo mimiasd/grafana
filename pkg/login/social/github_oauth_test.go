@@ -1,7 +1,6 @@
 package social
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -251,7 +250,7 @@ func TestSocialGitHub_UserInfo(t *testing.T) {
 				AccessToken: "fake_token",
 			}
 
-			got, err := s.UserInfo(context.Background(), server.Client(), token)
+			got, err := s.UserInfo(server.Client(), token)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UserInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return

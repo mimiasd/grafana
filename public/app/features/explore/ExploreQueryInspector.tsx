@@ -10,13 +10,13 @@ import { InspectErrorTab } from 'app/features/inspector/InspectErrorTab';
 import { InspectJSONTab } from 'app/features/inspector/InspectJSONTab';
 import { InspectStatsTab } from 'app/features/inspector/InspectStatsTab';
 import { QueryInspector } from 'app/features/inspector/QueryInspector';
-import { StoreState, ExploreItemState } from 'app/types';
+import { StoreState, ExploreItemState, ExploreId } from 'app/types';
 
-import { runQueries, selectIsWaitingForData } from './state/query';
+import { runQueries } from './state/query';
 
 interface DispatchProps {
   width: number;
-  exploreId: string;
+  exploreId: ExploreId;
   timeZone: TimeZone;
   onClose: () => void;
 }
@@ -26,10 +26,7 @@ type Props = DispatchProps & ConnectedProps<typeof connector>;
 export function ExploreQueryInspector(props: Props) {
   const { loading, width, onClose, queryResponse, timeZone } = props;
   const dataFrames = queryResponse?.series || [];
-  let errors = queryResponse?.errors;
-  if (!errors?.length && queryResponse?.error) {
-    errors = [queryResponse.error];
-  }
+  const error = queryResponse?.error;
 
   useEffect(() => {
     reportInteraction('grafana_explore_query_inspector_opened');
@@ -68,18 +65,16 @@ export function ExploreQueryInspector(props: Props) {
     label: 'Query',
     value: 'query',
     icon: 'info-circle',
-    content: (
-      <QueryInspector data={dataFrames} onRefreshQuery={() => props.runQueries({ exploreId: props.exploreId })} />
-    ),
+    content: <QueryInspector data={dataFrames} onRefreshQuery={() => props.runQueries(props.exploreId)} />,
   };
 
   const tabs = [statsTab, queryTab, jsonTab, dataTab];
-  if (errors?.length) {
+  if (error) {
     const errorTab: TabConfig = {
       label: 'Error',
       value: 'error',
       icon: 'exclamation-triangle',
-      content: <InspectErrorTab errors={errors} />,
+      content: <InspectErrorTab error={error} />,
     };
     tabs.push(errorTab);
   }
@@ -90,13 +85,13 @@ export function ExploreQueryInspector(props: Props) {
   );
 }
 
-function mapStateToProps(state: StoreState, { exploreId }: { exploreId: string }) {
+function mapStateToProps(state: StoreState, { exploreId }: { exploreId: ExploreId }) {
   const explore = state.explore;
-  const item: ExploreItemState = explore.panes[exploreId]!;
-  const { queryResponse } = item;
+  const item: ExploreItemState = explore[exploreId]!;
+  const { loading, queryResponse } = item;
 
   return {
-    loading: selectIsWaitingForData(exploreId)(state),
+    loading,
     queryResponse,
   };
 }

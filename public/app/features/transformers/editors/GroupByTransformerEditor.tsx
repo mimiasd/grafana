@@ -1,4 +1,4 @@
-import { css } from '@emotion/css';
+import { css, cx } from '@emotion/css';
 import React, { useCallback } from 'react';
 
 import {
@@ -8,16 +8,13 @@ import {
   standardTransformers,
   TransformerRegistryItem,
   TransformerUIProps,
-  TransformerCategory,
-  GrafanaTheme2,
 } from '@grafana/data';
 import {
   GroupByFieldOptions,
   GroupByOperationID,
   GroupByTransformerOptions,
 } from '@grafana/data/src/transformations/transformers/groupBy';
-import { Stack } from '@grafana/experimental';
-import { useTheme2, Select, StatsPicker, InlineField } from '@grafana/ui';
+import { Select, StatsPicker, stylesFactory } from '@grafana/ui';
 
 import { useAllFieldNamesFromDataFrames } from '../utils';
 
@@ -27,11 +24,11 @@ interface FieldProps {
   onConfigChange: (config: GroupByFieldOptions) => void;
 }
 
-export const GroupByTransformerEditor = ({
+export const GroupByTransformerEditor: React.FC<TransformerUIProps<GroupByTransformerOptions>> = ({
   input,
   options,
   onChange,
-}: TransformerUIProps<GroupByTransformerOptions>) => {
+}) => {
   const fieldNames = useAllFieldNamesFromDataFrames(input);
 
   const onConfigChange = useCallback(
@@ -68,9 +65,8 @@ const options = [
   { label: 'Calculate', value: GroupByOperationID.aggregate },
 ];
 
-export const GroupByFieldConfiguration = ({ fieldName, config, onConfigChange }: FieldProps) => {
-  const theme = useTheme2();
-  const styles = getStyles(theme);
+export const GroupByFieldConfiguration: React.FC<FieldProps> = ({ fieldName, config, onConfigChange }) => {
+  const styles = getStyling();
 
   const onChange = useCallback(
     (value: SelectableValue<GroupByOperationID | null>) => {
@@ -83,15 +79,28 @@ export const GroupByFieldConfiguration = ({ fieldName, config, onConfigChange }:
   );
 
   return (
-    <InlineField label={fieldName} labelWidth={32} grow shrink>
-      <Stack gap={0.5} direction="row" wrap={false}>
-        <div className={styles.operation}>
-          <Select options={options} value={config?.operation} placeholder="Ignored" onChange={onChange} isClearable />
-        </div>
+    <div className={cx('gf-form-inline', styles.row)}>
+      <div className={cx('gf-form', styles.fieldName)}>
+        <div className={cx('gf-form-label', styles.rowSpacing)}>{fieldName}</div>
+      </div>
 
-        {config?.operation === GroupByOperationID.aggregate && (
+      <div className={cx('gf-form', styles.cell)}>
+        <div className={cx('gf-form-spacing', styles.rowSpacing)}>
+          <Select
+            className="width-12"
+            options={options}
+            value={config?.operation}
+            placeholder="Ignored"
+            onChange={onChange}
+            isClearable
+          />
+        </div>
+      </div>
+
+      {config?.operation === GroupByOperationID.aggregate && (
+        <div className={cx('gf-form', 'gf-form--grow', styles.calculations)}>
           <StatsPicker
-            className={styles.aggregations}
+            className={cx('flex-grow-1', styles.rowSpacing)}
             placeholder="Select Stats"
             allowMultiple
             stats={config.aggregations}
@@ -99,24 +108,36 @@ export const GroupByFieldConfiguration = ({ fieldName, config, onConfigChange }:
               onConfigChange({ ...config, aggregations: stats as ReducerID[] });
             }}
           />
-        )}
-      </Stack>
-    </InlineField>
+        </div>
+      )}
+    </div>
   );
 };
 
-const getStyles = (theme: GrafanaTheme2) => {
+const getStyling = stylesFactory(() => {
+  const cell = css`
+    display: table-cell;
+  `;
+
   return {
-    operation: css`
-      flex-shrink: 0;
-      height: 100%;
-      width: ${theme.spacing(24)};
+    row: css`
+      display: table-row;
     `,
-    aggregations: css`
-      flex-grow: 1;
+    cell: cell,
+    rowSpacing: css`
+      margin-bottom: 4px;
+    `,
+    fieldName: css`
+      ${cell}
+      min-width: 250px;
+      white-space: nowrap;
+    `,
+    calculations: css`
+      ${cell}
+      width: 99%;
     `,
   };
-};
+});
 
 export const groupByTransformRegistryItem: TransformerRegistryItem<GroupByTransformerOptions> = {
   id: DataTransformerID.groupBy,
@@ -124,9 +145,4 @@ export const groupByTransformRegistryItem: TransformerRegistryItem<GroupByTransf
   transformation: standardTransformers.groupByTransformer,
   name: standardTransformers.groupByTransformer.name,
   description: standardTransformers.groupByTransformer.description,
-  categories: new Set([
-    TransformerCategory.Combine,
-    TransformerCategory.CalculateNewFields,
-    TransformerCategory.Reformat,
-  ]),
 };

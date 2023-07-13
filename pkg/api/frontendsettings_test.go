@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grafana/grafana/pkg/infra/db"
-	"github.com/grafana/grafana/pkg/infra/remotecache"
 	"github.com/grafana/grafana/pkg/infra/usagestats"
 	"github.com/grafana/grafana/pkg/login/social"
 	"github.com/grafana/grafana/pkg/plugins"
@@ -21,15 +20,14 @@ import (
 	accesscontrolmock "github.com/grafana/grafana/pkg/services/accesscontrol/mock"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/services/licensing"
-	"github.com/grafana/grafana/pkg/services/pluginsintegration/pluginsettings"
+	pluginSettings "github.com/grafana/grafana/pkg/services/pluginsettings"
 	"github.com/grafana/grafana/pkg/services/rendering"
-	"github.com/grafana/grafana/pkg/services/supportbundles/supportbundlestest"
 	"github.com/grafana/grafana/pkg/services/updatechecker"
 	"github.com/grafana/grafana/pkg/setting"
 	"github.com/grafana/grafana/pkg/web"
 )
 
-func setupTestEnvironment(t *testing.T, cfg *setting.Cfg, features *featuremgmt.FeatureManager, pstore plugins.Store, psettings pluginsettings.Service) (*web.Mux, *HTTPServer) {
+func setupTestEnvironment(t *testing.T, cfg *setting.Cfg, features *featuremgmt.FeatureManager, pstore plugins.Store, psettings pluginSettings.Service) (*web.Mux, *HTTPServer) {
 	t.Helper()
 	db.InitTestDB(t)
 	cfg.IsFeatureToggleEnabled = features.IsEnabled
@@ -52,7 +50,7 @@ func setupTestEnvironment(t *testing.T, cfg *setting.Cfg, features *featuremgmt.
 
 	var pluginsSettings = psettings
 	if pluginsSettings == nil {
-		pluginsSettings = &pluginsettings.FakePluginSettings{}
+		pluginsSettings = &pluginSettings.FakePluginSettings{}
 	}
 
 	hs := &HTTPServer{
@@ -73,7 +71,7 @@ func setupTestEnvironment(t *testing.T, cfg *setting.Cfg, features *featuremgmt.
 			PluginsCDNURLTemplate: cfg.PluginsCDNURLTemplate,
 			PluginSettings:        cfg.PluginSettings,
 		}),
-		SocialService: social.ProvideService(cfg, features, &usagestats.UsageStatsMock{}, supportbundlestest.NewFakeBundleService(), remotecache.NewFakeCacheStorage()),
+		SocialService: social.ProvideService(cfg, features, &usagestats.UsageStatsMock{}),
 	}
 
 	m := web.New()
@@ -212,7 +210,7 @@ func TestHTTPServer_GetFrontendSettings_apps(t *testing.T) {
 	tests := []struct {
 		desc           string
 		pluginStore    func() plugins.Store
-		pluginSettings func() pluginsettings.Service
+		pluginSettings func() pluginSettings.Service
 		expected       settings
 	}{
 		{
@@ -225,15 +223,15 @@ func TestHTTPServer_GetFrontendSettings_apps(t *testing.T) {
 							JSONData: plugins.JSONData{
 								ID:      "test-app",
 								Info:    plugins.Info{Version: "0.5.0"},
-								Type:    plugins.TypeApp,
+								Type:    plugins.App,
 								Preload: true,
 							},
 						},
 					},
 				}
 			},
-			pluginSettings: func() pluginsettings.Service {
-				return &pluginsettings.FakePluginSettings{
+			pluginSettings: func() pluginSettings.Service {
+				return &pluginSettings.FakePluginSettings{
 					Plugins: newAppSettings("test-app", false),
 				}
 			},
@@ -249,7 +247,7 @@ func TestHTTPServer_GetFrontendSettings_apps(t *testing.T) {
 			},
 		},
 		{
-			desc: "enabled app with preload",
+			desc: "enalbed app with preload",
 			pluginStore: func() plugins.Store {
 				return &plugins.FakePluginStore{
 					PluginList: []plugins.PluginDTO{
@@ -258,15 +256,15 @@ func TestHTTPServer_GetFrontendSettings_apps(t *testing.T) {
 							JSONData: plugins.JSONData{
 								ID:      "test-app",
 								Info:    plugins.Info{Version: "0.5.0"},
-								Type:    plugins.TypeApp,
+								Type:    plugins.App,
 								Preload: true,
 							},
 						},
 					},
 				}
 			},
-			pluginSettings: func() pluginsettings.Service {
-				return &pluginsettings.FakePluginSettings{
+			pluginSettings: func() pluginSettings.Service {
+				return &pluginSettings.FakePluginSettings{
 					Plugins: newAppSettings("test-app", true),
 				}
 			},
@@ -277,41 +275,6 @@ func TestHTTPServer_GetFrontendSettings_apps(t *testing.T) {
 						Preload: true,
 						Path:    "/test-app/module.js",
 						Version: "0.5.0",
-					},
-				},
-			},
-		},
-		{
-			desc: "angular app plugin",
-			pluginStore: func() plugins.Store {
-				return &plugins.FakePluginStore{
-					PluginList: []plugins.PluginDTO{
-						{
-							Module: fmt.Sprintf("/%s/module.js", "test-app"),
-							JSONData: plugins.JSONData{
-								ID:      "test-app",
-								Info:    plugins.Info{Version: "0.5.0"},
-								Type:    plugins.TypeApp,
-								Preload: true,
-							},
-							AngularDetected: true,
-						},
-					},
-				}
-			},
-			pluginSettings: func() pluginsettings.Service {
-				return &pluginsettings.FakePluginSettings{
-					Plugins: newAppSettings("test-app", true),
-				}
-			},
-			expected: settings{
-				Apps: map[string]*plugins.AppDTO{
-					"test-app": {
-						ID:              "test-app",
-						Preload:         true,
-						Path:            "/test-app/module.js",
-						Version:         "0.5.0",
-						AngularDetected: true,
 					},
 				},
 			},
@@ -335,8 +298,8 @@ func TestHTTPServer_GetFrontendSettings_apps(t *testing.T) {
 	}
 }
 
-func newAppSettings(id string, enabled bool) map[string]*pluginsettings.DTO {
-	return map[string]*pluginsettings.DTO{
+func newAppSettings(id string, enabled bool) map[string]*pluginSettings.DTO {
+	return map[string]*pluginSettings.DTO{
 		id: {
 			ID:       0,
 			OrgID:    1,

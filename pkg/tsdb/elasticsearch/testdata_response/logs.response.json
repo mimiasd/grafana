@@ -21,14 +21,10 @@
             "_index": "logs-2023.02.09",
             "_id": "g2aeNoYB7vaC3bq-ezfK",
             "_score": null,
-            "highlight": {
-              "line": ["@HIGHLIGHT@hello@/HIGHLIGHT@, i am a @HIGHLIGHT@message@/HIGHLIGHT@"],
-              "duplicated": ["@HIGHLIGHT@hello@/HIGHLIGHT@"]
-            },
             "_source": {
               "abc": null,
               "is_true": true,
-              "testtime": "09/02/2023",
+              "testtime": "2023-02-09T14:40:01.475Z",
               "line": "log text  [106619125]",
               "counter": 81,
               "float": 10.911972180833306,
@@ -55,11 +51,6 @@
                 }
               }
             },
-            "fields": {
-              "testtime": [
-                "2023-02-09T14:40:01.475Z"
-              ]
-            }, 
             "sort": [
               1675953601475,
               4
@@ -69,14 +60,10 @@
             "_index": "logs-2023.02.09",
             "_id": "gmaeNoYB7vaC3bq-eDcN",
             "_score": null,
-            "highlight": {
-              "line": ["@HIGHLIGHT@hello@/HIGHLIGHT@, i am a @HIGHLIGHT@message@/HIGHLIGHT@"],
-              "duplicated": ["@HIGHLIGHT@hello@/HIGHLIGHT@"]
-            },
             "_source": {
               "abc": null,
               "is_true": false,
-              "testtime": "09/02/2023",
+              "testtime": "2023-02-09T14:40:00.513Z",
               "line": "log text with [781660944]",
               "counter": 80,
               "float": 62.94120607636795,
@@ -97,11 +84,6 @@
                 }
               }
             },
-            "fields": {
-              "testtime": [
-                "2023-02-09T14:40:00.513Z"
-              ]
-            }, 
             "sort": [
               1675953600513,
               7
@@ -111,14 +93,10 @@
             "_index": "logs-2023.02.09",
             "_id": "gWaeNoYB7vaC3bq-dDdL",
             "_score": null,
-            "highlight": {
-              "line": ["@HIGHLIGHT@hello@/HIGHLIGHT@, i am a @HIGHLIGHT@message@/HIGHLIGHT@"],
-              "duplicated": ["@HIGHLIGHT@hello@/HIGHLIGHT@"]
-            },
             "_source": {
               "abc": "def",
               "is_true": true,
-              "testtime": "09/02/2023",
+              "testtime": "2023-02-09T14:39:59.556Z",
               "line": "log text  [894867430]",
               "counter": 79,
               "float": 53.323706427230455,
@@ -139,11 +117,6 @@
                 }
               }
             },
-            "fields": {
-              "testtime": [
-                "2023-02-09T14:39:59.556Z"
-              ]
-            }, 
             "sort": [
               1675953599556,
               10
@@ -153,14 +126,10 @@
             "_index": "logs-2023.02.09",
             "_id": "gGaeNoYB7vaC3bq-cDeY",
             "_score": null,
-            "highlight": {
-              "line": ["@HIGHLIGHT@hello@/HIGHLIGHT@, i am a @HIGHLIGHT@message@/HIGHLIGHT@"],
-              "duplicated": ["@HIGHLIGHT@hello@/HIGHLIGHT@"]
-            },
             "_source": {
               "abc": "def",
               "is_true": false,
-              "testtime": "09/02/2023",
+              "testtime": "2023-02-09T14:39:58.608Z",
               "line": "log text  [478598889]",
               "counter": 78,
               "float": 82.72012623471589,
@@ -187,11 +156,6 @@
                 }
               }
             },
-            "fields": {
-              "testtime": [
-                "2023-02-09T14:39:58.608Z"
-              ]
-            }, 
             "sort": [
               1675953598608,
               15
@@ -201,14 +165,10 @@
             "_index": "logs-2023.02.09",
             "_id": "f2aeNoYB7vaC3bq-bDf7",
             "_score": null,
-            "highlight": {
-              "line": ["@HIGHLIGHT@hello@/HIGHLIGHT@, i am a @HIGHLIGHT@message@/HIGHLIGHT@"],
-              "duplicated": ["@HIGHLIGHT@hello@/HIGHLIGHT@"]
-            },
             "_source": {
               "abc": "def",
               "is_true": false,
-             "testtime": "09/02/2023",
+              "testtime": "2023-02-09T14:39:57.665Z",
               "line": "log text  [526995818]",
               "counter": 77,
               "float": 35.05784443331803,
@@ -235,11 +195,6 @@
                 }
               }
             },
-            "fields": {
-              "testtime": [
-                "2023-02-09T14:39:57.665Z"
-              ]
-            }, 
             "sort": [
               1675953597665,
               20

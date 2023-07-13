@@ -7,7 +7,7 @@ import { Button, ClipboardButton, HorizontalGroup, TextArea } from '@grafana/ui'
 
 import { SaveDashboardFormProps } from '../types';
 
-export const SaveProvisionedDashboardForm = ({ dashboard, onCancel }: Omit<SaveDashboardFormProps, 'isLoading'>) => {
+export const SaveProvisionedDashboardForm: React.FC<SaveDashboardFormProps> = ({ dashboard, onCancel }) => {
   const [dashboardJSON, setDashboardJson] = useState(() => {
     const clone = dashboard.getSaveModelClone();
     delete clone.id;

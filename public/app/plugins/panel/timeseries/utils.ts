@@ -1,5 +1,7 @@
 import {
+  ArrayVector,
   DataFrame,
+  DataFrameType,
   Field,
   FieldType,
   getDisplayProcessor,
@@ -10,10 +12,10 @@ import {
   SortedVector,
   TimeRange,
 } from '@grafana/data';
-import { convertFieldType } from '@grafana/data/src/transformations/transformers/convertFieldType';
 import { GraphFieldConfig, LineInterpolation } from '@grafana/schema';
 import { applyNullInsertThreshold } from '@grafana/ui/src/components/GraphNG/nullInsertThreshold';
 import { nullToValue } from '@grafana/ui/src/components/GraphNG/nullToValue';
+import { partitionByValuesTransformer } from 'app/features/transformers/partitionByValues/partitionByValues';
 
 /**
  * Returns null if there are no graphable fields
@@ -21,35 +23,14 @@ import { nullToValue } from '@grafana/ui/src/components/GraphNG/nullToValue';
 export function prepareGraphableFields(
   series: DataFrame[],
   theme: GrafanaTheme2,
-  timeRange?: TimeRange,
-  // numeric X requires a single frame where the first field is numeric
-  xNumFieldIdx?: number
+  timeRange?: TimeRange
 ): DataFrame[] | null {
   if (!series?.length) {
     return null;
   }
 
-  let useNumericX = xNumFieldIdx != null;
-
-  // Make sure the numeric x field is first in the frame
-  if (xNumFieldIdx != null && xNumFieldIdx > 0) {
-    series = [
-      {
-        ...series[0],
-        fields: [series[0].fields[xNumFieldIdx], ...series[0].fields.filter((f, i) => i !== xNumFieldIdx)],
-      },
-    ];
-  }
-
-  // some datasources simply tag the field as time, but don't convert to milli epochs
-  // so we're stuck with doing the parsing here to avoid Moment slowness everywhere later
-  // this mutates (once)
-  for (let frame of series) {
-    for (let field of frame.fields) {
-      if (field.type === FieldType.time && typeof field.values[0] !== 'number') {
-        field.values = convertFieldType(field, { destinationType: FieldType.time }).values;
-      }
-    }
+  if (series.every((df) => df.meta?.type === DataFrameType.TimeSeriesLong)) {
+    series = prepareTimeSeriesLong(series);
   }
 
   let copy: Field;
@@ -62,34 +43,30 @@ export function prepareGraphableFields(
     let hasTimeField = false;
     let hasValueField = false;
 
-    let nulledFrame = useNumericX
-      ? frame
-      : applyNullInsertThreshold({
-          frame,
-          refFieldPseudoMin: timeRange?.from.valueOf(),
-          refFieldPseudoMax: timeRange?.to.valueOf(),
-        });
+    let nulledFrame = applyNullInsertThreshold({
+      frame,
+      refFieldPseudoMin: timeRange?.from.valueOf(),
+      refFieldPseudoMax: timeRange?.to.valueOf(),
+    });
 
-    const frameFields = nullToValue(nulledFrame).fields;
-
-    for (let fieldIdx = 0; fieldIdx < frameFields?.length ?? 0; fieldIdx++) {
-      const field = frameFields[fieldIdx];
-
+    for (const field of nullToValue(nulledFrame).fields) {
       switch (field.type) {
         case FieldType.time:
           hasTimeField = true;
           fields.push(field);
           break;
         case FieldType.number:
-          hasValueField = useNumericX ? fieldIdx > 0 : true;
+          hasValueField = true;
           copy = {
             ...field,
-            values: field.values.map((v) => {
-              if (!(Number.isFinite(v) || v == null)) {
-                return null;
-              }
-              return v;
-            }),
+            values: new ArrayVector(
+              field.values.toArray().map((v) => {
+                if (!(Number.isFinite(v) || v == null)) {
+                  return null;
+                }
+                return v;
+              })
+            ),
           };
 
           fields.push(copy);
@@ -97,7 +74,7 @@ export function prepareGraphableFields(
         case FieldType.string:
           copy = {
             ...field,
-            values: field.values,
+            values: new ArrayVector(field.values.toArray()),
           };
 
           fields.push(copy);
@@ -121,12 +98,14 @@ export function prepareGraphableFields(
             ...field,
             config,
             type: FieldType.number,
-            values: field.values.map((v) => {
-              if (v == null) {
-                return v;
-              }
-              return Boolean(v) ? 1 : 0;
-            }),
+            values: new ArrayVector(
+              field.values.toArray().map((v) => {
+                if (v == null) {
+                  return v;
+                }
+                return Boolean(v) ? 1 : 0;
+              })
+            ),
           };
 
           if (!isBooleanUnit(config.unit)) {
@@ -139,7 +118,7 @@ export function prepareGraphableFields(
       }
     }
 
-    if ((useNumericX || hasTimeField) && hasValueField) {
+    if (hasTimeField && hasValueField) {
       frames.push({
         ...frame,
         length: nulledFrame.length,
@@ -149,19 +128,20 @@ export function prepareGraphableFields(
   }
 
   if (frames.length) {
-    setClassicPaletteIdxs(frames, theme, 0);
+    setClassicPaletteIdxs(frames, theme);
     return frames;
   }
 
   return null;
 }
 
-const setClassicPaletteIdxs = (frames: DataFrame[], theme: GrafanaTheme2, skipFieldIdx?: number) => {
+const setClassicPaletteIdxs = (frames: DataFrame[], theme: GrafanaTheme2) => {
   let seriesIndex = 0;
+
   frames.forEach((frame) => {
-    frame.fields.forEach((field, fieldIdx) => {
+    frame.fields.forEach((field) => {
       // TODO: also add FieldType.enum type here after https://github.com/grafana/grafana/pull/60491
-      if (fieldIdx !== skipFieldIdx && (field.type === FieldType.number || field.type === FieldType.boolean)) {
+      if (field.type === FieldType.number || field.type === FieldType.boolean) {
         field.state = {
           ...field.state,
           seriesIndex: seriesIndex++, // TODO: skip this for fields with custom renderers (e.g. Candlestick)?
@@ -216,4 +196,21 @@ export function regenerateLinksSupplier(
   });
 
   return alignedDataFrame;
+}
+
+export function prepareTimeSeriesLong(series: DataFrame[]): DataFrame[] {
+  // Transform each dataframe of the series
+  // to handle different field names in different frames
+  return series.reduce((acc: DataFrame[], dataFrame: DataFrame) => {
+    // these could be different in each frame
+    const stringFields = dataFrame.fields.filter((field) => field.type === FieldType.string).map((field) => field.name);
+
+    // transform one dataFrame at a time and concat into DataFrame[]
+    const transformedSeries = partitionByValuesTransformer.transformer(
+      { fields: stringFields },
+      { interpolate: (value: string) => value }
+    )([dataFrame]);
+
+    return acc.concat(transformedSeries);
+  }, []);
 }

@@ -71,7 +71,7 @@ export const NestedQuery = React.memo<Props>((props) => {
           />
         </div>
         <FlexItem grow={1} />
-        <IconButton name="times" size="sm" onClick={() => onRemove(index)} tooltip="Remove match" />
+        <IconButton name="times" size="sm" onClick={() => onRemove(index)} />
       </div>
       <div className={styles.body}>
         <EditorRows>

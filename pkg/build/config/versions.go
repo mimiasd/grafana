@@ -9,8 +9,6 @@ var Versions = VersionMap{
 			VariantLinuxAmd64Musl,
 			VariantDarwinAmd64,
 			VariantWindowsAmd64,
-			VariantArm64,
-			VariantArm64Musl,
 		},
 		PluginSignature: PluginSignature{
 			Sign:      false,
@@ -20,7 +18,6 @@ var Versions = VersionMap{
 			ShouldSave: false,
 			Architectures: []Architecture{
 				ArchAMD64,
-				ArchARM64,
 			},
 			Distribution: []Distribution{
 				Alpine,
@@ -123,7 +120,6 @@ var Versions = VersionMap{
 				Alpine,
 				Ubuntu,
 			},
-			PrereleaseBucket: "grafana-prerelease/artifacts/docker",
 		},
 		Buckets: Buckets{
 			Artifacts:            "grafana-downloads",
@@ -195,35 +191,6 @@ var Versions = VersionMap{
 			Distribution: []Distribution{
 				Alpine,
 				Ubuntu,
-			},
-			PrereleaseBucket: "grafana-prerelease/artifacts/docker",
-		},
-		Buckets: Buckets{
-			Artifacts:            "grafana-prerelease/artifacts/downloads",
-			ArtifactsEnterprise2: "grafana-prerelease/artifacts/downloads-enterprise2",
-			CDNAssets:            "grafana-prerelease",
-			CDNAssetsDir:         "artifacts/static-assets",
-			Storybook:            "grafana-prerelease",
-			StorybookSrcDir:      "artifacts/storybook",
-		},
-	},
-	CloudMode: {
-		Variants: []Variant{
-			VariantLinuxAmd64Musl,
-			// We still need this variant to build the .deb file
-			VariantLinuxAmd64,
-		},
-		PluginSignature: PluginSignature{
-			Sign:      true,
-			AdminSign: true,
-		},
-		Docker: Docker{
-			ShouldSave: true,
-			Architectures: []Architecture{
-				ArchAMD64,
-			},
-			Distribution: []Distribution{
-				Alpine,
 			},
 			PrereleaseBucket: "grafana-prerelease/artifacts/docker",
 		},

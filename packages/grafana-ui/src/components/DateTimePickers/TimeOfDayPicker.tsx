@@ -17,12 +17,7 @@ export interface Props {
   minuteStep?: number;
   size?: FormInputSize;
   disabled?: boolean;
-  disabledHours?: () => number[];
-  disabledMinutes?: () => number[];
-  disabledSeconds?: () => number[];
 }
-
-export const POPUP_CLASS_NAME = 'time-of-day-picker-panel';
 
 export const TimeOfDayPicker = ({
   minuteStep = 1,
@@ -32,16 +27,13 @@ export const TimeOfDayPicker = ({
   value,
   size = 'auto',
   disabled,
-  disabledHours,
-  disabledMinutes,
-  disabledSeconds,
 }: Props) => {
   const styles = useStyles2(getStyles);
 
   return (
     <RcTimePicker
       className={cx(inputSizes()[size], styles.input)}
-      popupClassName={cx(styles.picker, POPUP_CLASS_NAME)}
+      popupClassName={styles.picker}
       defaultValue={dateTimeAsMoment()}
       onChange={(value: any) => onChange(dateTime(value))}
       allowEmpty={false}
@@ -51,9 +43,6 @@ export const TimeOfDayPicker = ({
       minuteStep={minuteStep}
       inputIcon={<Caret wrapperStyle={styles.caretWrapper} />}
       disabled={disabled}
-      disabledHours={disabledHours}
-      disabledMinutes={disabledMinutes}
-      disabledSeconds={disabledSeconds}
     />
   );
 };
@@ -101,10 +90,6 @@ const getStyles = (theme: GrafanaTheme2) => {
 
           &:hover {
             background: ${optionBgHover};
-          }
-
-          &.rc-time-picker-panel-select-option-disabled {
-            color: ${theme.colors.action.disabledText};
           }
         }
       }

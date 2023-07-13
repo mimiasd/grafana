@@ -1,8 +1,7 @@
 import React from 'react';
 
-import { Button } from '@grafana/ui';
-
 import { useDispatch } from '../../../hooks/useStatelessReducer';
+import { IconButton } from '../../IconButton';
 import { useQuery } from '../ElasticsearchQueryContext';
 import { QueryEditorRow } from '../QueryEditorRow';
 
@@ -30,14 +29,7 @@ export const BucketAggregationsEditor = ({ nextId }: Props) => {
           <BucketAggregationEditor value={bucketAgg} />
 
           {index === 0 && (
-            <Button
-              variant="secondary"
-              fill="text"
-              icon="plus"
-              onClick={() => dispatch(addBucketAggregation(nextId))}
-              tooltip="Add grouping condition"
-              aria-label="Add grouping condition"
-            />
+            <IconButton iconName="plus" onClick={() => dispatch(addBucketAggregation(nextId))} label="add" />
           )}
         </QueryEditorRow>
       ))}

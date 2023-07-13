@@ -8,7 +8,6 @@ import (
 	"math"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -96,7 +95,7 @@ func (e *cloudWatchExecutor) executeLogActions(ctx context.Context, logger log.L
 }
 
 func (e *cloudWatchExecutor) executeLogAction(ctx context.Context, logger log.Logger, logsQuery models.LogsQuery, query backend.DataQuery, pluginCtx backend.PluginContext) (*data.Frame, error) {
-	instance, err := e.getInstance(ctx, pluginCtx)
+	instance, err := e.getInstance(pluginCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -106,13 +105,13 @@ func (e *cloudWatchExecutor) executeLogAction(ctx context.Context, logger log.Lo
 		region = logsQuery.Region
 	}
 
-	logsClient, err := e.getCWLogsClient(ctx, pluginCtx, region)
+	logsClient, err := e.getCWLogsClient(pluginCtx, region)
 	if err != nil {
 		return nil, err
 	}
 
 	var data *data.Frame = nil
-	switch logsQuery.Subtype {
+	switch logsQuery.SubType {
 	case "StartQuery":
 		data, err = e.handleStartQuery(ctx, logger, logsClient, logsQuery, query.TimeRange, query.RefID)
 	case "StopQuery":
@@ -123,7 +122,7 @@ func (e *cloudWatchExecutor) executeLogAction(ctx context.Context, logger log.Lo
 		data, err = e.handleGetLogEvents(ctx, logsClient, logsQuery)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute log action with subtype: %s: %w", logsQuery.Subtype, err)
+		return nil, fmt.Errorf("failed to execute log action with subtype: %s: %w", logsQuery.SubType, err)
 	}
 
 	return data, nil
@@ -165,7 +164,7 @@ func (e *cloudWatchExecutor) handleGetLogEvents(ctx context.Context, logsClient 
 	}
 
 	messages := make([]*string, 0)
-	timestamps := make([]time.Time, 0)
+	timestamps := make([]*int64, 0)
 
 	sort.Slice(logEvents.Events, func(i, j int) bool {
 		return *(logEvents.Events[i].Timestamp) > *(logEvents.Events[j].Timestamp)
@@ -173,7 +172,7 @@ func (e *cloudWatchExecutor) handleGetLogEvents(ctx context.Context, logsClient 
 
 	for _, event := range logEvents.Events {
 		messages = append(messages, event.Message)
-		timestamps = append(timestamps, time.UnixMilli(*event.Timestamp).UTC())
+		timestamps = append(timestamps, event.Timestamp)
 	}
 
 	timestampField := data.NewField("ts", nil, timestamps)
@@ -214,7 +213,7 @@ func (e *cloudWatchExecutor) executeStartQuery(ctx context.Context, logsClient c
 	if logsQuery.LogGroups != nil && len(logsQuery.LogGroups) > 0 {
 		var logGroupIdentifiers []string
 		for _, lg := range logsQuery.LogGroups {
-			arn := lg.Arn
+			arn := lg.ARN
 			// due to a bug in the startQuery api, we remove * from the arn, otherwise it throws an error
 			logGroupIdentifiers = append(logGroupIdentifiers, strings.TrimSuffix(arn, "*"))
 		}
@@ -333,7 +332,7 @@ func groupResponseFrame(frame *data.Frame, statsGroups []string) (data.Frames, e
 	// Check if we have time field though as it makes sense to split only for time series.
 	if hasTimeField(frame) {
 		if len(statsGroups) > 0 && len(frame.Fields) > 0 {
-			groupedFrames, err := groupResults(frame, statsGroups, false)
+			groupedFrames, err := groupResults(frame, statsGroups)
 			if err != nil {
 				return nil, err
 			}

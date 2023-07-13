@@ -4,7 +4,6 @@ import React from 'react';
 
 import { DataTransformerConfig, standardTransformersRegistry } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
-import config from 'app/core/config';
 import { getStandardTransformers } from 'app/features/transformers/standardTransformers';
 
 import { PanelModel } from '../../state';
@@ -21,43 +20,30 @@ describe('TransformationsEditor', () => {
   standardTransformersRegistry.setInit(getStandardTransformers);
 
   describe('when no transformations configured', () => {
-    function renderList() {
+    it('renders transformations selection list', () => {
       setup();
 
-      const cards = screen.getAllByTestId(/New transform/i);
+      const cards = screen.getAllByLabelText(/^New transform/i);
       expect(cards.length).toEqual(standardTransformersRegistry.list().length);
-    }
-
-    it('renders transformations selection list', renderList);
-    it('renders transformations selection list with transformationsRedesign feature toggled on', () => {
-      config.featureToggles.transformationsRedesign = true;
-      renderList();
-      config.featureToggles.transformationsRedesign = false;
     });
   });
 
   describe('when transformations configured', () => {
-    function renderEditors() {
+    it('renders transformation editors', () => {
       setup([
         {
           id: 'reduce',
           options: {},
         },
       ]);
-      const editors = screen.getAllByTestId(/Transformation editor/);
+      const editors = screen.getAllByLabelText(/^Transformation editor/);
       expect(editors).toHaveLength(1);
-    }
-
-    it('renders transformation editors', renderEditors);
-    it('renders transformation editors with transformationsRedesign feature toggled on', () => {
-      config.featureToggles.transformationsRedesign = true;
-      renderEditors();
-      config.featureToggles.transformationsRedesign = false;
     });
   });
 
   describe('when Add transformation clicked', () => {
-    async function renderPicker() {
+    it('renders transformations picker', async () => {
+      const buttonLabel = 'Add transformation';
       setup([
         {
           id: 'reduce',
@@ -65,24 +51,17 @@ describe('TransformationsEditor', () => {
         },
       ]);
 
-      const addTransformationButton = screen.getByTestId(selectors.components.Transforms.addTransformationButton);
+      const addTransformationButton = screen.getByText(buttonLabel);
       await userEvent.click(addTransformationButton);
 
-      const search = screen.getByTestId(selectors.components.Transforms.searchInput);
+      const search = screen.getByLabelText(selectors.components.Transforms.searchInput);
       expect(search).toBeDefined();
-    }
-
-    it('renders transformations picker', renderPicker);
-    it('renders transformation picker with transformationsRedesign feature toggled on', async () => {
-      config.featureToggles.transformationsRedesign = true;
-      await renderPicker();
-      config.featureToggles.transformationsRedesign = false;
     });
   });
 
   describe('actions', () => {
     describe('debug', () => {
-      async function showHideDebugger() {
+      it('should show/hide debugger', async () => {
         setup([
           {
             id: 'reduce',
@@ -91,19 +70,12 @@ describe('TransformationsEditor', () => {
         ]);
         const debuggerSelector = selectors.components.TransformTab.transformationEditorDebugger('Reduce');
 
-        expect(screen.queryByTestId(debuggerSelector)).toBeNull();
+        expect(screen.queryByLabelText(debuggerSelector)).toBeNull();
 
         const debugButton = screen.getByLabelText(selectors.components.QueryEditorRow.actionButton('Debug'));
         await userEvent.click(debugButton);
 
-        expect(screen.getByTestId(debuggerSelector)).toBeInTheDocument();
-      }
-
-      it('should show/hide debugger', showHideDebugger);
-      it('renders transformation editors with transformationsRedesign feature toggled on', async () => {
-        config.featureToggles.transformationsRedesign = true;
-        await showHideDebugger();
-        config.featureToggles.transformationsRedesign = false;
+        expect(screen.getByLabelText(debuggerSelector)).toBeInTheDocument();
       });
     });
   });

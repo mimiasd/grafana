@@ -1,6 +1,5 @@
+import { captureException } from '@sentry/browser';
 import React, { PureComponent, ReactNode, ComponentType } from 'react';
-
-import { faro } from '@grafana/faro-web-sdk';
 
 import { Alert } from '../Alert/Alert';
 
@@ -37,7 +36,7 @@ export class ErrorBoundary extends PureComponent<Props, State> {
   };
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    faro?.api?.pushError(error);
+    captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
     this.setState({ error, errorInfo });
 
     if (this.props.onError) {

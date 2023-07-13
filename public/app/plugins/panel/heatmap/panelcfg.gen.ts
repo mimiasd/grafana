@@ -10,6 +10,8 @@
 
 import * as ui from '@grafana/schema';
 
+export const PanelCfgModelVersion = Object.freeze([0, 0]);
+
 /**
  * Controls the color mode of the heatmap
  */
@@ -170,7 +172,7 @@ export interface RowsHeatmapOptions {
   value?: string;
 }
 
-export interface Options {
+export interface PanelOptions {
   /**
    * Controls if the heatmap should be calculated from data
    */
@@ -231,7 +233,7 @@ export interface Options {
   yAxis: YAxisConfig;
 }
 
-export const defaultOptions: Partial<Options> = {
+export const defaultPanelOptions: Partial<PanelOptions> = {
   calculate: false,
   cellGap: 1,
   cellValues: {},
@@ -264,6 +266,6 @@ export const defaultOptions: Partial<Options> = {
   },
 };
 
-export interface FieldConfig extends ui.HideableFieldConfig {
+export interface PanelFieldConfig extends ui.HideableFieldConfig {
   scaleDistribution?: ui.ScaleDistributionConfig;
 }

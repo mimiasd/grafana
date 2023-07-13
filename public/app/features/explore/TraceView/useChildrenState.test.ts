@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react-hooks';
 
 import { TraceSpan } from './components';
 import { useChildrenState } from './useChildrenState';

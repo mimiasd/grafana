@@ -83,7 +83,7 @@ func TestAPIViewPublicDashboard(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.Name, func(t *testing.T) {
 			service := publicdashboards.NewFakePublicDashboardService(t)
-			service.On("FindEnabledPublicDashboardAndDashboardByAccessToken", mock.Anything, mock.AnythingOfType("string")).
+			service.On("FindPublicDashboardAndDashboardByAccessToken", mock.Anything, mock.AnythingOfType("string")).
 				Return(&PublicDashboard{Uid: "pubdashuid"}, test.DashboardResult, test.Err).Maybe()
 
 			cfg := setting.NewCfg()
@@ -189,6 +189,7 @@ func TestAPIQueryPublicDashboard(t *testing.T) {
 	setup := func(enabled bool) (*web.Mux, *publicdashboards.FakePublicDashboardService) {
 		service := publicdashboards.NewFakePublicDashboardService(t)
 		cfg := setting.NewCfg()
+		cfg.RBACEnabled = false
 
 		testServer := setupTestServer(
 			t,
@@ -309,22 +310,21 @@ func TestIntegrationUnauthenticatedUserCanGetPubdashPanelQueryData(t *testing.T)
 	require.NoError(t, err)
 
 	// Create public dashboard
-	isEnabled := true
 	savePubDashboardCmd := &SavePublicDashboardDTO{
 		DashboardUid: dashboard.UID,
-		OrgID:        dashboard.OrgID,
-		PublicDashboard: &PublicDashboardDTO{
-			IsEnabled: &isEnabled,
+		OrgId:        dashboard.OrgID,
+		PublicDashboard: &PublicDashboard{
+			IsEnabled: true,
 		},
 	}
 
 	annotationsService := annotationstest.NewFakeAnnotationsRepo()
 
 	// create public dashboard
-	store := publicdashboardsStore.ProvideStore(db, db.Cfg, featuremgmt.WithFeatures())
+	store := publicdashboardsStore.ProvideStore(db)
 	cfg := setting.NewCfg()
 	ac := acmock.New()
-	ws := publicdashboardsService.ProvideServiceWrapper(store)
+	ws := &publicdashboards.FakePublicDashboardServiceWrapper{}
 	cfg.RBACEnabled = false
 	service := publicdashboardsService.ProvideService(cfg, store, qds, annotationsService, ac, ws)
 	pubdash, err := service.Create(context.Background(), &user.SignedInUser{}, savePubDashboardCmd)

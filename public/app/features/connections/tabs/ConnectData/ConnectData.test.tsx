@@ -1,4 +1,4 @@
-import { fireEvent, render, RenderResult, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, RenderResult, screen } from '@testing-library/react';
 import React from 'react';
 import { Provider } from 'react-redux';
 
@@ -9,7 +9,7 @@ import { CatalogPlugin } from 'app/features/plugins/admin/types';
 import { configureStore } from 'app/store/configureStore';
 import { AccessControlAction } from 'app/types';
 
-import { AddNewConnection } from './ConnectData';
+import { ConnectData } from './ConnectData';
 
 jest.mock('app/features/datasources/api');
 
@@ -19,7 +19,7 @@ const renderPage = (plugins: CatalogPlugin[] = []): RenderResult => {
 
   return render(
     <Provider store={store}>
-      <AddNewConnection />
+      <ConnectData />
     </Provider>
   );
 };
@@ -32,39 +32,7 @@ const mockCatalogDataSourcePlugin = getCatalogPluginMock({
 
 const originalHasPermission = contextSrv.hasPermission;
 
-describe('Angular badge', () => {
-  test('does not show angular badge for non-angular plugins', async () => {
-    renderPage([
-      getCatalogPluginMock({
-        id: 'react-plugin',
-        name: 'React Plugin',
-        type: PluginType.datasource,
-        angularDetected: false,
-      }),
-    ]);
-    await waitFor(() => {
-      expect(screen.queryByText('React Plugin')).toBeInTheDocument();
-    });
-    expect(screen.queryByText('Angular')).not.toBeInTheDocument();
-  });
-
-  test('shows angular badge for angular plugins', async () => {
-    renderPage([
-      getCatalogPluginMock({
-        id: 'legacy-plugin',
-        name: 'Legacy Plugin',
-        type: PluginType.datasource,
-        angularDetected: true,
-      }),
-    ]);
-    await waitFor(() => {
-      expect(screen.queryByText('Legacy Plugin')).toBeInTheDocument();
-    });
-    expect(screen.queryByText('Angular')).toBeInTheDocument();
-  });
-});
-
-describe('Add new connection', () => {
+describe('Connect Data', () => {
   beforeEach(() => {
     contextSrv.hasPermission = originalHasPermission;
   });

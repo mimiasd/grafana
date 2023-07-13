@@ -5,10 +5,10 @@ import { commonOptionsBuilder, sharedSingleStatMigrationHandler } from '@grafana
 import { statPanelChangedHandler } from './StatMigrations';
 import { StatPanel } from './StatPanel';
 import { addStandardDataReduceOptions, addOrientationOption } from './common';
-import { defaultOptions, Options } from './panelcfg.gen';
+import { defaultPanelOptions, PanelOptions } from './panelcfg.gen';
 import { StatSuggestionsSupplier } from './suggestions';
 
-export const plugin = new PanelPlugin<Options>(StatPanel)
+export const plugin = new PanelPlugin<PanelOptions>(StatPanel)
   .useFieldConfig()
   .setPanelOptions((builder) => {
     const mainCategory = ['Stat styles'];
@@ -31,11 +31,11 @@ export const plugin = new PanelPlugin<Options>(StatPanel)
           { value: BigValueTextMode.None, label: 'None' },
         ],
       },
-      defaultValue: defaultOptions.textMode,
+      defaultValue: defaultPanelOptions.textMode,
     });
 
     builder
-      .addSelect({
+      .addRadio({
         path: 'colorMode',
         name: 'Color mode',
         defaultValue: BigValueColorMode.Value,
@@ -44,8 +44,7 @@ export const plugin = new PanelPlugin<Options>(StatPanel)
           options: [
             { value: BigValueColorMode.None, label: 'None' },
             { value: BigValueColorMode.Value, label: 'Value' },
-            { value: BigValueColorMode.Background, label: 'Background Gradient' },
-            { value: BigValueColorMode.BackgroundSolid, label: 'Background Solid' },
+            { value: BigValueColorMode.Background, label: 'Background' },
           ],
         },
       })
@@ -54,7 +53,7 @@ export const plugin = new PanelPlugin<Options>(StatPanel)
         name: 'Graph mode',
         description: 'Stat panel graph / sparkline mode',
         category: mainCategory,
-        defaultValue: defaultOptions.graphMode,
+        defaultValue: defaultPanelOptions.graphMode,
         settings: {
           options: [
             { value: BigValueGraphMode.None, label: 'None' },
@@ -65,7 +64,7 @@ export const plugin = new PanelPlugin<Options>(StatPanel)
       .addRadio({
         path: 'justifyMode',
         name: 'Text alignment',
-        defaultValue: defaultOptions.justifyMode,
+        defaultValue: defaultPanelOptions.justifyMode,
         category: mainCategory,
         settings: {
           options: [

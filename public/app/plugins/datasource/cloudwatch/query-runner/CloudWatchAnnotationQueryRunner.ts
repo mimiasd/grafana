@@ -36,7 +36,7 @@ export class CloudWatchAnnotationQueryRunner extends CloudWatchRequest {
       })),
     }).pipe(
       map((r) => {
-        const frames = toDataQueryResponse(r).data;
+        const frames = toDataQueryResponse({ data: r }).data;
         return { data: frames };
       })
     );

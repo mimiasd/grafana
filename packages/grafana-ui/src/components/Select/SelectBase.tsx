@@ -1,11 +1,10 @@
-import { t } from 'i18next';
 import React, { ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
 import { default as ReactSelect } from 'react-select';
 import { default as ReactAsyncSelect } from 'react-select/async';
 import { default as AsyncCreatable } from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
 
-import { SelectableValue, toOption } from '@grafana/data';
+import { SelectableValue } from '@grafana/data';
 
 import { useTheme2 } from '../../themes';
 import { Icon } from '../Icon/Icon';
@@ -22,7 +21,7 @@ import { SingleValue } from './SingleValue';
 import { ValueContainer } from './ValueContainer';
 import { getSelectStyles } from './getSelectStyles';
 import { useCustomSelectStyles } from './resetSelectStyles';
-import { ActionMeta, InputActionMeta, SelectBaseProps } from './types';
+import { ActionMeta, SelectBaseProps } from './types';
 import { cleanValue, findSelectedValue, omitDescriptions } from './utils';
 
 interface ExtraValuesIndicatorProps {
@@ -88,13 +87,12 @@ const CustomControl = (props: any) => {
   );
 };
 
-export function SelectBase<T, Rest = {}>({
+export function SelectBase<T>({
   allowCustomValue = false,
   allowCreateWhileLoading = false,
   'aria-label': ariaLabel,
   autoFocus = false,
   backspaceRemovesValue = true,
-  blurInputOnSelect,
   cacheOptions,
   className,
   closeMenuOnSelect = true,
@@ -125,20 +123,18 @@ export function SelectBase<T, Rest = {}>({
   menuPlacement = 'auto',
   menuPosition,
   menuShouldPortal = true,
-  noOptionsMessage = t('grafana-ui.select.no-options-label', 'No options found'),
+  noOptionsMessage = 'No options found',
   onBlur,
   onChange,
   onCloseMenu,
   onCreateOption,
   onInputChange,
   onKeyDown,
-  onMenuScrollToBottom,
-  onMenuScrollToTop,
   onOpenMenu,
   onFocus,
   openMenuOnFocus = false,
   options = [],
-  placeholder = t('grafana-ui.select.placeholder', 'Choose'),
+  placeholder = 'Choose',
   prefix,
   renderControl,
   showAllSelectedWhenOpen = true,
@@ -148,16 +144,13 @@ export function SelectBase<T, Rest = {}>({
   width,
   isValidNewOption,
   formatOptionLabel,
-  hideSelectedOptions,
-  ...rest
-}: SelectBaseProps<T> & Rest) {
+}: SelectBaseProps<T>) {
   const theme = useTheme2();
   const styles = getSelectStyles(theme);
 
   const reactSelectRef = useRef<{ controlRef: HTMLElement }>(null);
   const [closeToBottom, setCloseToBottom] = useState<boolean>(false);
   const selectStyles = useCustomSelectStyles(theme, width);
-  const [hasInputValue, setHasInputValue] = useState<boolean>(!!inputValue);
 
   // Infer the menu position for asynchronously loaded options. menuPlacement="auto" doesn't work when the menu is
   // automatically opened when the component is created (it happens in SegmentSelect by setting menuIsOpen={true}).
@@ -197,16 +190,8 @@ export function SelectBase<T, Rest = {}>({
     // If option is passed as a plain value (value property from SelectableValue property)
     // we are selecting the corresponding value from the options
     if (isMulti && value && Array.isArray(value) && !loadOptions) {
-      selectedValue = value.map((v) => {
-        // @ts-ignore
-        const selectableValue = findSelectedValue(v.value ?? v, options);
-        // If the select allows custom values there likely won't be a selectableValue in options
-        // so we must return a new selectableValue
-        if (!allowCustomValue || selectableValue) {
-          return selectableValue;
-        }
-        return typeof v === 'string' ? toOption(v) : v;
-      });
+      // @ts-ignore
+      selectedValue = value.map((v) => findSelectedValue(v.value ?? v, options));
     } else if (loadOptions) {
       const hasValue = defaultValue || value;
       selectedValue = hasValue ? [hasValue] : [];
@@ -219,20 +204,16 @@ export function SelectBase<T, Rest = {}>({
     'aria-label': ariaLabel,
     autoFocus,
     backspaceRemovesValue,
-    blurInputOnSelect,
-    captureMenuScroll: onMenuScrollToBottom || onMenuScrollToTop,
+    captureMenuScroll: false,
     closeMenuOnSelect,
     // We don't want to close if we're actually scrolling the menu
     // So only close if none of the parents are the select menu itself
     defaultValue,
     // Also passing disabled, as this is the new Select API, and I want to use this prop instead of react-select's one
     disabled,
-    // react-select always tries to filter the options even at first menu open, which is a problem for performance
-    // in large lists. So we set it to not try to filter the options if there is no input value.
-    filterOption: hasInputValue ? filterOption : null,
+    filterOption,
     getOptionLabel,
     getOptionValue,
-    hideSelectedOptions,
     inputValue,
     invalid,
     isClearable,
@@ -255,15 +236,10 @@ export function SelectBase<T, Rest = {}>({
     menuShouldScrollIntoView: false,
     onBlur,
     onChange: onChangeWithEmpty,
-    onInputChange: (val: string, actionMeta: InputActionMeta) => {
-      setHasInputValue(!!val);
-      onInputChange?.(val, actionMeta);
-    },
+    onInputChange,
     onKeyDown,
     onMenuClose: onCloseMenu,
     onMenuOpen: onOpenMenu,
-    onMenuScrollToBottom: onMenuScrollToBottom,
-    onMenuScrollToTop: onMenuScrollToTop,
     onFocus,
     formatOptionLabel,
     openMenuOnFocus,
@@ -365,11 +341,11 @@ export function SelectBase<T, Rest = {}>({
             return <DropdownIndicator isOpen={props.selectProps.menuIsOpen} />;
           },
           SingleValue(props: any) {
-            return <SingleValue {...props} isDisabled={disabled} />;
+            return <SingleValue {...props} disabled={disabled} />;
           },
           SelectContainer,
           MultiValueContainer: MultiValueContainer,
-          MultiValueRemove: !disabled ? MultiValueRemove : () => null,
+          MultiValueRemove: MultiValueRemove,
           ...components,
         }}
         styles={selectStyles}
@@ -377,7 +353,6 @@ export function SelectBase<T, Rest = {}>({
         {...commonSelectProps}
         {...creatableProps}
         {...asyncSelectProps}
-        {...rest}
       />
     </>
   );

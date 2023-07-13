@@ -9,7 +9,7 @@ import {
   DataQueryRequest,
   DataQueryResponse,
   DataSourceInstanceSettings,
-  TestDataSourceResponse,
+  DataSourceRef,
   isValidLiveChannelAddress,
   MutableDataFrame,
   parseLiveChannelAddress,
@@ -25,13 +25,11 @@ import {
   getTemplateSrv,
   StreamingFrameOptions,
 } from '@grafana/runtime';
-import { DataSourceRef } from '@grafana/schema';
 import { migrateDatasourceNameToRef } from 'app/features/dashboard/state/DashboardMigrator';
 
 import { getDashboardSrv } from '../../../features/dashboard/services/DashboardSrv';
 
 import AnnotationQueryEditor from './components/AnnotationQueryEditor';
-import { doTimeRegionQuery } from './timeRegions';
 import { GrafanaAnnotationQuery, GrafanaAnnotationType, GrafanaQuery, GrafanaQueryType } from './types';
 
 let counter = 100;
@@ -63,17 +61,8 @@ export class GrafanaDatasource extends DataSourceWithBackend<GrafanaQuery> {
           datasource = anno.datasource as DataSourceRef;
         }
 
-        // Filter from streaming query conflicts with filter from annotations
-        const { filter, ...rest } = anno;
-
-        return { ...rest, refId: anno.name, queryType: GrafanaQueryType.Annotations, datasource };
+        return { ...anno, refId: anno.name, queryType: GrafanaQueryType.Annotations, datasource };
       },
-    };
-  }
-
-  getDefaultQuery(): Partial<GrafanaQuery> {
-    return {
-      queryType: GrafanaQueryType.RandomWalk,
     };
   }
 
@@ -98,20 +87,7 @@ export class GrafanaDatasource extends DataSourceWithBackend<GrafanaQuery> {
       if (target.queryType === GrafanaQueryType.Snapshot) {
         results.push(
           of({
-            // NOTE refId is intentionally missing because:
-            // 1) there is only one snapshot
-            // 2) the payload will reference original refIds
             data: (target.snapshot ?? []).map((v) => dataFrameFromJSON(v)),
-            state: LoadingState.Done,
-          })
-        );
-        continue;
-      }
-      if (target.queryType === GrafanaQueryType.TimeRegions) {
-        const frame = doTimeRegionQuery('', target.timeRegion!, request.range, request.timezone);
-        results.push(
-          of({
-            data: frame ? [frame] : [],
             state: LoadingState.Done,
           })
         );
@@ -192,17 +168,7 @@ export class GrafanaDatasource extends DataSourceWithBackend<GrafanaQuery> {
   }
 
   async getAnnotations(options: AnnotationQueryRequest<GrafanaQuery>): Promise<DataQueryResponse> {
-    const query = options.annotation.target as GrafanaQuery;
-    if (query?.queryType === GrafanaQueryType.TimeRegions) {
-      const frame = doTimeRegionQuery(
-        options.annotation.name,
-        query.timeRegion!,
-        options.range,
-        getDashboardSrv().getCurrent()?.timezone // Annotation queries don't include the timezone
-      );
-      return Promise.resolve({ data: frame ? [frame] : [] });
-    }
-
+    const templateSrv = getTemplateSrv();
     const annotation = options.annotation as unknown as AnnotationQuery<GrafanaAnnotationQuery>;
     const target = annotation.target!;
     const params: any = {
@@ -227,7 +193,6 @@ export class GrafanaDatasource extends DataSourceWithBackend<GrafanaQuery> {
       if (!Array.isArray(target.tags) || target.tags.length === 0) {
         return Promise.resolve({ data: [] });
       }
-      const templateSrv = getTemplateSrv();
       const delimiter = '__delimiter__';
       const tags = [];
       for (const t of params.tags) {
@@ -253,8 +218,8 @@ export class GrafanaDatasource extends DataSourceWithBackend<GrafanaQuery> {
     return { data: [toDataFrame(annotations)] };
   }
 
-  testDatasource(): Promise<TestDataSourceResponse> {
-    return Promise.resolve({ message: '', status: '' });
+  testDatasource() {
+    return Promise.resolve();
   }
 }
 

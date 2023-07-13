@@ -10,11 +10,14 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 
 	"github.com/grafana/grafana/pkg/infra/log"
+	"github.com/grafana/grafana/pkg/services/featuremgmt"
+	"github.com/grafana/grafana/pkg/setting"
 	"github.com/grafana/grafana/pkg/tsdb/testdatasource/sims"
 )
 
-func ProvideService() *Service {
+func ProvideService(cfg *setting.Cfg, features featuremgmt.FeatureToggles) *Service {
 	s := &Service{
+		features:  features,
 		queryMux:  datasource.NewQueryTypeMux(),
 		scenarios: map[string]*Scenario{},
 		frame: data.NewFrame("testdata",
@@ -29,6 +32,7 @@ func ProvideService() *Service {
 			data.NewField("Value", nil, make([]float64, 1)),
 		),
 		logger: log.New("tsdb.testdata"),
+		cfg:    cfg,
 	}
 
 	var err error
@@ -44,12 +48,14 @@ func ProvideService() *Service {
 }
 
 type Service struct {
+	cfg             *setting.Cfg
 	logger          log.Logger
 	scenarios       map[string]*Scenario
 	frame           *data.Frame
 	labelFrame      *data.Frame
 	queryMux        *datasource.QueryTypeMux
 	resourceHandler backend.CallResourceHandler
+	features        featuremgmt.FeatureToggles
 	sims            *sims.SimulationEngine
 }
 

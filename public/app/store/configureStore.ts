@@ -1,7 +1,5 @@
-import { configureStore as reduxConfigureStore, createListenerMiddleware } from '@reduxjs/toolkit';
-import { setupListeners } from '@reduxjs/toolkit/query';
+import { configureStore as reduxConfigureStore } from '@reduxjs/toolkit';
 
-import { browseDashboardsAPI } from 'app/features/browse-dashboards/api/browseDashboardsAPI';
 import { publicDashboardApi } from 'app/features/dashboard/api/publicDashboardApi';
 import { StoreState } from 'app/types/store';
 
@@ -18,17 +16,13 @@ export function addRootReducer(reducers: any) {
   addReducer(reducers);
 }
 
-const listenerMiddleware = createListenerMiddleware();
-
 export function configureStore(initialState?: Partial<StoreState>) {
   const store = reduxConfigureStore({
     reducer: createRootReducer(),
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({ thunk: true, serializableCheck: false, immutableCheck: false }).concat(
-        listenerMiddleware.middleware,
         alertingApi.middleware,
-        publicDashboardApi.middleware,
-        browseDashboardsAPI.middleware
+        publicDashboardApi.middleware
       ),
     devTools: process.env.NODE_ENV !== 'production',
     preloadedState: {
@@ -36,9 +30,6 @@ export function configureStore(initialState?: Partial<StoreState>) {
       ...initialState,
     },
   });
-
-  // this enables "refetchOnFocus" and "refetchOnReconnect" for RTK Query
-  setupListeners(store.dispatch);
 
   setStore(store);
   return store;

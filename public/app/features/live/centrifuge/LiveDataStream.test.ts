@@ -300,13 +300,17 @@ describe('LiveDataStream', () => {
           config: {},
           name: 'time',
           type: 'time',
-          values: [100, 101],
+          values: {
+            buffer: [100, 101],
+          },
         },
         {
           config: {},
           name: 'b',
           type: 'number',
-          values: [1, 2],
+          values: {
+            buffer: [1, 2],
+          },
         },
       ]);
       expect(deserializedFrame.length).toEqual(dataFrameJsons.schema1().data.values[0].length);
@@ -525,13 +529,17 @@ describe('LiveDataStream', () => {
           config: {},
           name: 'time',
           type: 'time',
-          values: [100, 101],
+          values: {
+            buffer: [100, 101],
+          },
         },
         {
           config: {},
           name: 'b',
           type: 'number',
-          values: [1, 2],
+          values: {
+            buffer: [1, 2],
+          },
         },
       ]);
       expect(deserializedFrame.length).toEqual(dataFrameJsons.schema1().data.values[0].length);

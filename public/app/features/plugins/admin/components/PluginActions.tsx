@@ -42,11 +42,7 @@ export const PluginActions = ({ plugin }: Props) => {
         {!isInstallControlsDisabled && (
           <>
             {isExternallyManaged ? (
-              <ExternallyManagedButton
-                pluginId={plugin.id}
-                pluginStatus={pluginStatus}
-                angularDetected={plugin.angularDetected}
-              />
+              <ExternallyManagedButton pluginId={plugin.id} pluginStatus={pluginStatus} />
             ) : (
               <InstallControlsButton
                 plugin={plugin}

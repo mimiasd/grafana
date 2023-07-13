@@ -71,13 +71,6 @@ type UnifiedAlertingSettings struct {
 	HAPeerTimeout                  time.Duration
 	HAGossipInterval               time.Duration
 	HAPushPullInterval             time.Duration
-	HALabel                        string
-	HARedisAddr                    string
-	HARedisPeerName                string
-	HARedisPrefix                  string
-	HARedisUsername                string
-	HARedisPassword                string
-	HARedisDB                      int
 	MaxAttempts                    int64
 	MinInterval                    time.Duration
 	EvaluationTimeout              time.Duration
@@ -93,8 +86,6 @@ type UnifiedAlertingSettings struct {
 	Screenshots                   UnifiedAlertingScreenshotSettings
 	ReservedLabels                UnifiedAlertingReservedLabelSettings
 	StateHistory                  UnifiedAlertingStateHistorySettings
-	// MaxStateSaveConcurrency controls the number of goroutines (per rule) that can save alert state in parallel.
-	MaxStateSaveConcurrency int
 }
 
 type UnifiedAlertingScreenshotSettings struct {
@@ -119,8 +110,6 @@ type UnifiedAlertingStateHistorySettings struct {
 	// if one of them is set.
 	LokiBasicAuthPassword string
 	LokiBasicAuthUsername string
-	MultiPrimary          string
-	MultiSecondaries      []string
 	ExternalLabels        map[string]string
 }
 
@@ -146,7 +135,7 @@ func (cfg *Cfg) readUnifiedAlertingEnabledSetting(section *ini.Section) (*bool, 
 	// than disable it. This issue can be found here
 	hasEnabled := section.Key("enabled").Value() != ""
 	if !hasEnabled {
-		// TODO: Remove in Grafana v10
+		// TODO: Remove in Grafana v9
 		if cfg.IsFeatureToggleEnabled("ngalert") {
 			cfg.Logger.Warn("ngalert feature flag is deprecated: use unified alerting enabled setting instead")
 			// feature flag overrides the legacy alerting setting
@@ -233,13 +222,6 @@ func (cfg *Cfg) ReadUnifiedAlertingSettings(iniFile *ini.File) error {
 	}
 	uaCfg.HAListenAddr = ua.Key("ha_listen_address").MustString(alertmanagerDefaultClusterAddr)
 	uaCfg.HAAdvertiseAddr = ua.Key("ha_advertise_address").MustString("")
-	uaCfg.HALabel = ua.Key("ha_label").MustString("")
-	uaCfg.HARedisAddr = ua.Key("ha_redis_address").MustString("")
-	uaCfg.HARedisPeerName = ua.Key("ha_redis_peer_name").MustString("")
-	uaCfg.HARedisPrefix = ua.Key("ha_redis_prefix").MustString("")
-	uaCfg.HARedisUsername = ua.Key("ha_redis_username").MustString("")
-	uaCfg.HARedisPassword = ua.Key("ha_redis_password").MustString("")
-	uaCfg.HARedisDB = ua.Key("ha_redis_db").MustInt(0)
 	peers := ua.Key("ha_peers").MustString("")
 	uaCfg.HAPeers = make([]string, 0)
 	if peers != "" {
@@ -348,13 +330,9 @@ func (cfg *Cfg) ReadUnifiedAlertingSettings(iniFile *ini.File) error {
 		LokiTenantID:          stateHistory.Key("loki_tenant_id").MustString(""),
 		LokiBasicAuthUsername: stateHistory.Key("loki_basic_auth_username").MustString(""),
 		LokiBasicAuthPassword: stateHistory.Key("loki_basic_auth_password").MustString(""),
-		MultiPrimary:          stateHistory.Key("primary").MustString(""),
-		MultiSecondaries:      splitTrim(stateHistory.Key("secondaries").MustString(""), ","),
 		ExternalLabels:        stateHistoryLabels.KeysHash(),
 	}
 	uaCfg.StateHistory = uaCfgStateHistory
-
-	uaCfg.MaxStateSaveConcurrency = ua.Key("max_state_save_concurrency").MustInt(1)
 
 	cfg.UnifiedAlerting = uaCfg
 	return nil
@@ -362,12 +340,4 @@ func (cfg *Cfg) ReadUnifiedAlertingSettings(iniFile *ini.File) error {
 
 func GetAlertmanagerDefaultConfiguration() string {
 	return alertmanagerDefaultConfiguration
-}
-
-func splitTrim(s string, sep string) []string {
-	spl := strings.Split(s, sep)
-	for i := range spl {
-		spl[i] = strings.TrimSpace(spl[i])
-	}
-	return spl
 }

@@ -1,4 +1,4 @@
-import { SpanStatus } from '@opentelemetry/api';
+import { SpanStatus, SpanStatusCode } from '@opentelemetry/api';
 import { collectorTypes } from '@opentelemetry/exporter-collector';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 
@@ -77,7 +77,7 @@ export function createTableFrame(
   for (let field of logsFrame.fields) {
     let hasMatch = false;
     if (field.type === FieldType.string) {
-      const values = field.values;
+      const values = field.values.toArray();
       for (let i = 0; i < values.length; i++) {
         const line = values[i];
         if (line) {
@@ -85,10 +85,10 @@ export function createTableFrame(
             const match = (line as string).match(traceRegex);
             if (match) {
               const traceId = match[1];
-              const time = timeField ? timeField.values[i] : null;
-              tableFrame.fields[0].values.push(time);
-              tableFrame.fields[1].values.push(traceId);
-              tableFrame.fields[2].values.push(line);
+              const time = timeField ? timeField.values.get(i) : null;
+              tableFrame.fields[0].values.add(time);
+              tableFrame.fields[1].values.add(traceId);
+              tableFrame.fields[2].values.add(line);
               hasMatch = true;
             }
           }
@@ -114,6 +114,29 @@ export function transformTraceList(
     response.data[index] = frame;
   });
   return response;
+}
+
+// Don't forget to change the backend code when the id representation changed
+function transformBase64IDToHexString(base64: string) {
+  const raw = atob(base64);
+  let result = '';
+  for (let i = 0; i < raw.length; i++) {
+    const hex = raw.charCodeAt(i).toString(16);
+    result += hex.length === 2 ? hex : '0' + hex;
+  }
+
+  return result.length > 16 ? result.slice(16) : result;
+}
+
+function transformHexStringToBase64ID(hex: string) {
+  const hexArray = hex.match(/\w{2}/g) || [];
+  return btoa(
+    hexArray
+      .map(function (a) {
+        return String.fromCharCode(parseInt(a, 16));
+      })
+      .join('')
+  );
 }
 
 function getAttributeValue(value: collectorTypes.opentelemetryProto.common.v1.AnyValue): any {
@@ -161,8 +184,20 @@ function resourceToProcess(resource: collectorTypes.opentelemetryProto.resource.
   return { serviceName, serviceTags };
 }
 
-function getSpanTags(span: collectorTypes.opentelemetryProto.trace.v1.Span): TraceKeyValuePair[] {
+function getSpanTags(
+  span: collectorTypes.opentelemetryProto.trace.v1.Span,
+  instrumentationLibrary?: collectorTypes.opentelemetryProto.common.v1.InstrumentationLibrary
+): TraceKeyValuePair[] {
   const spanTags: TraceKeyValuePair[] = [];
+
+  if (instrumentationLibrary) {
+    if (instrumentationLibrary.name) {
+      spanTags.push({ key: 'otel.library.name', value: instrumentationLibrary.name });
+    }
+    if (instrumentationLibrary.version) {
+      spanTags.push({ key: 'otel.library.version', value: instrumentationLibrary.version });
+    }
+  }
 
   if (span.attributes) {
     for (const attribute of span.attributes) {
@@ -170,16 +205,30 @@ function getSpanTags(span: collectorTypes.opentelemetryProto.trace.v1.Span): Tra
     }
   }
 
-  return spanTags;
-}
-
-function getSpanKind(span: collectorTypes.opentelemetryProto.trace.v1.Span) {
-  let kind = undefined;
-  if (span.kind) {
-    const split = span.kind.toString().toLowerCase().split('_');
-    kind = split.length ? split[split.length - 1] : span.kind.toString();
+  if (span.status) {
+    if (span.status.code && (span.status.code as any) !== SpanStatusCode.UNSET) {
+      spanTags.push({
+        key: 'otel.status_code',
+        value: SpanStatusCode[span.status.code],
+      });
+      if (span.status.message) {
+        spanTags.push({ key: 'otel.status_description', value: span.status.message });
+      }
+    }
+    if (span.status.code === SpanStatusCode.ERROR) {
+      spanTags.push({ key: 'error', value: true });
+    }
   }
-  return kind;
+
+  if (span.kind !== undefined) {
+    const split = span.kind.toString().toLowerCase().split('_');
+    spanTags.push({
+      key: 'span.kind',
+      value: split.length ? split[split.length - 1] : span.kind.toString(),
+    });
+  }
+
+  return spanTags;
 }
 
 function getReferences(span: collectorTypes.opentelemetryProto.trace.v1.Span) {
@@ -228,12 +277,6 @@ export function transformFromOTLP(
       { name: 'parentSpanID', type: FieldType.string },
       { name: 'operationName', type: FieldType.string },
       { name: 'serviceName', type: FieldType.string },
-      { name: 'kind', type: FieldType.string },
-      { name: 'statusCode', type: FieldType.number },
-      { name: 'statusMessage', type: FieldType.string },
-      { name: 'instrumentationLibraryName', type: FieldType.string },
-      { name: 'instrumentationLibraryVersion', type: FieldType.string },
-      { name: 'traceState', type: FieldType.string },
       { name: 'serviceTags', type: FieldType.other },
       { name: 'startTime', type: FieldType.number },
       { name: 'duration', type: FieldType.number },
@@ -254,21 +297,15 @@ export function transformFromOTLP(
       for (const librarySpan of data.instrumentationLibrarySpans) {
         for (const span of librarySpan.spans) {
           frame.add({
-            traceID: span.traceId.length > 16 ? span.traceId.slice(16) : span.traceId,
-            spanID: span.spanId,
-            parentSpanID: span.parentSpanId || '',
+            traceID: transformBase64IDToHexString(span.traceId),
+            spanID: transformBase64IDToHexString(span.spanId),
+            parentSpanID: transformBase64IDToHexString(span.parentSpanId || ''),
             operationName: span.name || '',
             serviceName,
-            kind: getSpanKind(span),
-            statusCode: span.status?.code,
-            statusMessage: span.status?.message,
-            instrumentationLibraryName: librarySpan.instrumentationLibrary?.name,
-            instrumentationLibraryVersion: librarySpan.instrumentationLibrary?.version,
-            traceState: span.traceState,
             serviceTags,
             startTime: span.startTimeUnixNano! / 1000000,
             duration: (span.endTimeUnixNano! - span.startTimeUnixNano!) / 1000000,
-            tags: getSpanTags(span),
+            tags: getSpanTags(span, librarySpan.instrumentationLibrary),
             logs: getLogs(span),
             references: getReferences(span),
           } as TraceSpanRow);
@@ -329,28 +366,29 @@ export function transformToOTLP(data: MutableDataFrame): {
 
     // Populate instrumentation library if it exists
     if (!result.batches[batchIndex].instrumentationLibrarySpans[0].instrumentationLibrary) {
-      if (span.instrumentationLibraryName) {
+      let libraryName = span.tags.find((t: TraceKeyValuePair) => t.key === 'otel.library.name')?.value;
+      if (libraryName) {
         result.batches[batchIndex].instrumentationLibrarySpans[0].instrumentationLibrary = {
-          name: span.instrumentationLibraryName,
-          version: span.instrumentationLibraryVersion ? span.instrumentationLibraryVersion : '',
+          name: libraryName,
+          version: span.tags.find((t: TraceKeyValuePair) => t.key === 'otel.library.version')?.value,
         };
       }
     }
 
     result.batches[batchIndex].instrumentationLibrarySpans[0].spans.push({
-      traceId: span.traceID.padStart(32, '0'),
-      spanId: span.spanID,
-      parentSpanId: span.parentSpanID || '',
-      traceState: span.traceState || '',
+      traceId: transformHexStringToBase64ID(span.traceID.padStart(32, '0')),
+      spanId: transformHexStringToBase64ID(span.spanID),
+      traceState: '',
+      parentSpanId: transformHexStringToBase64ID(span.parentSpanID || ''),
       name: span.operationName,
-      kind: getOTLPSpanKind(span.kind) as any,
+      kind: getOTLPSpanKind(span.tags) as any,
       startTimeUnixNano: span.startTime * 1000000,
       endTimeUnixNano: (span.startTime + span.duration) * 1000000,
-      attributes: span.tags ? tagsToAttributes(span.tags) : [],
+      attributes: tagsToAttributes(span.tags),
       droppedAttributesCount: 0,
       droppedEventsCount: 0,
       droppedLinksCount: 0,
-      status: getOTLPStatus(span),
+      status: getOTLPStatus(span.tags),
       events: getOTLPEvents(span.logs),
       links: getOTLPReferences(span.references),
     });
@@ -359,27 +397,24 @@ export function transformToOTLP(data: MutableDataFrame): {
   return result;
 }
 
-function getOTLPSpanKind(kind: string): string | undefined {
+function getOTLPSpanKind(tags: TraceKeyValuePair[]): string | undefined {
   let spanKind = undefined;
-  if (kind) {
-    switch (kind) {
-      case 'server':
-        spanKind = 'SPAN_KIND_SERVER';
-        break;
-      case 'client':
-        spanKind = 'SPAN_KIND_CLIENT';
-        break;
-      case 'producer':
-        spanKind = 'SPAN_KIND_PRODUCER';
-        break;
-      case 'consumer':
-        spanKind = 'SPAN_KIND_CONSUMER';
-        break;
-      case 'internal':
-        spanKind = 'SPAN_KIND_INTERNAL';
-        break;
-    }
+  const spanKindTagValue = tags.find((t) => t.key === 'span.kind')?.value;
+  switch (spanKindTagValue) {
+    case 'server':
+      spanKind = 'SPAN_KIND_SERVER';
+      break;
+    case 'client':
+      spanKind = 'SPAN_KIND_CLIENT';
+      break;
+    case 'producer':
+      spanKind = 'SPAN_KIND_PRODUCER';
+      break;
+    case 'consumer':
+      spanKind = 'SPAN_KIND_CONSUMER';
+      break;
   }
+
   return spanKind;
 }
 
@@ -387,10 +422,21 @@ function getOTLPSpanKind(kind: string): string | undefined {
  * Converts key-value tags to OTLP attributes and removes tags added by Grafana
  */
 function tagsToAttributes(tags: TraceKeyValuePair[]): collectorTypes.opentelemetryProto.common.v1.KeyValue[] {
-  return tags.reduce<collectorTypes.opentelemetryProto.common.v1.KeyValue[]>(
-    (attributes, tag) => [...attributes, { key: tag.key, value: toAttributeValue(tag) }],
-    []
-  );
+  return tags
+    .filter(
+      (t) =>
+        ![
+          'span.kind',
+          'otel.library.name',
+          'otel.libary.version',
+          'otel.status_description',
+          'otel.status_code',
+        ].includes(t.key)
+    )
+    .reduce<collectorTypes.opentelemetryProto.common.v1.KeyValue[]>(
+      (attributes, tag) => [...attributes, { key: tag.key, value: toAttributeValue(tag) }],
+      []
+    );
 }
 
 /**
@@ -420,14 +466,16 @@ function toAttributeValue(tag: TraceKeyValuePair): collectorTypes.opentelemetryP
   return { stringValue: tag.value };
 }
 
-function getOTLPStatus(span: TraceSpanRow): SpanStatus | undefined {
+function getOTLPStatus(tags: TraceKeyValuePair[]): SpanStatus | undefined {
   let status = undefined;
-  if (span.statusCode !== undefined) {
+  const statusCodeTag = tags.find((t) => t.key === 'otel.status_code');
+  if (statusCodeTag) {
     status = {
-      code: span.statusCode,
-      message: span.statusMessage ? span.statusMessage : '',
+      code: statusCodeTag.value,
+      message: tags.find((t) => t.key === 'otel_status_description')?.value,
     };
   }
+
   return status;
 }
 

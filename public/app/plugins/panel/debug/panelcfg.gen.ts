@@ -8,6 +8,8 @@
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
+export const PanelCfgModelVersion = Object.freeze([0, 0]);
+
 export type UpdateConfig = {
   render: boolean,
   dataChanged: boolean,
@@ -22,7 +24,7 @@ export enum DebugMode {
   ThrowError = 'ThrowError',
 }
 
-export interface Options {
+export interface PanelOptions {
   counters?: UpdateConfig;
   mode: DebugMode;
 }

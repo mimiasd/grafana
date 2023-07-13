@@ -1,15 +1,16 @@
-import { css, cx } from '@emotion/css';
-import { pick } from 'lodash';
-import React, { RefObject, useMemo } from 'react';
-import { shallowEqual } from 'react-redux';
+import { css } from '@emotion/css';
+import React, { lazy, PureComponent, RefObject, Suspense } from 'react';
+import { connect, ConnectedProps } from 'react-redux';
 
 import { DataSourceInstanceSettings, RawTimeRange } from '@grafana/data';
-import { config, reportInteraction } from '@grafana/runtime';
+import { config, DataSourcePicker, reportInteraction } from '@grafana/runtime';
 import { defaultIntervals, PageToolbar, RefreshPicker, SetInterval, ToolbarButton, ButtonGroup } from '@grafana/ui';
 import { AppChromeUpdate } from 'app/core/components/AppChrome/AppChromeUpdate';
+import { contextSrv } from 'app/core/core';
 import { createAndCopyShortLink } from 'app/core/utils/shortLinks';
-import { DataSourcePicker } from 'app/features/datasources/components/picker/DataSourcePicker';
-import { StoreState, useDispatch, useSelector } from 'app/types/store';
+import { AccessControlAction } from 'app/types';
+import { ExploreId } from 'app/types/explore';
+import { StoreState } from 'app/types/store';
 
 import { DashNavButton } from '../dashboard/components/DashNav/DashNavButton';
 import { getTimeSrv } from '../dashboard/services/TimeSrv';
@@ -18,223 +19,322 @@ import { getFiscalYearStartMonth, getTimeZone } from '../profile/state/selectors
 
 import { ExploreTimeControls } from './ExploreTimeControls';
 import { LiveTailButton } from './LiveTailButton';
-import { ToolbarExtensionPoint } from './extensions/ToolbarExtensionPoint';
 import { changeDatasource } from './state/datasource';
 import { splitClose, splitOpen, maximizePaneAction, evenPaneResizeAction } from './state/main';
-import { cancelQueries, runQueries, selectIsWaitingForData } from './state/query';
-import { isSplit, selectPanesEntries } from './state/selectors';
+import { cancelQueries, runQueries } from './state/query';
+import { isSplit } from './state/selectors';
 import { syncTimes, changeRefreshInterval } from './state/time';
 import { LiveTailControls } from './useLiveTailControls';
 
-const rotateIcon = css({
-  '> div > svg': {
-    transform: 'rotate(180deg)',
-  },
-});
+const AddToDashboard = lazy(() =>
+  import('./AddToDashboard').then(({ AddToDashboard }) => ({ default: AddToDashboard }))
+);
 
-interface Props {
-  exploreId: string;
+const getStyles = (exploreId: ExploreId, isLargerExploreId: boolean) => {
+  return {
+    rotateIcon: css({
+      '> div > svg': {
+        transform:
+          (exploreId === 'left' && isLargerExploreId) || (exploreId === 'right' && !isLargerExploreId)
+            ? 'rotate(180deg)'
+            : 'none',
+      },
+    }),
+  };
+};
+
+interface OwnProps {
+  exploreId: ExploreId;
   onChangeTime: (range: RawTimeRange, changedByScanner?: boolean) => void;
   topOfViewRef: RefObject<HTMLDivElement>;
 }
 
-export function ExploreToolbar({ exploreId, topOfViewRef, onChangeTime }: Props) {
-  const dispatch = useDispatch();
+type Props = OwnProps & ConnectedProps<typeof connector>;
 
-  const splitted = useSelector(isSplit);
-  const timeZone = useSelector((state: StoreState) => getTimeZone(state.user));
-  const fiscalYearStartMonth = useSelector((state: StoreState) => getFiscalYearStartMonth(state.user));
-  const { refreshInterval, datasourceInstance, range, isLive, isPaused, syncedTimes } = useSelector(
-    (state: StoreState) => ({
-      ...pick(state.explore.panes[exploreId]!, 'refreshInterval', 'datasourceInstance', 'range', 'isLive', 'isPaused'),
-      syncedTimes: state.explore.syncedTimes,
-    }),
-    shallowEqual
-  );
-  const loading = useSelector(selectIsWaitingForData(exploreId));
-  const isLargerPane = useSelector((state: StoreState) => state.explore.largerExploreId === exploreId);
-  const showSmallTimePicker = useSelector((state) => splitted || state.explore.panes[exploreId]!.containerWidth < 1210);
-  const showSmallDataSourcePicker = useSelector(
-    (state) => state.explore.panes[exploreId]!.containerWidth < (splitted ? 700 : 800)
-  );
+class UnConnectedExploreToolbar extends PureComponent<Props> {
+  onChangeDatasource = async (dsSettings: DataSourceInstanceSettings) => {
+    const { changeDatasource, exploreId } = this.props;
+    changeDatasource(exploreId, dsSettings.uid, { importQueries: true });
+  };
 
-  const panes = useSelector(selectPanesEntries);
+  onRunQuery = (loading = false) => {
+    const { runQueries, cancelQueries, exploreId } = this.props;
+    if (loading) {
+      return cancelQueries(exploreId);
+    } else {
+      return runQueries(exploreId);
+    }
+  };
 
-  const shouldRotateSplitIcon = useMemo(
-    () => (exploreId === panes[0][0] && isLargerPane) || (exploreId === panes[1]?.[0] && !isLargerPane),
-    [isLargerPane, exploreId, panes]
-  );
+  onChangeRefreshInterval = (item: string) => {
+    const { changeRefreshInterval, exploreId } = this.props;
+    changeRefreshInterval(exploreId, item);
+  };
 
-  const onCopyShortLink = () => {
-    createAndCopyShortLink(global.location.href);
+  onChangeTimeSync = () => {
+    const { syncTimes, exploreId } = this.props;
+    syncTimes(exploreId);
+  };
+
+  onCopyShortLink = async () => {
+    await createAndCopyShortLink(window.location.href);
     reportInteraction('grafana_explore_shortened_link_clicked');
   };
 
-  const onChangeDatasource = async (dsSettings: DataSourceInstanceSettings) => {
-    dispatch(changeDatasource(exploreId, dsSettings.uid, { importQueries: true }));
-  };
-
-  const onRunQuery = (loading = false) => {
-    if (loading) {
-      return dispatch(cancelQueries(exploreId));
-    } else {
-      return dispatch(runQueries({ exploreId }));
-    }
-  };
-
-  const onChangeTimeZone = (timezone: string) => dispatch(updateTimeZoneForSession(timezone));
-
-  const onOpenSplitView = () => {
-    dispatch(splitOpen());
+  onOpenSplitView = () => {
+    const { split } = this.props;
+    split();
     reportInteraction('grafana_explore_split_view_opened', { origin: 'menu' });
   };
 
-  const onCloseSplitView = () => {
-    dispatch(splitClose(exploreId));
+  onCloseSplitView = () => {
+    const { closeSplit, exploreId } = this.props;
+    closeSplit(exploreId);
     reportInteraction('grafana_explore_split_view_closed');
   };
 
-  const onClickResize = () => {
-    if (isLargerPane) {
-      dispatch(evenPaneResizeAction());
-    } else {
-      dispatch(maximizePaneAction({ exploreId }));
+  renderRefreshPicker = (showSmallTimePicker: boolean) => {
+    const { loading, refreshInterval, isLive } = this.props;
+
+    let refreshPickerText: string | undefined = loading ? 'Cancel' : 'Run query';
+    let refreshPickerTooltip = undefined;
+    let refreshPickerWidth = '108px';
+    if (showSmallTimePicker) {
+      refreshPickerTooltip = refreshPickerText;
+      refreshPickerText = undefined;
+      refreshPickerWidth = '35px';
     }
+
+    return (
+      <RefreshPicker
+        key="refreshPicker"
+        onIntervalChanged={this.onChangeRefreshInterval}
+        value={refreshInterval}
+        isLoading={loading}
+        text={refreshPickerText}
+        tooltip={refreshPickerTooltip}
+        intervals={getTimeSrv().getValidIntervals(defaultIntervals)}
+        isLive={isLive}
+        onRefresh={() => this.onRunQuery(loading)}
+        noIntervalPicker={isLive}
+        primary={true}
+        width={refreshPickerWidth}
+      />
+    );
   };
 
-  const onChangeTimeSync = () => {
-    dispatch(syncTimes(exploreId));
-  };
+  renderActions = () => {
+    const {
+      splitted,
+      isLive,
+      exploreId,
+      range,
+      timeZone,
+      fiscalYearStartMonth,
+      onChangeTime,
+      syncedTimes,
+      onChangeTimeZone,
+      onChangeFiscalYearStartMonth,
+      isPaused,
+      hasLiveOption,
+      containerWidth,
+      largerExploreId,
+    } = this.props;
+    const showSmallTimePicker = splitted || containerWidth < 1210;
+    const isLargerExploreId = largerExploreId === exploreId;
+    const styles = getStyles(exploreId, isLargerExploreId);
 
-  const onChangeFiscalYearStartMonth = (fiscalyearStartMonth: number) =>
-    dispatch(updateFiscalYearStartMonthForSession(fiscalyearStartMonth));
+    const showExploreToDashboard =
+      contextSrv.hasAccess(AccessControlAction.DashboardsCreate, contextSrv.isEditor) ||
+      contextSrv.hasAccess(AccessControlAction.DashboardsWrite, contextSrv.isEditor);
 
-  const onChangeRefreshInterval = (refreshInterval: string) => {
-    dispatch(changeRefreshInterval({ exploreId, refreshInterval }));
-  };
+    const onClickResize = () => {
+      if (isLargerExploreId) {
+        this.props.evenPaneResizeAction();
+      } else {
+        this.props.maximizePaneAction({ exploreId: exploreId });
+      }
+    };
 
-  return (
-    <div ref={topOfViewRef}>
-      {refreshInterval && <SetInterval func={onRunQuery} interval={refreshInterval} loading={loading} />}
-      <div ref={topOfViewRef}>
-        <AppChromeUpdate
-          actions={[
-            <DashNavButton
-              key="share"
-              tooltip="Copy shortened link"
-              icon="share-alt"
-              onClick={onCopyShortLink}
-              aria-label="Copy shortened link"
-            />,
-            <div style={{ flex: 1 }} key="spacer" />,
-          ]}
+    return [
+      !splitted ? (
+        <ToolbarButton
+          variant="canvas"
+          key="split"
+          tooltip="Split the pane"
+          onClick={this.onOpenSplitView}
+          icon="columns"
+          disabled={isLive}
+        >
+          Split
+        </ToolbarButton>
+      ) : (
+        <ButtonGroup key="split-controls">
+          <ToolbarButton
+            variant="canvas"
+            tooltip={`${isLargerExploreId ? 'Narrow' : 'Widen'} pane`}
+            onClick={onClickResize}
+            icon={isLargerExploreId ? 'gf-movepane-left' : 'gf-movepane-right'}
+            iconOnly={true}
+            className={styles.rotateIcon}
+          />
+          <ToolbarButton tooltip="Close split pane" onClick={this.onCloseSplitView} icon="times" variant="canvas">
+            Close
+          </ToolbarButton>
+        </ButtonGroup>
+      ),
+
+      showExploreToDashboard && (
+        <Suspense key="addToDashboard" fallback={null}>
+          <AddToDashboard exploreId={exploreId} />
+        </Suspense>
+      ),
+
+      !isLive && (
+        <ExploreTimeControls
+          key="timeControls"
+          exploreId={exploreId}
+          range={range}
+          timeZone={timeZone}
+          fiscalYearStartMonth={fiscalYearStartMonth}
+          onChangeTime={onChangeTime}
+          splitted={splitted}
+          syncedTimes={syncedTimes}
+          onChangeTimeSync={this.onChangeTimeSync}
+          hideText={showSmallTimePicker}
+          onChangeTimeZone={onChangeTimeZone}
+          onChangeFiscalYearStartMonth={onChangeFiscalYearStartMonth}
         />
-      </div>
-      <PageToolbar
-        aria-label="Explore toolbar"
-        leftItems={[
-          <DataSourcePicker
-            key={`${exploreId}-ds-picker`}
-            mixed={config.featureToggles.exploreMixedDatasource === true}
-            onChange={onChangeDatasource}
-            current={datasourceInstance?.getRef()}
-            hideTextValue={showSmallDataSourcePicker}
-            width={showSmallDataSourcePicker ? 8 : undefined}
-          />,
-        ]}
-        forceShowLeftItems
-      >
-        {[
-          !splitted ? (
-            <ToolbarButton
-              variant="canvas"
-              key="split"
-              tooltip="Split the pane"
-              onClick={onOpenSplitView}
-              icon="columns"
-              disabled={isLive}
-            >
-              Split
-            </ToolbarButton>
-          ) : (
-            <ButtonGroup key="split-controls">
-              <ToolbarButton
-                variant="canvas"
-                tooltip={`${isLargerPane ? 'Narrow' : 'Widen'} pane`}
-                onClick={onClickResize}
-                icon={isLargerPane ? 'gf-movepane-left' : 'gf-movepane-right'}
-                iconOnly={true}
-                className={cx(shouldRotateSplitIcon && rotateIcon)}
+      ),
+
+      this.renderRefreshPicker(showSmallTimePicker),
+
+      hasLiveOption && (
+        <LiveTailControls key="liveControls" exploreId={exploreId}>
+          {(c) => {
+            const controls = {
+              ...c,
+              start: () => {
+                reportInteraction('grafana_explore_logs_live_tailing_clicked', {
+                  datasourceType: this.props.datasourceType,
+                });
+                c.start();
+              },
+            };
+            return (
+              <LiveTailButton
+                splitted={splitted}
+                isLive={isLive}
+                isPaused={isPaused}
+                start={controls.start}
+                pause={controls.pause}
+                resume={controls.resume}
+                stop={controls.stop}
               />
-              <ToolbarButton tooltip="Close split pane" onClick={onCloseSplitView} icon="times" variant="canvas">
-                Close
-              </ToolbarButton>
-            </ButtonGroup>
-          ),
-          <ToolbarExtensionPoint
-            splitted={splitted}
-            key="toolbar-extension-point"
-            exploreId={exploreId}
-            timeZone={timeZone}
-          />,
-          !isLive && (
-            <ExploreTimeControls
-              key="timeControls"
-              exploreId={exploreId}
-              range={range}
-              timeZone={timeZone}
-              fiscalYearStartMonth={fiscalYearStartMonth}
-              onChangeTime={onChangeTime}
-              splitted={splitted}
-              syncedTimes={syncedTimes}
-              onChangeTimeSync={onChangeTimeSync}
-              hideText={showSmallTimePicker}
-              onChangeTimeZone={onChangeTimeZone}
-              onChangeFiscalYearStartMonth={onChangeFiscalYearStartMonth}
-            />
-          ),
-          <RefreshPicker
-            key="refreshPicker"
-            onIntervalChanged={onChangeRefreshInterval}
-            value={refreshInterval}
-            isLoading={loading}
-            text={showSmallTimePicker ? undefined : loading ? 'Cancel' : 'Run query'}
-            tooltip={showSmallTimePicker ? (loading ? 'Cancel' : 'Run query') : undefined}
-            intervals={getTimeSrv().getValidIntervals(defaultIntervals)}
-            isLive={isLive}
-            onRefresh={() => onRunQuery(loading)}
-            noIntervalPicker={isLive}
-            primary={true}
-            width={(showSmallTimePicker ? 35 : 108) + 'px'}
-          />,
-          datasourceInstance?.meta.streaming && (
-            <LiveTailControls key="liveControls" exploreId={exploreId}>
-              {(c) => {
-                const controls = {
-                  ...c,
-                  start: () => {
-                    reportInteraction('grafana_explore_logs_live_tailing_clicked', {
-                      datasourceType: datasourceInstance?.type,
-                    });
-                    c.start();
-                  },
-                };
-                return (
-                  <LiveTailButton
-                    splitted={splitted}
-                    isLive={isLive}
-                    isPaused={isPaused}
-                    start={controls.start}
-                    pause={controls.pause}
-                    resume={controls.resume}
-                    stop={controls.stop}
-                  />
-                );
-              }}
-            </LiveTailControls>
-          ),
-        ].filter(Boolean)}
-      </PageToolbar>
-    </div>
-  );
+            );
+          }}
+        </LiveTailControls>
+      ),
+    ].filter(Boolean);
+  };
+
+  render() {
+    const { datasourceMissing, exploreId, splitted, containerWidth, topOfViewRef, refreshInterval, loading } =
+      this.props;
+
+    const showSmallDataSourcePicker = (splitted ? containerWidth < 700 : containerWidth < 800) || false;
+    const isTopnav = config.featureToggles.topnav;
+
+    const shareButton = (
+      <DashNavButton
+        key="share"
+        tooltip="Copy shortened link"
+        icon="share-alt"
+        onClick={this.onCopyShortLink}
+        aria-label="Copy shortened link"
+      />
+    );
+
+    const getDataSourcePicker = () =>
+      !datasourceMissing && (
+        <DataSourcePicker
+          key={`${exploreId}-ds-picker`}
+          mixed={config.featureToggles.exploreMixedDatasource === true}
+          onChange={this.onChangeDatasource}
+          current={this.props.datasourceRef}
+          hideTextValue={showSmallDataSourcePicker}
+          width={showSmallDataSourcePicker ? 8 : undefined}
+        />
+      );
+
+    const toolbarLeftItems = [
+      // We only want to show the shortened link button in the left Toolbar if topnav is not enabled as with topnav enabled it sits next to the brecrumbs
+      !isTopnav && exploreId === ExploreId.left && shareButton,
+      getDataSourcePicker(),
+    ].filter(Boolean);
+
+    return (
+      <div ref={topOfViewRef}>
+        {refreshInterval && <SetInterval func={this.onRunQuery} interval={refreshInterval} loading={loading} />}
+        {isTopnav && (
+          <div ref={topOfViewRef}>
+            <AppChromeUpdate actions={[shareButton, <div style={{ flex: 1 }} key="spacer" />]} />
+          </div>
+        )}
+        <PageToolbar
+          aria-label="Explore toolbar"
+          title={exploreId === ExploreId.left && !isTopnav ? 'Explore' : undefined}
+          pageIcon={exploreId === ExploreId.left && !isTopnav ? 'compass' : undefined}
+          leftItems={toolbarLeftItems}
+        >
+          {this.renderActions()}
+        </PageToolbar>
+      </div>
+    );
+  }
 }
+
+const mapStateToProps = (state: StoreState, { exploreId }: OwnProps) => {
+  const { syncedTimes, largerExploreId } = state.explore;
+  const exploreItem = state.explore[exploreId]!;
+  const { datasourceInstance, datasourceMissing, range, refreshInterval, loading, isLive, isPaused, containerWidth } =
+    exploreItem;
+
+  const hasLiveOption = !!datasourceInstance?.meta?.streaming;
+
+  return {
+    datasourceMissing,
+    datasourceRef: datasourceInstance?.getRef(),
+    datasourceType: datasourceInstance?.type,
+    loading,
+    range,
+    timeZone: getTimeZone(state.user),
+    fiscalYearStartMonth: getFiscalYearStartMonth(state.user),
+    splitted: isSplit(state),
+    refreshInterval,
+    hasLiveOption,
+    isLive,
+    isPaused,
+    syncedTimes,
+    containerWidth,
+    largerExploreId,
+  };
+};
+
+const mapDispatchToProps = {
+  changeDatasource,
+  changeRefreshInterval,
+  cancelQueries,
+  runQueries,
+  closeSplit: splitClose,
+  split: splitOpen,
+  syncTimes,
+  onChangeTimeZone: updateTimeZoneForSession,
+  onChangeFiscalYearStartMonth: updateFiscalYearStartMonthForSession,
+  maximizePaneAction,
+  evenPaneResizeAction,
+};
+
+const connector = connect(mapStateToProps, mapDispatchToProps);
+
+export const ExploreToolbar = connector(UnConnectedExploreToolbar);

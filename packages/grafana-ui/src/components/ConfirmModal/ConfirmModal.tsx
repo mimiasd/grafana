@@ -37,10 +37,8 @@ export interface ConfirmModalProps {
   alternativeText?: string;
   /** Confirm button variant */
   confirmButtonVariant?: ButtonVariant;
-  /** Confirm action callback
-   * Return a promise to disable the confirm button until the promise is resolved
-   */
-  onConfirm(): void | Promise<void>;
+  /** Confirm action callback */
+  onConfirm(): void;
   /** Dismiss action callback */
   onDismiss(): void;
   /** Alternative action callback */
@@ -69,7 +67,7 @@ export const ConfirmModal = ({
   const styles = useStyles2(getStyles);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const onConfirmationTextChange = (event: React.FormEvent<HTMLInputElement>) => {
-    setDisabled(confirmationText?.toLowerCase().localeCompare(event.currentTarget.value.toLowerCase()) !== 0);
+    setDisabled(confirmationText?.localeCompare(event.currentTarget.value) !== 0);
   };
 
   useEffect(() => {
@@ -85,15 +83,6 @@ export const ConfirmModal = ({
     }
   }, [isOpen, confirmationText]);
 
-  const onConfirmClick = async () => {
-    setDisabled(true);
-    try {
-      await onConfirm();
-    } finally {
-      setDisabled(false);
-    }
-  };
-
   return (
     <Modal className={cx(styles.modal, modalClass)} title={title} icon={icon} isOpen={isOpen} onDismiss={onDismiss}>
       <div className={styles.modalText}>
@@ -102,7 +91,7 @@ export const ConfirmModal = ({
         {confirmationText ? (
           <div className={styles.modalConfirmationInput}>
             <HorizontalGroup>
-              <Input placeholder={`Type "${confirmationText}" to confirm`} onChange={onConfirmationTextChange} />
+              <Input placeholder={`Type ${confirmationText} to confirm`} onChange={onConfirmationTextChange} />
             </HorizontalGroup>
           </div>
         ) : null}
@@ -113,10 +102,10 @@ export const ConfirmModal = ({
         </Button>
         <Button
           variant={confirmButtonVariant}
-          onClick={onConfirmClick}
+          onClick={onConfirm}
           disabled={disabled}
           ref={buttonRef}
-          data-testid={selectors.pages.ConfirmModal.delete}
+          aria-label={selectors.pages.ConfirmModal.delete}
         >
           {confirmText}
         </Button>

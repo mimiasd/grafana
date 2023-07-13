@@ -10,12 +10,14 @@
 
 import * as common from '@grafana/schema';
 
-export interface Options extends common.SingleStatBaseOptions {
+export const PanelCfgModelVersion = Object.freeze([0, 0]);
+
+export interface PanelOptions extends common.SingleStatBaseOptions {
   showThresholdLabels: boolean;
   showThresholdMarkers: boolean;
 }
 
-export const defaultOptions: Partial<Options> = {
+export const defaultPanelOptions: Partial<PanelOptions> = {
   showThresholdLabels: false,
   showThresholdMarkers: true,
 };

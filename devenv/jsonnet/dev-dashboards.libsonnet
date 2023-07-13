@@ -79,13 +79,6 @@ local dashboard = grafana.dashboard;
         id: 0,
       }
     },
-    dashboard.new('annotation-filtering', import '../dev-dashboards/annotations/annotation-filtering.json') +
-    resource.addMetadata('folder', 'dev-dashboards') +
-    {
-      spec+: {
-        id: 0,
-      }
-    },
     dashboard.new('auto_decimals', import '../dev-dashboards/panel-common/auto_decimals.json') +
     resource.addMetadata('folder', 'dev-dashboards') +
     {
@@ -128,21 +121,7 @@ local dashboard = grafana.dashboard;
         id: 0,
       }
     },
-    dashboard.new('barchart-tooltips', import '../dev-dashboards/panel-barchart/barchart-tooltips.json') +
-    resource.addMetadata('folder', 'dev-dashboards') +
-    {
-      spec+: {
-        id: 0,
-      }
-    },
     dashboard.new('candlestick', import '../dev-dashboards/panel-candlestick/candlestick.json') +
-    resource.addMetadata('folder', 'dev-dashboards') +
-    {
-      spec+: {
-        id: 0,
-      }
-    },
-    dashboard.new('canvas-connection-examples', import '../dev-dashboards/panel-canvas/canvas-connection-examples.json') +
     resource.addMetadata('folder', 'dev-dashboards') +
     {
       spec+: {
@@ -170,20 +149,6 @@ local dashboard = grafana.dashboard;
         id: 0,
       }
     },
-    dashboard.new('datadata-macros', import '../dev-dashboards/feature-templating/datadata-macros.json') +
-    resource.addMetadata('folder', 'dev-dashboards') +
-    {
-      spec+: {
-        id: 0,
-      }
-    },
-    dashboard.new('datagrid_metric_values', import '../dev-dashboards/panel-datagrid/datagrid_metric_values.json') +
-    resource.addMetadata('folder', 'dev-dashboards') +
-    {
-      spec+: {
-        id: 0,
-      }
-    },
     dashboard.new('demo1', import '../dev-dashboards/datasource-testdata/demo1.json') +
     resource.addMetadata('folder', 'dev-dashboards') +
     {
@@ -191,21 +156,21 @@ local dashboard = grafana.dashboard;
         id: 0,
       }
     },
-    dashboard.new('elasticsearch_complex', import '../dev-dashboards/datasource-elasticsearch/elasticsearch_complex.json') +
+    dashboard.new('elasticsearch_compare', import '../dev-dashboards/datasource-elasticsearch/elasticsearch_compare.json') +
     resource.addMetadata('folder', 'dev-dashboards') +
     {
       spec+: {
         id: 0,
       }
     },
-    dashboard.new('elasticsearch_migration', import '../dev-dashboards/datasource-elasticsearch/elasticsearch_migration.json') +
+    dashboard.new('elasticsearch_v7', import '../dev-dashboards/datasource-elasticsearch/elasticsearch_v7.json') +
     resource.addMetadata('folder', 'dev-dashboards') +
     {
       spec+: {
         id: 0,
       }
     },
-    dashboard.new('elasticsearch_simple', import '../dev-dashboards/datasource-elasticsearch/elasticsearch_simple.json') +
+    dashboard.new('elasticsearch_v7_filebeat', import '../dev-dashboards/datasource-elasticsearch/elasticsearch_v7_filebeat.json') +
     resource.addMetadata('folder', 'dev-dashboards') +
     {
       spec+: {
@@ -408,13 +373,6 @@ local dashboard = grafana.dashboard;
         id: 0,
       }
     },
-    dashboard.new('migrations', import '../dev-dashboards/migrations/migrations.json') +
-    resource.addMetadata('folder', 'dev-dashboards') +
-    {
-      spec+: {
-        id: 0,
-      }
-    },
     dashboard.new('mssql_fakedata', import '../dev-dashboards/datasource-mssql/mssql_fakedata.json') +
     resource.addMetadata('folder', 'dev-dashboards') +
     {
@@ -513,13 +471,6 @@ local dashboard = grafana.dashboard;
         id: 0,
       }
     },
-    dashboard.new('panel_tests_flame_graph', import '../dev-dashboards/panel-flamegraph/panel_tests_flame_graph.json') +
-    resource.addMetadata('folder', 'dev-dashboards') +
-    {
-      spec+: {
-        id: 0,
-      }
-    },
     dashboard.new('panels_without_title', import '../dev-dashboards/panel-common/panels_without_title.json') +
     resource.addMetadata('folder', 'dev-dashboards') +
     {
@@ -577,13 +528,6 @@ local dashboard = grafana.dashboard;
       }
     },
     dashboard.new('table_pagination', import '../dev-dashboards/panel-table/table_pagination.json') +
-    resource.addMetadata('folder', 'dev-dashboards') +
-    {
-      spec+: {
-        id: 0,
-      }
-    },
-    dashboard.new('table_sparkline_cell', import '../dev-dashboards/panel-table/table_sparkline_cell.json') +
     resource.addMetadata('folder', 'dev-dashboards') +
     {
       spec+: {
@@ -723,13 +667,6 @@ local dashboard = grafana.dashboard;
         id: 0,
       }
     },
-    dashboard.new('timeseries-formats', import '../dev-dashboards/panel-timeseries/timeseries-formats.json') +
-    resource.addMetadata('folder', 'dev-dashboards') +
-    {
-      spec+: {
-        id: 0,
-      }
-    },
     dashboard.new('timeseries-gradient-area', import '../dev-dashboards/panel-timeseries/timeseries-gradient-area.json') +
     resource.addMetadata('folder', 'dev-dashboards') +
     {
@@ -808,13 +745,6 @@ local dashboard = grafana.dashboard;
       }
     },
     dashboard.new('timeseries-yaxis-ticks', import '../dev-dashboards/panel-timeseries/timeseries-yaxis-ticks.json') +
-    resource.addMetadata('folder', 'dev-dashboards') +
-    {
-      spec+: {
-        id: 0,
-      }
-    },
-    dashboard.new('trend_example', import '../dev-dashboards/panel-trend/trend_example.json') +
     resource.addMetadata('folder', 'dev-dashboards') +
     {
       spec+: {

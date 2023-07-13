@@ -17,9 +17,7 @@ Auditing allows you to track important changes to your Grafana instance. By defa
 
 Only API requests or UI actions that trigger an API request generate an audit log.
 
-{{% admonition type="note" %}}
-Available in [Grafana Enterprise]({{< relref "../../introduction/grafana-enterprise" >}}) version 7.3 and later, and [Grafana Cloud](/docs/grafana-cloud).
-{{% /admonition %}}
+> **Note:** Available in [Grafana Enterprise]({{< relref "../../introduction/grafana-enterprise/" >}}) version 7.3 and later, and [Grafana Cloud Advanced](/docs/grafana-cloud).
 
 ## Audit logs
 
@@ -137,7 +135,7 @@ to the action when the user requests a report's preview to be sent through email
 
 \* Where `AUTH-MODULE` is the name of the authentication module: `grafana`, `saml`,
 `ldap`, etc. \
-\*\* Includes manual log out, token expired/revoked, and [SAML Single Logout]({{< relref "./configure-authentication/saml#single-logout" >}}).
+\*\* Includes manual log out, token expired/revoked, and [SAML Single Logout]({{< relref "configure-authentication/saml/#single-logout" >}}).
 
 #### Service accounts
 
@@ -365,12 +363,10 @@ Furthermore, you can also record `GET` requests. See below how to configure it.
 
 ## Configuration
 
-{{% admonition type="note" %}}
-The auditing feature is disabled by default.
-{{% /admonition %}}
+> **Note:** The auditing feature is disabled by default.
 
 Audit logs can be saved into files, sent to a Loki instance or sent to the Grafana default logger. By default, only the file exporter is enabled.
-You can choose which exporter to use in the [configuration file]({{< relref "../configure-grafana" >}}).
+You can choose which exporter to use in the [configuration file]({{< relref "../configure-grafana/" >}}).
 
 Options are `file`, `loki`, and `logger`. Use spaces to separate multiple modes, such as `file loki`.
 
@@ -414,9 +410,7 @@ max_file_size_mb = 256
 
 Audit logs are sent to a [Loki](/oss/loki/) service, through HTTP or gRPC.
 
-{{% admonition type="note" %}}
-The HTTP option for the Loki exporter is available only in Grafana Enterprise version 7.4 and later.
-{{% /admonition %}}
+> **Note:** The HTTP option for the Loki exporter is available only in Grafana Enterprise version 7.4 and later.
 
 ```ini
 [auditing.logs.loki]
@@ -426,9 +420,6 @@ type = grpc
 url = localhost:9095
 # Defaults to true. If true, it establishes a secure connection to Loki
 tls = true
-# Set the tenant ID for Loki communication, which is disabled by default.
-# The tenant ID is required to interact with Loki running in multi-tenant mode.
-tenant_id =
 ```
 
 If you have multiple Grafana instances sending logs to the same Loki service or if you are using Loki for non-audit logs, audit logs come with additional labels to help identifying them:
@@ -439,4 +430,4 @@ If you have multiple Grafana instances sending logs to the same Loki service or 
 
 ### Console exporter
 
-Audit logs are sent to the Grafana default logger. The audit logs use the `auditing.console` logger and are logged on `debug`-level, learn how to enable debug logging in the [log configuration]({{< relref "../configure-grafana#log" >}}) section of the documentation. Accessing the audit logs in this way is not recommended for production use.
+Audit logs are sent to the Grafana default logger. The audit logs use the `auditing.console` logger and are logged on `debug`-level, learn how to enable debug logging in the [log configuration]({{< relref "../configure-grafana/#log" >}}) section of the documentation. Accessing the audit logs in this way is not recommended for production use.

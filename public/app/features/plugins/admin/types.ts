@@ -57,7 +57,6 @@ export interface CatalogPlugin extends WithAccessControlMetadata {
   installedVersion?: string;
   details?: CatalogPluginDetails;
   error?: PluginErrorCode;
-  angularDetected?: boolean;
 }
 
 export interface CatalogPluginDetails {
@@ -124,7 +123,6 @@ export type RemotePlugin = {
   versionSignedByOrg: string;
   versionSignedByOrgName: string;
   versionStatus: string;
-  angularDetected?: boolean;
 };
 
 export type LocalPlugin = WithAccessControlMetadata & {
@@ -158,7 +156,6 @@ export type LocalPlugin = WithAccessControlMetadata & {
   state: string;
   type: PluginType;
   dependencies: PluginDependencies;
-  angularDetected: boolean;
 };
 
 interface Rel {

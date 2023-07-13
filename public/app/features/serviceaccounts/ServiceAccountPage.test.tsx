@@ -30,6 +30,7 @@ const setup = (propOverrides: Partial<Props>) => {
     serviceAccount: {} as ServiceAccountDTO,
     tokens: [],
     isLoading: false,
+    roleOptions: [],
     match: {
       params: { id: '1' },
       isExact: true,

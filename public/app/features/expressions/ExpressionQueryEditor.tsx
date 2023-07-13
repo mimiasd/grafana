@@ -8,12 +8,12 @@ import { Math } from './components/Math';
 import { Reduce } from './components/Reduce';
 import { Resample } from './components/Resample';
 import { Threshold } from './components/Threshold';
-import { ExpressionQuery, ExpressionQueryType, expressionTypes } from './types';
+import { ExpressionQuery, ExpressionQueryType, gelTypes } from './types';
 import { getDefaults } from './utils/expressionTypes';
 
 type Props = QueryEditorProps<DataSourceApi<ExpressionQuery>, ExpressionQuery>;
 
-const labelWidth = 15;
+const labelWidth = 14;
 
 type NonClassicExpressionType = Exclude<ExpressionQueryType, ExpressionQueryType.classic>;
 type ExpressionTypeConfigStorage = Partial<Record<NonClassicExpressionType, string>>;
@@ -92,12 +92,12 @@ export function ExpressionQueryEditor(props: Props) {
     }
   };
 
-  const selected = expressionTypes.find((o) => o.value === query.type);
+  const selected = gelTypes.find((o) => o.value === query.type);
 
   return (
     <div>
       <InlineField label="Operation" labelWidth={labelWidth}>
-        <Select options={expressionTypes} value={selected} onChange={onSelectExpressionType} width={25} />
+        <Select options={gelTypes} value={selected} onChange={onSelectExpressionType} width={25} />
       </InlineField>
       {renderExpressionType()}
     </div>

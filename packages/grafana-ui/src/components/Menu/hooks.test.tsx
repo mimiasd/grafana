@@ -1,4 +1,6 @@
-import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
+import { fireEvent } from '@testing-library/dom';
+import { render, screen } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react-hooks';
 import React, { createRef, KeyboardEvent, RefObject } from 'react';
 
 import { useMenuFocus } from './hooks';

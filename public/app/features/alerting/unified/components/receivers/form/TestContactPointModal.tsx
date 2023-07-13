@@ -7,7 +7,6 @@ import { Modal, Button, Label, useStyles2, RadioButtonGroup } from '@grafana/ui'
 import { TestReceiversAlert } from 'app/plugins/datasource/alertmanager/types';
 import { Annotations, Labels } from 'app/types/unified-alerting-dto';
 
-import { defaultAnnotations } from '../../../utils/constants';
 import AnnotationsField from '../../rule-editor/AnnotationsField';
 import LabelsField from '../../rule-editor/LabelsField';
 
@@ -35,7 +34,7 @@ enum NotificationType {
 const notificationOptions = Object.values(NotificationType).map((value) => ({ label: value, value: value }));
 
 const defaultValues: FormFields = {
-  annotations: [...defaultAnnotations],
+  annotations: [{ key: '', value: '' }],
   labels: [{ key: '', value: '' }],
 };
 

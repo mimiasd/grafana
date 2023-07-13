@@ -1,6 +1,5 @@
-import { Vector, makeArrayIndexableVector } from '../types/vector';
+import { Vector } from '../types/vector';
 
-import { FunctionalVector } from './FunctionalVector';
 import { vectorToArray } from './vectorToArray';
 
 interface AppendedVectorInfo<T> {
@@ -13,17 +12,13 @@ interface AppendedVectorInfo<T> {
  * This may be more trouble than it is worth.  This trades some computation time for
  * RAM -- rather than allocate a new array the size of all previous arrays, this just
  * points the correct index to their original array values
- *
- * @deprecated use a simple Arrays.  NOTE this is not used in grafana core
  */
-export class AppendedVectors<T = any> extends FunctionalVector<T> {
+export class AppendedVectors<T = any> implements Vector<T> {
   length = 0;
   source: Array<AppendedVectorInfo<T>> = [];
 
   constructor(startAt = 0) {
-    super();
     this.length = startAt;
-    return makeArrayIndexableVector(this);
   }
 
   /**
@@ -63,7 +58,7 @@ export class AppendedVectors<T = any> extends FunctionalVector<T> {
     for (let i = 0; i < this.source.length; i++) {
       const src = this.source[i];
       if (index >= src.start && index < src.end) {
-        return src.values[index - src.start];
+        return src.values.get(index - src.start);
       }
     }
     return undefined as unknown as T;

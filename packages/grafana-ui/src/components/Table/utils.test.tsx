@@ -1,6 +1,6 @@
 import { Row } from 'react-table';
 
-import { Field, FieldType, MutableDataFrame, SelectableValue } from '@grafana/data';
+import { ArrayVector, Field, FieldType, MutableDataFrame, SelectableValue } from '@grafana/data';
 
 import {
   calculateUniqueFieldValues,
@@ -12,6 +12,8 @@ import {
   sortNumber,
   sortOptions,
   valuesToOptions,
+  buildBufferedEmptyValues,
+  buildFieldsForOptionalRowNums,
 } from './utils';
 
 function getData() {
@@ -92,7 +94,7 @@ describe('Table utils', () => {
 
   describe('filterByValue', () => {
     describe('happy path', () => {
-      const field = { values: ['a', 'aa', 'ab', 'b', 'ba', 'bb', 'c'] } as unknown as Field;
+      const field = { values: new ArrayVector(['a', 'aa', 'ab', 'b', 'ba', 'bb', 'c']) } as unknown as Field;
       const rows = [
         { index: 0, values: { 0: 'a' } },
         { index: 1, values: { 0: 'aa' } },
@@ -116,7 +118,7 @@ describe('Table utils', () => {
     describe('fast exit cases', () => {
       describe('no rows', () => {
         it('should return empty array', () => {
-          const field = { values: ['a'] } as unknown as Field;
+          const field = { values: new ArrayVector(['a']) } as unknown as Field;
           const rows: Row[] = [];
           const filterValues = [{ value: 'a' }];
 
@@ -128,7 +130,7 @@ describe('Table utils', () => {
 
       describe('no filterValues', () => {
         it('should return rows', () => {
-          const field = { values: ['a'] } as unknown as Field;
+          const field = { values: new ArrayVector(['a']) } as unknown as Field;
           const rows = [{}] as Row[];
           const filterValues = undefined;
 
@@ -152,7 +154,7 @@ describe('Table utils', () => {
 
       describe('missing id in values', () => {
         it('should return rows', () => {
-          const field = { values: ['a', 'b', 'c'] } as unknown as Field;
+          const field = { values: new ArrayVector(['a', 'b', 'c']) } as unknown as Field;
           const rows = [
             { index: 0, values: { 0: 'a' } },
             { index: 1, values: { 0: 'b' } },
@@ -185,7 +187,7 @@ describe('Table utils', () => {
         const field: Field = {
           config: {},
           labels: {},
-          values: [1],
+          values: new ArrayVector([1]),
           name: 'value',
           type: FieldType.number,
           getLinks: () => [],
@@ -210,7 +212,7 @@ describe('Table utils', () => {
       it('then it should return an array with unique values', () => {
         const field: Field = {
           config: {},
-          values: [1, 2, 2, 1, 3, 5, 6],
+          values: new ArrayVector([1, 2, 2, 1, 3, 5, 6]),
           name: 'value',
           type: FieldType.number,
           display: jest.fn().mockImplementation((value) => ({
@@ -238,7 +240,7 @@ describe('Table utils', () => {
       it('then it should return an array with unique values', () => {
         const field: Field = {
           config: {},
-          values: [1, 2, 2, 1, 3, 5, 6],
+          values: new ArrayVector([1, 2, 2, 1, 3, 5, 6]),
           name: 'value',
           type: FieldType.number,
         };
@@ -257,7 +259,7 @@ describe('Table utils', () => {
         it('then it should return an array with unique values and (Blanks)', () => {
           const field: Field = {
             config: {},
-            values: [1, null, null, 1, 3, 5, 6],
+            values: new ArrayVector([1, null, null, 1, 3, 5, 6]),
             name: 'value',
             type: FieldType.number,
           };
@@ -282,7 +284,7 @@ describe('Table utils', () => {
           name: 'value',
           type: FieldType.string,
           config: {},
-          values: ['a', 'b', 'c'],
+          values: new ArrayVector(['a', 'b', 'c']),
         };
         const row = { index: 1 };
 
@@ -294,7 +296,7 @@ describe('Table utils', () => {
       describe('field with display processor', () => {
         const field: Field = {
           config: {},
-          values: [1, 2, 2, 1, 3, 5, 6],
+          values: new ArrayVector([1, 2, 2, 1, 3, 5, 6]),
           name: 'value',
           type: FieldType.number,
           display: jest.fn().mockImplementation((value) => ({
@@ -327,7 +329,7 @@ describe('Table utils', () => {
           name: 'value',
           type: FieldType.string,
           config: {},
-          values: ['a', 'b', 'c'],
+          values: new ArrayVector(['a', 'b', 'c']),
         };
         const row = undefined;
 
@@ -372,6 +374,30 @@ describe('Table utils', () => {
       ${{ label: 'a' }}       | ${{ label: 'a' }}       | ${0}
     `("when called with a: '$a.toString', b: '$b.toString' then result should be '$expected'", ({ a, b, expected }) => {
       expect(sortOptions(a, b)).toEqual(expected);
+    });
+  });
+
+  describe('buildBufferedEmptyValues', () => {
+    it('should build a buffered VectorArray of empty values the length of the number passed to it as an argument', () => {
+      const arrayVectorLength = 10;
+      const bufferedArray = buildBufferedEmptyValues(arrayVectorLength);
+      expect(bufferedArray).toBeInstanceOf(ArrayVector);
+
+      // Convert back into a standard array type.
+      const nonBufferedArray = Array.from(bufferedArray);
+      expect(nonBufferedArray[0]).toEqual(undefined);
+      expect(nonBufferedArray[nonBufferedArray.length - 1]).toEqual(undefined);
+    });
+  });
+
+  describe('buildFieldsForOptionalRowNums', () => {
+    it('should prepend a Field to a `DataFrame.field` so row numbers can be calculated and rendered', () => {
+      const builtField = buildFieldsForOptionalRowNums(10);
+
+      expect(builtField['name']).toEqual(' ');
+      expect(builtField['type']).toEqual(FieldType.string);
+      expect(typeof builtField['display']).toBe('function');
+      expect(typeof builtField['config']).toBe('object');
     });
   });
 

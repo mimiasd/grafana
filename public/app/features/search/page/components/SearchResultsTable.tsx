@@ -1,16 +1,15 @@
+/* eslint-disable react/jsx-no-undef */
 import { css } from '@emotion/css';
 import React, { useEffect, useMemo, useRef, useCallback, useState, CSSProperties } from 'react';
-import { useTable, Column, TableOptions, Cell } from 'react-table';
+import { useTable, Column, TableOptions, Cell, useAbsoluteLayout } from 'react-table';
 import { FixedSizeList } from 'react-window';
 import InfiniteLoader from 'react-window-infinite-loader';
 import { Observable } from 'rxjs';
 
 import { Field, GrafanaTheme2 } from '@grafana/data';
-import { TableCellHeight } from '@grafana/schema';
-import { useStyles2, useTheme2 } from '@grafana/ui';
+import { useStyles2 } from '@grafana/ui';
 import { TableCell } from '@grafana/ui/src/components/Table/TableCell';
-import { useTableStyles } from '@grafana/ui/src/components/Table/styles';
-import { useCustomFlexLayout } from 'app/features/browse-dashboards/components/customFlexTableLayout';
+import { getTableStyles } from '@grafana/ui/src/components/Table/styles';
 
 import { useSearchKeyboardNavigation } from '../../hooks/useSearchKeyboardSelection';
 import { QueryResponse } from '../../service';
@@ -35,7 +34,7 @@ export type TableColumn = Column & {
   field?: Field;
 };
 
-const ROW_HEIGHT = 36; // pixels
+const HEADER_HEIGHT = 36; // pixels
 
 export const SearchResultsTable = React.memo(
   ({
@@ -52,7 +51,7 @@ export const SearchResultsTable = React.memo(
   }: SearchResultsProps) => {
     const styles = useStyles2(getStyles);
     const columnStyles = useStyles2(getColumnStyles);
-    const tableStyles = useTableStyles(useTheme2(), TableCellHeight.Sm);
+    const tableStyles = useStyles2(getTableStyles);
     const infiniteLoaderRef = useRef<InfiniteLoader>(null);
     const [listEl, setListEl] = useState<FixedSizeList | null>(null);
     const highlightIndex = useSearchKeyboardNavigation(keyboardEvents, 0, response);
@@ -101,36 +100,14 @@ export const SearchResultsTable = React.memo(
       [memoizedColumns, memoizedData]
     );
 
-    const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = useTable(options, useCustomFlexLayout);
-
-    const handleLoadMore = useCallback(
-      async (startIndex: number, endIndex: number) => {
-        await response.loadMoreItems(startIndex, endIndex);
-
-        // After we load more items, select them if the "select all" checkbox
-        // is selected
-        const isAllSelected = selection?.('*', '*');
-        if (!selectionToggle || !selection || !isAllSelected) {
-          return;
-        }
-
-        for (let index = startIndex; index < response.view.length; index++) {
-          const item = response.view.get(index);
-          const itemIsSelected = selection(item.kind, item.uid);
-          if (!itemIsSelected) {
-            selectionToggle(item.kind, item.uid);
-          }
-        }
-      },
-      [response, selection, selectionToggle]
-    );
+    const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = useTable(options, useAbsoluteLayout);
 
     const RenderRow = useCallback(
       ({ index: rowIndex, style }: { index: number; style: CSSProperties }) => {
         const row = rows[rowIndex];
         prepareRow(row);
 
-        const url = response.view.fields.url?.values[rowIndex];
+        const url = response.view.fields.url?.values.get(rowIndex);
         let className = styles.rowContainer;
         if (rowIndex === highlightIndex.y) {
           className += ' ' + styles.selectedRow;
@@ -162,31 +139,31 @@ export const SearchResultsTable = React.memo(
 
     return (
       <div {...getTableProps()} aria-label="Search results table" role="table">
-        {headerGroups.map((headerGroup) => {
-          const { key, ...headerGroupProps } = headerGroup.getHeaderGroupProps({
-            style: { width },
-          });
+        <div>
+          {headerGroups.map((headerGroup) => {
+            const { key, ...headerGroupProps } = headerGroup.getHeaderGroupProps();
 
-          return (
-            <div key={key} {...headerGroupProps} className={styles.headerRow}>
-              {headerGroup.headers.map((column) => {
-                const { key, ...headerProps } = column.getHeaderProps();
-                return (
-                  <div key={key} {...headerProps} role="columnheader" className={styles.headerCell}>
-                    {column.render('Header')}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+            return (
+              <div key={key} {...headerGroupProps} className={styles.headerRow}>
+                {headerGroup.headers.map((column) => {
+                  const { key, ...headerProps } = column.getHeaderProps();
+                  return (
+                    <div key={key} {...headerProps} role="columnheader" className={styles.headerCell}>
+                      {column.render('Header')}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
 
         <div {...getTableBodyProps()}>
           <InfiniteLoader
             ref={infiniteLoaderRef}
             isItemLoaded={response.isItemLoaded}
             itemCount={rows.length}
-            loadMoreItems={handleLoadMore}
+            loadMoreItems={response.loadMoreItems}
           >
             {({ onItemsRendered, ref }) => (
               <FixedSizeList
@@ -195,10 +172,10 @@ export const SearchResultsTable = React.memo(
                   setListEl(innerRef);
                 }}
                 onItemsRendered={onItemsRendered}
-                height={height - ROW_HEIGHT}
+                height={height - HEADER_HEIGHT}
                 itemCount={rows.length}
                 itemSize={tableStyles.rowHeight}
-                width={width}
+                width="100%"
                 style={{ overflow: 'hidden auto' }}
               >
                 {RenderRow}
@@ -224,25 +201,18 @@ const getStyles = (theme: GrafanaTheme2) => {
       height: 100%;
     `,
     headerCell: css`
-      align-items: center;
-      display: flex;
-      overflo: hidden;
       padding: ${theme.spacing(1)};
     `,
     headerRow: css`
       background-color: ${theme.colors.background.secondary};
-      display: flex;
-      gap: ${theme.spacing(1)};
-      height: ${ROW_HEIGHT}px;
+      height: ${HEADER_HEIGHT}px;
+      align-items: center;
     `,
     selectedRow: css`
       background-color: ${rowHoverBg};
       box-shadow: inset 3px 0px ${theme.colors.primary.border};
     `,
     rowContainer: css`
-      display: flex;
-      gap: ${theme.spacing(1)};
-      height: ${ROW_HEIGHT}px;
       label: row;
       &:hover {
         background-color: ${rowHoverBg};
@@ -260,22 +230,27 @@ const getStyles = (theme: GrafanaTheme2) => {
 // CSS for columns from react table
 const getColumnStyles = (theme: GrafanaTheme2) => {
   return {
-    cell: css({
-      padding: theme.spacing(1),
-      overflow: 'hidden', // Required so flex children can do text-overflow: ellipsis
-      display: 'flex',
-      alignItems: 'center',
-    }),
     nameCellStyle: css`
+      border-right: none;
+      padding: ${theme.spacing(1)} ${theme.spacing(1)} ${theme.spacing(1)} ${theme.spacing(2)};
       overflow: hidden;
       text-overflow: ellipsis;
       user-select: text;
       white-space: nowrap;
+      &:hover {
+        box-shadow: none;
+      }
     `,
-    typeCell: css({
-      gap: theme.spacing(0.5),
-    }),
+    headerNameStyle: css`
+      padding-left: ${theme.spacing(1)};
+    `,
+
     typeIcon: css`
+      margin-left: 5px;
+      margin-right: 9.5px;
+      vertical-align: middle;
+      display: inline-block;
+      margin-bottom: ${theme.v1.spacing.xxs};
       fill: ${theme.colors.text.secondary};
     `,
     datasourceItem: css`
@@ -293,24 +268,41 @@ const getColumnStyles = (theme: GrafanaTheme2) => {
       color: ${theme.colors.error.main};
       text-decoration: line-through;
     `,
-    locationContainer: css({
-      display: 'flex',
-      flexWrap: 'nowrap',
-      gap: theme.spacing(1),
-      overflow: 'hidden',
-    }),
-    locationItem: css`
-      align-items: center;
+    typeText: css`
       color: ${theme.colors.text.secondary};
-      display: flex;
-      flex-wrap: nowrap;
-      gap: 4px;
-      overflow: hidden;
+      padding-top: ${theme.spacing(1)};
+    `,
+    locationItem: css`
+      color: ${theme.colors.text.secondary};
+      margin-right: 12px;
+    `,
+    sortedHeader: css`
+      text-align: right;
+      padding-right: ${theme.spacing(2)};
+    `,
+    sortedItems: css`
+      text-align: right;
+      padding: ${theme.spacing(1)} ${theme.spacing(3)} ${theme.spacing(1)} ${theme.spacing(1)};
     `,
     explainItem: css`
+      text-align: right;
+      padding: ${theme.spacing(1)} ${theme.spacing(3)} ${theme.spacing(1)} ${theme.spacing(1)};
       cursor: pointer;
     `,
+    locationCellStyle: css`
+      padding-top: ${theme.spacing(1)};
+      padding-right: ${theme.spacing(1)};
+    `,
+    checkboxHeader: css`
+      margin-left: 2px;
+    `,
+    checkbox: css`
+      margin-left: 10px;
+      margin-right: 10px;
+      margin-top: 5px;
+    `,
     tagList: css`
+      padding-top: ${theme.spacing(0.5)};
       justify-content: flex-start;
       flex-wrap: nowrap;
     `,

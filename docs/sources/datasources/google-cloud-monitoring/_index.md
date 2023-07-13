@@ -24,9 +24,7 @@ weight: 350
 Grafana ships with built-in support for Google Cloud Monitoring.
 This topic describes queries, templates, variables, and other configuration specific to the Google Cloud Monitoring data source.
 
-{{% admonition type="note" %}}
-Before Grafana v7.1, Google Cloud Monitoring was referred to as Google Stackdriver.
-{{% /admonition %}}
+> **Note:** Before Grafana v7.1, Google Cloud Monitoring was referred to as Google Stackdriver.
 
 For instructions on how to add a data source to Grafana, refer to the [administration documentation]({{< relref "../../administration/data-source-management/" >}}).
 Only users with the organization administrator role can add data sources.
@@ -35,21 +33,18 @@ Once you've added the Google Cloud Monitoring data source, you can [configure it
 
 ## Configure the data source
 
-To configure basic settings for the data source, complete the following steps:
+**To access the data source configuration page:**
 
-1. Click **Connections** in the left-side menu.
-1. Under Your connections, click **Data sources**.
-1. Enter `Google Cloud Monitoring` in the search bar.
-1. Click **Google Cloud Monitoring**.
+1. Hover the cursor over the **Configuration** (gear) icon.
+1. Select **Data Sources**.
+1. Select the **Google Cloud Monitoring** data source.
 
-   The **Settings** tab of the data source is displayed.
+Set the data source's basic configuration options carefully:
 
-1. Set the data source's basic configuration options:
-
-   | Name        | Description                                                              |
-   | ----------- | ------------------------------------------------------------------------ |
-   | **Name**    | Sets the name you use to refer to the data source in panels and queries. |
-   | **Default** | Sets whether the data source is pre-selected for new panels.             |
+| Name        | Description                                                              |
+| ----------- | ------------------------------------------------------------------------ |
+| **Name**    | Sets the name you use to refer to the data source in panels and queries. |
+| **Default** | Sets whether the data source is pre-selected for new panels.             |
 
 ### Configure Google authentication
 
@@ -111,23 +106,6 @@ datasources:
         ...
         yA+23427282348234=
         -----END PRIVATE KEY-----
-```
-
-**Using the JWT (Service Account private key path) authentication type:**
-
-```yaml
-apiVersion: 1
-
-datasources:
-  - name: Google Cloud Monitoring
-    type: stackdriver
-    access: proxy
-    jsonData:
-      tokenUri: https://oauth2.googleapis.com/token
-      clientEmail: stackdriver@myproject.iam.gserviceaccount.com
-      authenticationType: jwt
-      defaultProject: my-project-name
-      privateKeyPath: /etc/secrets/gce.pem
 ```
 
 **Using GCE Default Service Account authentication:**

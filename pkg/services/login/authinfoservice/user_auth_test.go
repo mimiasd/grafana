@@ -201,13 +201,13 @@ func TestUserAuth(t *testing.T) {
 				UserId: user.ID,
 			}
 
-			authInfo, err := srv.authInfoStore.GetAuthInfo(context.Background(), getAuthQuery)
+			err = srv.authInfoStore.GetAuthInfo(context.Background(), getAuthQuery)
 
 			require.Nil(t, err)
-			require.Equal(t, token.AccessToken, authInfo.OAuthAccessToken)
-			require.Equal(t, token.RefreshToken, authInfo.OAuthRefreshToken)
-			require.Equal(t, token.TokenType, authInfo.OAuthTokenType)
-			require.Equal(t, idToken, authInfo.OAuthIdToken)
+			require.Equal(t, token.AccessToken, getAuthQuery.Result.OAuthAccessToken)
+			require.Equal(t, token.RefreshToken, getAuthQuery.Result.OAuthRefreshToken)
+			require.Equal(t, token.TokenType, getAuthQuery.Result.OAuthTokenType)
+			require.Equal(t, idToken, getAuthQuery.Result.OAuthIdToken)
 		})
 
 		t.Run("Always return the most recently used auth_module", func(t *testing.T) {
@@ -261,10 +261,10 @@ func TestUserAuth(t *testing.T) {
 				UserId: user.ID,
 			}
 
-			authInfo, err := authInfoStore.GetAuthInfo(context.Background(), getAuthQuery)
+			err = authInfoStore.GetAuthInfo(context.Background(), getAuthQuery)
 
 			require.Nil(t, err)
-			require.Equal(t, authInfo.AuthModule, "test2")
+			require.Equal(t, getAuthQuery.Result.AuthModule, "test2")
 
 			// "log in" again with the first auth module
 			updateAuthCmd := &login.UpdateAuthInfoCommand{UserId: user.ID, AuthModule: "test1", AuthId: "test1"}
@@ -277,10 +277,10 @@ func TestUserAuth(t *testing.T) {
 				UserId: user.ID,
 			}
 
-			authInfo, err = authInfoStore.GetAuthInfo(context.Background(), getAuthQuery)
+			err = authInfoStore.GetAuthInfo(context.Background(), getAuthQuery)
 
 			require.Nil(t, err)
-			require.Equal(t, authInfo.AuthModule, "test1")
+			require.Equal(t, getAuthQuery.Result.AuthModule, "test1")
 		})
 
 		t.Run("Keeps track of last used auth_module when not using oauth", func(t *testing.T) {
@@ -334,10 +334,10 @@ func TestUserAuth(t *testing.T) {
 			}
 			authInfoStore.ExpectedOAuth.AuthModule = "test2"
 
-			authInfo, err := authInfoStore.GetAuthInfo(context.Background(), getAuthQuery)
+			err = authInfoStore.GetAuthInfo(context.Background(), getAuthQuery)
 
 			require.Nil(t, err)
-			require.Equal(t, "test2", authInfo.AuthModule)
+			require.Equal(t, "test2", getAuthQuery.Result.AuthModule)
 
 			// Now reuse first auth module and make sure it's updated to the most recent
 			database.GetTime = func() time.Time { return fixedTime }
@@ -357,12 +357,12 @@ func TestUserAuth(t *testing.T) {
 			require.Equal(t, user.Login, userlogin)
 			authInfoStore.ExpectedOAuth.AuthModule = "test1"
 			authInfoStore.ExpectedOAuth.OAuthAccessToken = "access_token"
-			authInfo, err = authInfoStore.GetAuthInfo(context.Background(), getAuthQuery)
+			err = authInfoStore.GetAuthInfo(context.Background(), getAuthQuery)
 
 			require.Nil(t, err)
-			require.Equal(t, "test1", authInfo.AuthModule)
+			require.Equal(t, "test1", getAuthQuery.Result.AuthModule)
 			// make sure oauth info is not overwritten by update date
-			require.Equal(t, "access_token", authInfo.OAuthAccessToken)
+			require.Equal(t, "access_token", getAuthQuery.Result.OAuthAccessToken)
 
 			// Now reuse second auth module and make sure it's updated to the most recent
 			database.GetTime = func() time.Time { return fixedTime.AddDate(0, 0, 1) }
@@ -371,9 +371,9 @@ func TestUserAuth(t *testing.T) {
 			require.Equal(t, user.Login, userlogin)
 			authInfoStore.ExpectedOAuth.AuthModule = "test2"
 
-			authInfo, err = authInfoStore.GetAuthInfo(context.Background(), getAuthQuery)
+			err = authInfoStore.GetAuthInfo(context.Background(), getAuthQuery)
 			require.Nil(t, err)
-			require.Equal(t, "test2", authInfo.AuthModule)
+			require.Equal(t, "test2", getAuthQuery.Result.AuthModule)
 
 			// Ensure test 1 did not have its entry modified
 			getAuthQueryUnchanged := &login.GetAuthInfoQuery{
@@ -382,9 +382,9 @@ func TestUserAuth(t *testing.T) {
 			}
 			authInfoStore.ExpectedOAuth.AuthModule = "test1"
 
-			authInfo, err = authInfoStore.GetAuthInfo(context.Background(), getAuthQueryUnchanged)
+			err = authInfoStore.GetAuthInfo(context.Background(), getAuthQueryUnchanged)
 			require.Nil(t, err)
-			require.Equal(t, "test1", authInfo.AuthModule)
+			require.Equal(t, "test1", getAuthQueryUnchanged.Result.AuthModule)
 		})
 
 		t.Run("Can set & locate by generic oauth auth module and user id", func(t *testing.T) {
@@ -520,11 +520,12 @@ func newFakeAuthInfoStore() *FakeAuthInfoStore {
 	return &FakeAuthInfoStore{}
 }
 
-func (f *FakeAuthInfoStore) GetExternalUserInfoByLogin(ctx context.Context, query *login.GetExternalUserInfoByLoginQuery) (*login.ExternalUserInfo, error) {
-	return nil, f.ExpectedError
+func (f *FakeAuthInfoStore) GetExternalUserInfoByLogin(ctx context.Context, query *login.GetExternalUserInfoByLoginQuery) error {
+	return f.ExpectedError
 }
-func (f *FakeAuthInfoStore) GetAuthInfo(ctx context.Context, query *login.GetAuthInfoQuery) (*login.UserAuth, error) {
-	return f.ExpectedOAuth, f.ExpectedError
+func (f *FakeAuthInfoStore) GetAuthInfo(ctx context.Context, query *login.GetAuthInfoQuery) error {
+	query.Result = f.ExpectedOAuth
+	return f.ExpectedError
 }
 func (f *FakeAuthInfoStore) SetAuthInfo(ctx context.Context, cmd *login.SetAuthInfoCommand) error {
 	return f.ExpectedError

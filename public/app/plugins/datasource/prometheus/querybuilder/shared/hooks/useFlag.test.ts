@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react-hooks';
 
 import { lokiQueryEditorExplainKey, promQueryEditorExplainKey, useFlag } from './useFlag';
 

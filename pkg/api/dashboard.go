@@ -158,8 +158,11 @@ func (hs *HTTPServer) GetDashboard(c *contextmodel.ReqContext) response.Response
 	}
 
 	annotationPermissions := &dtos.AnnotationPermission{}
-	hs.getAnnotationPermissionsByScope(c, &annotationPermissions.Dashboard, accesscontrol.ScopeAnnotationsTypeDashboard)
-	hs.getAnnotationPermissionsByScope(c, &annotationPermissions.Organization, accesscontrol.ScopeAnnotationsTypeOrganization)
+
+	if !hs.AccessControl.IsDisabled() {
+		hs.getAnnotationPermissionsByScope(c, &annotationPermissions.Dashboard, accesscontrol.ScopeAnnotationsTypeDashboard)
+		hs.getAnnotationPermissionsByScope(c, &annotationPermissions.Organization, accesscontrol.ScopeAnnotationsTypeOrganization)
+	}
 
 	meta := dtos.DashboardMeta{
 		IsStarred:              isStarred,
@@ -223,6 +226,12 @@ func (hs *HTTPServer) GetDashboard(c *contextmodel.ReqContext) response.Response
 
 	// make sure db version is in sync with json model version
 	dash.Data.Set("version", dash.Version)
+
+	if hs.QueryLibraryService != nil && !hs.QueryLibraryService.IsDisabled() {
+		if err := hs.QueryLibraryService.UpdateDashboardQueries(c.Req.Context(), c.SignedInUser, dash); err != nil {
+			return response.Error(500, "Error while loading saved queries", err)
+		}
+	}
 
 	dto := dtos.DashboardFullWithMeta{
 		Dashboard: dash.Data,
@@ -315,12 +324,6 @@ func (hs *HTTPServer) deleteDashboard(c *contextmodel.ReqContext) response.Respo
 	err = hs.LibraryElementService.DisconnectElementsFromDashboard(c.Req.Context(), dash.ID)
 	if err != nil {
 		hs.log.Error("Failed to disconnect library elements", "dashboard", dash.ID, "user", c.SignedInUser.UserID, "error", err)
-	}
-
-	// deletes all related public dashboard entities
-	err = hs.PublicDashboardsApi.PublicDashboardService.DeleteByDashboard(c.Req.Context(), dash)
-	if err != nil {
-		hs.log.Error("Failed to delete public dashboard")
 	}
 
 	err = hs.DashboardService.DeleteDashboard(c.Req.Context(), dash.ID, c.OrgID)
@@ -485,7 +488,7 @@ func (hs *HTTPServer) postDashboard(c *contextmodel.ReqContext, cmd dashboards.S
 
 	// Clear permission cache for the user who's created the dashboard, so that new permissions are fetched for their next call
 	// Required for cases when caller wants to immediately interact with the newly created object
-	if newDashboard {
+	if newDashboard && !hs.accesscontrolService.IsDisabled() {
 		hs.accesscontrolService.ClearUserPermissionCache(c.SignedInUser)
 	}
 
@@ -657,52 +660,25 @@ func (hs *HTTPServer) GetDashboardVersions(c *contextmodel.ReqContext) response.
 		Start:        c.QueryInt("start"),
 	}
 
-	versions, err := hs.dashboardVersionService.List(c.Req.Context(), &query)
+	res, err := hs.dashboardVersionService.List(c.Req.Context(), &query)
 	if err != nil {
 		return response.Error(404, fmt.Sprintf("No versions found for dashboardId %d", dash.ID), err)
 	}
 
-	loginMem := make(map[int64]string, len(versions))
-	res := make([]dashver.DashboardVersionMeta, 0, len(versions))
-	for _, version := range versions {
-		msg := version.Message
+	for _, version := range res {
 		if version.RestoredFrom == version.Version {
-			msg = "Initial save (created by migration)"
+			version.Message = "Initial save (created by migration)"
+			continue
 		}
 
 		if version.RestoredFrom > 0 {
-			msg = fmt.Sprintf("Restored from version %d", version.RestoredFrom)
+			version.Message = fmt.Sprintf("Restored from version %d", version.RestoredFrom)
+			continue
 		}
 
 		if version.ParentVersion == 0 {
-			msg = "Initial save"
+			version.Message = "Initial save"
 		}
-
-		creator := anonString
-		if version.CreatedBy > 0 {
-			login, found := loginMem[version.CreatedBy]
-			if found {
-				creator = login
-			} else {
-				creator = hs.getUserLogin(c.Req.Context(), version.CreatedBy)
-				if creator != anonString {
-					loginMem[version.CreatedBy] = creator
-				}
-			}
-		}
-
-		res = append(res, dashver.DashboardVersionMeta{
-			ID:            version.ID,
-			DashboardID:   version.DashboardID,
-			DashboardUID:  dash.UID,
-			Data:          version.Data,
-			ParentVersion: version.ParentVersion,
-			RestoredFrom:  version.RestoredFrom,
-			Version:       version.Version,
-			Created:       version.Created,
-			Message:       msg,
-			CreatedBy:     creator,
-		})
 	}
 
 	return response.JSON(http.StatusOK, res)
@@ -837,10 +813,7 @@ func (hs *HTTPServer) ValidateDashboard(c *contextmodel.ReqContext) response.Res
 	// work), or if schemaVersion is absent (which will happen once the Thema
 	// schema becomes canonical).
 	if err != nil || schemaVersion >= dashboard.HandoffSchemaVersion {
-		// Schemas expect the dashboard to live in the spec field
-		k8sResource := `{"spec": ` + cmd.Dashboard + "}"
-
-		_, _, validationErr := dk.JSONValueMux([]byte(k8sResource))
+		_, _, validationErr := dk.JSONValueMux(dashboardBytes)
 
 		if validationErr == nil {
 			isValid = true
@@ -1294,7 +1267,7 @@ type GetHomeDashboardResponseBody struct {
 // swagger:response dashboardVersionsResponse
 type DashboardVersionsResponse struct {
 	// in: body
-	Body []dashver.DashboardVersionMeta `json:"body"`
+	Body []*dashver.DashboardVersionDTO `json:"body"`
 }
 
 // swagger:response dashboardVersionResponse

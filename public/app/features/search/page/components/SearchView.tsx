@@ -5,22 +5,22 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { Observable } from 'rxjs';
 
 import { GrafanaTheme2 } from '@grafana/data';
-import { config } from '@grafana/runtime';
 import { useStyles2, Spinner, Button } from '@grafana/ui';
 import EmptyListCTA from 'app/core/components/EmptyListCTA/EmptyListCTA';
-import { Trans } from 'app/core/internationalization';
 import { FolderDTO } from 'app/types';
 
+import { PreviewsSystemRequirements } from '../../components/PreviewsSystemRequirements';
 import { getGrafanaSearcher } from '../../service';
 import { getSearchStateManager } from '../../state/SearchStateManager';
-import { SearchLayout, DashboardViewItem } from '../../types';
+import { SearchLayout } from '../../types';
 import { newSearchSelection, updateSearchSelection } from '../selection';
 
 import { ActionRow, getValidQueryLayout } from './ActionRow';
 import { FolderSection } from './FolderSection';
+import { FolderView } from './FolderView';
 import { ManageActions } from './ManageActions';
-import { RootFolderView } from './RootFolderView';
 import { SearchResultsCards } from './SearchResultsCards';
+import { SearchResultsGrid } from './SearchResultsGrid';
 import { SearchResultsTable, SearchResultsProps } from './SearchResultsTable';
 
 export type SearchViewProps = {
@@ -76,24 +76,21 @@ export const SearchView = ({ showManage, folderDTO, hidePseudoFolders, keyboardE
 
       return (
         <div className={styles.noResults}>
-          <div>
-            <Trans i18nKey="search-view.no-results.text">No results found for your query.</Trans>
-          </div>
+          <div>No results found for your query.</div>
           <br />
           <Button variant="secondary" onClick={stateManager.onClearSearchAndFilters}>
-            <Trans i18nKey="search-view.no-results.clear">Clear search and filters</Trans>
+            Clear search and filters
           </Button>
         </div>
       );
     }
 
     const selection = showManage ? searchSelection.isSelected : undefined;
-
     if (layout === SearchLayout.Folders) {
       if (folderDTO) {
         return (
           <FolderSection
-            section={sectionForFolderView(folderDTO)}
+            section={{ uid: folderDTO.uid, kind: 'folder', title: folderDTO.title }}
             selection={selection}
             selectionToggle={toggleSelection}
             onTagSelected={stateManager.onAddTag}
@@ -105,7 +102,7 @@ export const SearchView = ({ showManage, folderDTO, hidePseudoFolders, keyboardE
         );
       }
       return (
-        <RootFolderView
+        <FolderView
           key={listKey}
           selection={selection}
           selectionToggle={toggleSelection}
@@ -134,6 +131,10 @@ export const SearchView = ({ showManage, folderDTO, hidePseudoFolders, keyboardE
               onClickItem: stateManager.onSearchItemClicked,
             };
 
+            if (layout === SearchLayout.Grid) {
+              return <SearchResultsGrid {...props} />;
+            }
+
             if (width < 800) {
               return <SearchResultsCards {...props} />;
             }
@@ -145,15 +146,7 @@ export const SearchView = ({ showManage, folderDTO, hidePseudoFolders, keyboardE
     );
   };
 
-  if (
-    folderDTO &&
-    // With nested folders, SearchView doesn't know if it's fetched all children
-    // of a folder so don't show empty state here.
-    !config.featureToggles.nestedFolders &&
-    !state.loading &&
-    !state.result?.totalRows &&
-    !stateManager.hasSearchFilters()
-  ) {
+  if (folderDTO && !state.loading && !state.result?.totalRows && !stateManager.hasSearchFilters()) {
     return (
       <EmptyListCTA
         title="This folder doesn't have any dashboards yet"
@@ -190,6 +183,13 @@ export const SearchView = ({ showManage, folderDTO, hidePseudoFolders, keyboardE
         />
       )}
 
+      {layout === SearchLayout.Grid && (
+        <PreviewsSystemRequirements
+          bottomSpacing={3}
+          showPreviews={true}
+          onRemove={() => stateManager.onLayoutChange(SearchLayout.List)}
+        />
+      )}
       {renderResults()}
     </>
   );
@@ -215,7 +215,3 @@ const getStyles = (theme: GrafanaTheme2) => ({
     margin-top: ${theme.v1.spacing.md};
   `,
 });
-
-function sectionForFolderView(folderDTO: FolderDTO): DashboardViewItem {
-  return { uid: folderDTO.uid, kind: 'folder', title: folderDTO.title };
-}

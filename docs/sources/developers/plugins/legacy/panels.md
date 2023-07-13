@@ -1,5 +1,4 @@
 ---
-title: Legacy panel plugins
 aliases:
   - ../../../plugins/developing/panels/
 keywords:
@@ -7,7 +6,7 @@ keywords:
   - plugins
   - panel
   - documentation
-description: Deprecated guide for Angular plugin development.
+title: Legacy panel plugins
 ---
 
 # Legacy panel plugins

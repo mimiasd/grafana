@@ -1,11 +1,6 @@
 //  🌟 This was machine generated.  Do not edit. 🌟
 //  
-//  Frame[0] {
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
-//  }
+//  Frame[0] {}
 //  Name: 
 //  Dimensions: 4 Fields by 2 Rows
 //  +-------------------------+-------------------------------+----------------+---------------------+
@@ -24,12 +19,7 @@
   "frames": [
     {
       "schema": {
-        "meta": {
-          "typeVersion": [
-            0,
-            0
-          ]
-        },
+        "meta": {},
         "fields": [
           {
             "name": "__labels",

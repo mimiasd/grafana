@@ -14,7 +14,6 @@ export interface AddDataSourceConfig {
   skipTlsVerify: boolean;
   type: string;
   timeout?: number;
-  awaitHealth?: boolean;
 }
 
 // @todo this actually returns type `Cypress.Chainable<AddDaaSourceConfig>`
@@ -41,14 +40,7 @@ export const addDataSource = (config?: Partial<AddDataSourceConfig>) => {
     skipTlsVerify,
     type,
     timeout,
-    awaitHealth,
   } = fullConfig;
-
-  if (awaitHealth) {
-    e2e()
-      .intercept(/health/)
-      .as('health');
-  }
 
   e2e().logToConsole('Adding data source with name:', name);
   e2e.pages.AddDataSource.visit();
@@ -83,10 +75,6 @@ export const addDataSource = (config?: Partial<AddDataSourceConfig>) => {
   form();
 
   e2e.pages.DataSource.saveAndTest().click();
-
-  if (awaitHealth) {
-    e2e().wait('@health', { timeout: timeout ?? e2e.config().defaultCommandTimeout });
-  }
 
   // use the timeout passed in if it exists, otherwise, continue to use the default
   e2e.pages.DataSource.alert()

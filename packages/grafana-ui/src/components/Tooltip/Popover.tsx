@@ -66,8 +66,6 @@ class Popover extends PureComponent<Props> {
                 >
                   {({ ref, style, placement, arrowProps, update }) => {
                     return (
-                      // TODO: fix keyboard a11y
-                      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
                       <div
                         onMouseEnter={onMouseEnter}
                         onMouseLeave={onMouseLeave}

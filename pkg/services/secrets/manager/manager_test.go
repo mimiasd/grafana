@@ -182,16 +182,16 @@ func TestSecretsService_UseCurrentProvider(t *testing.T) {
 		raw, err := ini.Load([]byte(rawCfg))
 		require.NoError(t, err)
 
-		cfg := &setting.Cfg{Raw: raw}
+		settings := &setting.OSSImpl{Cfg: &setting.Cfg{Raw: raw}}
 
 		encProvider := encryptionprovider.Provider{}
 		usageStats := &usagestats.UsageStatsMock{}
 
-		encryptionService, err := encryptionservice.ProvideEncryptionService(encProvider, usageStats, cfg)
+		encryptionService, err := encryptionservice.ProvideEncryptionService(encProvider, usageStats, settings)
 		require.NoError(t, err)
 
 		features := featuremgmt.WithFeatures()
-		kms := newFakeKMS(osskmsproviders.ProvideService(encryptionService, cfg, features))
+		kms := newFakeKMS(osskmsproviders.ProvideService(encryptionService, settings, features))
 		testDB := db.InitTestDB(t)
 		secretStore := database.ProvideSecretsStore(testDB)
 
@@ -199,7 +199,7 @@ func TestSecretsService_UseCurrentProvider(t *testing.T) {
 			secretStore,
 			&kms,
 			encryptionService,
-			cfg,
+			settings,
 			features,
 			&usagestats.UsageStatsMock{T: t},
 		)
@@ -217,7 +217,7 @@ func TestSecretsService_UseCurrentProvider(t *testing.T) {
 			secretStore,
 			&kms,
 			encryptionService,
-			cfg,
+			settings,
 			features,
 			&usagestats.UsageStatsMock{T: t},
 		)

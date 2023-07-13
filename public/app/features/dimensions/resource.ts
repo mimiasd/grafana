@@ -1,7 +1,6 @@
 import { DataFrame } from '@grafana/data';
-import { ResourceDimensionConfig, ResourceDimensionMode } from '@grafana/schema';
 
-import { DimensionSupplier } from './types';
+import { DimensionSupplier, ResourceDimensionConfig, ResourceDimensionMode } from './types';
 import { findField, getLastNotNullFieldValue } from './utils';
 
 //---------------------------------------------------------
@@ -44,7 +43,7 @@ export function getResourceDimension(
     const mapper = (v: string) => getPublicOrAbsoluteUrl(`${v}`);
     return {
       field,
-      get: (i) => mapper(field.values[i]),
+      get: (i) => mapper(field.values.get(i)),
       value: () => mapper(getLastNotNullFieldValue(field)),
     };
   }
@@ -61,7 +60,7 @@ export function getResourceDimension(
 
   return {
     field,
-    get: (index: number): string => getIcon(field.values[index]),
+    get: (index: number): string => getIcon(field.values.get(index)),
     value: () => getIcon(getLastNotNullFieldValue(field)),
   };
 }

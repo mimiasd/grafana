@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react-hooks';
 
 import createMockDatasource from '../../__mocks__/datasource';
 import Datasource from '../../datasource';
@@ -12,6 +12,10 @@ import {
   MetricMetadata,
   MetricsMetadataHook,
 } from './dataHooks';
+
+const WAIT_OPTIONS = {
+  timeout: 1000,
+};
 
 const opt = (text: string, value: string) => ({ text, value });
 
@@ -176,11 +180,10 @@ describe('AzureMonitor: metrics dataHooks', () => {
         ...bareQuery,
         azureMonitor: scenario.emptyQueryPartial,
       };
-      const { result } = renderHook(() => scenario.hook(query, datasource, onChange, setError));
+      const { result, waitForNextUpdate } = renderHook(() => scenario.hook(query, datasource, onChange, setError));
+      await waitForNextUpdate(WAIT_OPTIONS);
 
-      await waitFor(() => {
-        expect(result.current).toEqual(scenario.expectedOptions);
-      });
+      expect(result.current).toEqual(scenario.expectedOptions);
     });
 
     it('adds custom properties as a valid option', async () => {
@@ -189,11 +192,10 @@ describe('AzureMonitor: metrics dataHooks', () => {
         azureMonitor: scenario.customProperties,
         ...scenario.topLevelCustomProperties,
       };
-      const { result } = renderHook(() => scenario.hook(query, datasource, onChange, setError));
+      const { result, waitForNextUpdate } = renderHook(() => scenario.hook(query, datasource, onChange, setError));
+      await waitForNextUpdate(WAIT_OPTIONS);
 
-      await waitFor(() => {
-        expect(result.current).toEqual(scenario.expectedCustomPropertyResults);
-      });
+      expect(result.current).toEqual(scenario.expectedCustomPropertyResults);
     });
   });
 
@@ -237,19 +239,18 @@ describe('AzureMonitor: metrics dataHooks', () => {
         ...bareQuery,
         azureMonitor: metricsMetadataConfig.emptyQueryPartial,
       };
-      const { result } = renderHook(() => metricsMetadataConfig.hook(query, datasource, onChange));
+      const { result, waitForNextUpdate } = renderHook(() => metricsMetadataConfig.hook(query, datasource, onChange));
+      await waitForNextUpdate(WAIT_OPTIONS);
 
-      await waitFor(() => {
-        expect(result.current).toEqual(metricsMetadataConfig.expectedOptions);
-        expect(onChange).toHaveBeenCalledWith({
-          ...query,
-          azureMonitor: {
-            ...query.azureMonitor,
-            aggregation: result.current.primaryAggType,
-            timeGrain: 'auto',
-            allowedTimeGrainsMs: [60_000, 300_000, 900_000, 1_800_000, 3_600_000, 21_600_000, 43_200_000, 86_400_000],
-          },
-        });
+      expect(result.current).toEqual(metricsMetadataConfig.expectedOptions);
+      expect(onChange).toHaveBeenCalledWith({
+        ...query,
+        azureMonitor: {
+          ...query.azureMonitor,
+          aggregation: result.current.primaryAggType,
+          timeGrain: 'auto',
+          allowedTimeGrainsMs: [60_000, 300_000, 900_000, 1_800_000, 3_600_000, 21_600_000, 43_200_000, 86_400_000],
+        },
       });
     });
   });
@@ -280,20 +281,21 @@ describe('AzureMonitor: metrics dataHooks', () => {
         ...bareQuery,
         azureMonitor: metricNamespacesConfig.emptyQueryPartial,
       };
-      const { result } = renderHook(() => metricNamespacesConfig.hook(query, datasource, onChange, jest.fn()));
+      const { result, waitForNextUpdate } = renderHook(() =>
+        metricNamespacesConfig.hook(query, datasource, onChange, jest.fn())
+      );
+      await waitForNextUpdate(WAIT_OPTIONS);
 
-      await waitFor(() => {
-        expect(result.current).toEqual(metricNamespacesConfig.expectedOptions);
-        expect(datasource.azureMonitorDatasource.getMetricNamespaces).toHaveBeenCalledWith(
-          expect.objectContaining({
-            resourceGroup: 'rg',
-            resourceName: 'rn',
-            metricNamespace: 'azure/vm',
-          }),
-          // Here, "global" should be false
-          false
-        );
-      });
+      expect(result.current).toEqual(metricNamespacesConfig.expectedOptions);
+      expect(datasource.azureMonitorDatasource.getMetricNamespaces).toHaveBeenCalledWith(
+        expect.objectContaining({
+          resourceGroup: 'rg',
+          resourceName: 'rn',
+          metricNamespace: 'azure/vm',
+        }),
+        // Here, "global" should be false
+        false
+      );
     });
   });
 });

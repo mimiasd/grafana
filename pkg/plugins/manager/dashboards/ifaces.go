@@ -2,6 +2,7 @@ package dashboards
 
 import (
 	"context"
+	"io"
 )
 
 // FileStore is the interface for plugin dashboard file storage.
@@ -30,5 +31,5 @@ type GetPluginDashboardFileContentsArgs struct {
 
 // GetPluginDashboardFileContentsResult get plugin dashboard file content result model.
 type GetPluginDashboardFileContentsResult struct {
-	Content []byte
+	Content io.ReadCloser
 }

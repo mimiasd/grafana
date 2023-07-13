@@ -1,7 +1,6 @@
-import { NavModelItem } from '@grafana/data';
+import { NavModel, NavModelItem } from '@grafana/data';
 import coreModule from 'app/angular/core_module';
 import config from 'app/core/config';
-import { getNotFoundNav } from 'app/core/navigation/errorModels';
 
 interface Nav {
   breadcrumbs: NavModelItem[];
@@ -54,6 +53,27 @@ export class NavModelSrv {
   getNotFoundNav() {
     return getNotFoundNav(); // the exported function
   }
+}
+
+export function getExceptionNav(error: any): NavModel {
+  console.error(error);
+  return getWarningNav('Exception thrown', 'See console for details');
+}
+
+export function getNotFoundNav(): NavModel {
+  return getWarningNav('Page not found', '404 Error');
+}
+
+export function getWarningNav(text: string, subTitle?: string): NavModel {
+  const node: NavModelItem = {
+    text,
+    subTitle,
+    icon: 'exclamation-triangle',
+  };
+  return {
+    node: node,
+    main: node,
+  };
 }
 
 coreModule.service('navModelSrv', NavModelSrv);

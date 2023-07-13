@@ -95,7 +95,7 @@ describe('Heatmap transformer', () => {
         "type": "heatmap-cells",
       }
     `);
-    expect(heatmap.fields[1].values).toMatchInlineSnapshot(`
+    expect(heatmap.fields[1].values.toArray()).toMatchInlineSnapshot(`
       [
         0,
         1,

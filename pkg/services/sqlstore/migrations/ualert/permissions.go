@@ -17,14 +17,13 @@ import (
 type roleType string
 
 const (
-	RoleNone   roleType = "None"
 	RoleViewer roleType = "Viewer"
 	RoleEditor roleType = "Editor"
 	RoleAdmin  roleType = "Admin"
 )
 
 func (r roleType) IsValid() bool {
-	return r == RoleViewer || r == RoleAdmin || r == RoleEditor || r == RoleNone
+	return r == RoleViewer || r == RoleAdmin || r == RoleEditor
 }
 
 type permissionType int

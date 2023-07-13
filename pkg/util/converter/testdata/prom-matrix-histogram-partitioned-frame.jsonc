@@ -1,11 +1,7 @@
 //  🌟 This was machine generated.  Do not edit. 🌟
 //  
 //  Frame[0] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 0 Rows
@@ -19,11 +15,7 @@
 //  
 //  
 //  Frame[1] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 0 Rows
@@ -37,11 +29,7 @@
 //  
 //  
 //  Frame[2] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 0 Rows
@@ -55,11 +43,7 @@
 //  
 //  
 //  Frame[3] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 0 Rows
@@ -73,11 +57,7 @@
 //  
 //  
 //  Frame[4] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 0 Rows
@@ -91,11 +71,7 @@
 //  
 //  
 //  Frame[5] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 0 Rows
@@ -109,11 +85,7 @@
 //  
 //  
 //  Frame[6] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 0 Rows
@@ -127,11 +99,7 @@
 //  
 //  
 //  Frame[7] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 0 Rows
@@ -145,11 +113,7 @@
 //  
 //  
 //  Frame[8] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 1 Rows
@@ -164,11 +128,7 @@
 //  
 //  
 //  Frame[9] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 0 Rows
@@ -182,11 +142,7 @@
 //  
 //  
 //  Frame[10] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 426 Rows
@@ -210,11 +166,7 @@
 //  
 //  
 //  Frame[11] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 1 Rows
@@ -229,11 +181,7 @@
 //  
 //  
 //  Frame[12] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 6 Rows
@@ -253,11 +201,7 @@
 //  
 //  
 //  Frame[13] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 269 Rows
@@ -281,11 +225,7 @@
 //  
 //  
 //  Frame[14] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 303 Rows
@@ -309,11 +249,7 @@
 //  
 //  
 //  Frame[15] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 56 Rows
@@ -337,11 +273,7 @@
 //  
 //  
 //  Frame[16] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 41 Rows
@@ -365,11 +297,7 @@
 //  
 //  
 //  Frame[17] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 29 Rows
@@ -393,11 +321,7 @@
 //  
 //  
 //  Frame[18] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 38 Rows
@@ -421,11 +345,7 @@
 //  
 //  
 //  Frame[19] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 195 Rows
@@ -449,11 +369,7 @@
 //  
 //  
 //  Frame[20] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 261 Rows
@@ -477,11 +393,7 @@
 //  
 //  
 //  Frame[21] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 176 Rows
@@ -505,11 +417,7 @@
 //  
 //  
 //  Frame[22] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 255 Rows
@@ -533,11 +441,7 @@
 //  
 //  
 //  Frame[23] {
-//      "type": "heatmap-cells",
-//      "typeVersion": [
-//          0,
-//          0
-//      ]
+//      "type": "heatmap-cells"
 //  }
 //  Name: 
 //  Dimensions: 5 Fields by 167 Rows
@@ -566,11 +470,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -628,11 +528,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -690,11 +586,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -752,11 +644,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -814,11 +702,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -876,11 +760,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -938,11 +818,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -1000,11 +876,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -1062,11 +934,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -1134,11 +1002,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -1196,11 +1060,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -3393,11 +3253,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -3465,11 +3321,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -3562,11 +3414,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -4974,11 +4822,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -6556,11 +6400,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -6903,11 +6743,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -7175,11 +7011,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -7387,11 +7219,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -7644,11 +7472,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -8686,11 +8510,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -10058,11 +9878,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -11005,11 +10821,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {
@@ -12347,11 +12159,7 @@
     {
       "schema": {
         "meta": {
-          "type": "heatmap-cells",
-          "typeVersion": [
-            0,
-            0
-          ]
+          "type": "heatmap-cells"
         },
         "fields": [
           {

@@ -1,5 +1,3 @@
-import { Grammar } from 'prismjs';
-
 export const languageConfiguration = {
   // the default separators except `@$`
   wordPattern: /(-?\d*\.\d\w*)|([^`~!#%^&*()\-=+\[{\]}\\|;:'",.<>\/?\s]+)/g,
@@ -22,13 +20,11 @@ export const languageConfiguration = {
   folding: {},
 };
 
-export const operators = ['=', '!=', '>', '<', '>=', '<=', '=~'];
-export const stringOperators = ['=', '!=', '=~'];
-export const numberOperators = ['=', '!=', '>', '<', '>=', '<='];
+const operators = ['=', '!=', '>', '<', '>=', '<=', '=~', '!~'];
 
-export const intrinsics = ['duration', 'kind', 'name', 'status'];
+const intrinsics = ['duration', 'name', 'status', 'parent'];
 
-export const scopes: string[] = ['resource', 'span'];
+const scopes: string[] = ['resource', 'span'];
 
 const keywords = intrinsics.concat(scopes);
 
@@ -137,35 +133,4 @@ export const languageDefinition = {
     language,
     languageConfiguration,
   },
-};
-
-export const traceqlGrammar: Grammar = {
-  comment: {
-    pattern: /#.*/,
-  },
-  'span-set': {
-    pattern: /\{[^}]*}/,
-    inside: {
-      filter: {
-        pattern: /([\w.\/-]+)?(\s*)(([!=+\-<>~]+)\s*("([^"\n&]+)?"?|([^"\n\s&|}]+))?)/g,
-        inside: {
-          comment: {
-            pattern: /#.*/,
-          },
-          'label-key': {
-            pattern: /[a-z_.][\w./_-]*(?=\s*(=|!=|>|<|>=|<=|=~|!~))/,
-            alias: 'attr-name',
-          },
-          'label-value': {
-            pattern: /("(?:\\.|[^\\"])*")|(\w+)/,
-            alias: 'attr-value',
-          },
-        },
-      },
-      punctuation: /[}{&|]/,
-    },
-  },
-  number: /\b-?\d+((\.\d*)?([eE][+-]?\d+)?)?\b/,
-  operator: new RegExp(`/[-+*/=%^~]|&&?|\\|?\\||!=?|<(?:=>?|<|>)?|>[>=]?|`, 'i'),
-  punctuation: /[{};()`,.]/,
 };

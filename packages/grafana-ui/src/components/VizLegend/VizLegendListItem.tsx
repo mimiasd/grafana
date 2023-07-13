@@ -74,7 +74,6 @@ export const VizLegendListItem = <T = unknown,>({
       <button
         disabled={readonly}
         type="button"
-        title={item.label}
         onBlur={onMouseOut}
         onFocus={onMouseOver}
         onMouseOver={onMouseOver}
@@ -101,9 +100,6 @@ const getStyles = (theme: GrafanaTheme2) => ({
     font-size: inherit;
     padding: 0;
     user-select: text;
-    max-width: 600px;
-    text-overflow: ellipsis;
-    overflow: hidden;
   `,
   itemDisabled: css`
     label: LegendLabelDisabled;

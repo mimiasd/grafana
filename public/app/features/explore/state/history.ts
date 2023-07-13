@@ -1,37 +1,42 @@
 import { AnyAction, createAction } from '@reduxjs/toolkit';
 
 import { HistoryItem } from '@grafana/data';
+import { config, logError } from '@grafana/runtime';
 import { DataQuery } from '@grafana/schema';
+import { RICH_HISTORY_SETTING_KEYS } from 'app/core/history/richHistoryLocalStorageUtils';
+import store from 'app/core/store';
 import {
   addToRichHistory,
   deleteAllFromRichHistory,
   deleteQueryInRichHistory,
   getRichHistory,
   getRichHistorySettings,
+  LocalStorageMigrationStatus,
+  migrateQueryHistoryFromLocalStorage,
   updateCommentInRichHistory,
   updateRichHistorySettings,
   updateStarredInRichHistory,
 } from 'app/core/utils/richHistory';
-import { ExploreItemState, ExploreState, RichHistoryQuery, ThunkResult } from 'app/types';
+import { ExploreId, ExploreItemState, ExploreState, RichHistoryQuery, ThunkResult } from 'app/types';
 
 import { supportedFeatures } from '../../../core/history/richHistoryStorageProvider';
 import { RichHistorySearchFilters, RichHistorySettings } from '../../../core/utils/richHistoryTypes';
 
 import {
   richHistoryLimitExceededAction,
+  richHistoryMigrationFailedAction,
   richHistorySearchFiltersUpdatedAction,
   richHistorySettingsUpdatedAction,
   richHistoryStorageFullAction,
   richHistoryUpdatedAction,
 } from './main';
-import { selectPanesEntries } from './selectors';
 
 //
 // Actions and Payloads
 //
 
 export interface HistoryUpdatedPayload {
-  exploreId: string;
+  exploreId: ExploreId;
   history: HistoryItem[];
 }
 export const historyUpdatedAction = createAction<HistoryUpdatedPayload>('explore/historyUpdated');
@@ -67,10 +72,9 @@ const updateRichHistoryState = ({ updatedQuery, deletedId }: SyncHistoryUpdatesO
   };
 };
 
-const forEachExplorePane = (state: ExploreState, callback: (item: ExploreItemState, exploreId: string) => void) => {
-  Object.entries(state.panes).forEach(([exploreId, item]) => {
-    item && callback(item, exploreId);
-  });
+const forEachExplorePane = (state: ExploreState, callback: (item: ExploreItemState, exploreId: ExploreId) => void) => {
+  callback(state.left, ExploreId.left);
+  state.right && callback(state.right, ExploreId.right);
 };
 
 export const addHistoryItem = (
@@ -119,18 +123,20 @@ export const deleteHistoryItem = (id: string): ThunkResult<void> => {
 };
 
 export const deleteRichHistory = (): ThunkResult<void> => {
-  return async (dispatch, getState) => {
+  return async (dispatch) => {
     await deleteAllFromRichHistory();
-    selectPanesEntries(getState()).forEach(([exploreId]) => {
-      dispatch(richHistoryUpdatedAction({ richHistoryResults: { richHistory: [], total: 0 }, exploreId }));
-      dispatch(richHistoryUpdatedAction({ richHistoryResults: { richHistory: [], total: 0 }, exploreId }));
-    });
+    dispatch(
+      richHistoryUpdatedAction({ richHistoryResults: { richHistory: [], total: 0 }, exploreId: ExploreId.left })
+    );
+    dispatch(
+      richHistoryUpdatedAction({ richHistoryResults: { richHistory: [], total: 0 }, exploreId: ExploreId.right })
+    );
   };
 };
 
-export const loadRichHistory = (exploreId: string): ThunkResult<void> => {
+export const loadRichHistory = (exploreId: ExploreId): ThunkResult<void> => {
   return async (dispatch, getState) => {
-    const filters = getState().explore.panes[exploreId]!.richHistorySearchFilters;
+    const filters = getState().explore![exploreId]?.richHistorySearchFilters;
     if (filters) {
       const richHistoryResults = await getRichHistory(filters);
       dispatch(richHistoryUpdatedAction({ richHistoryResults, exploreId }));
@@ -138,10 +144,10 @@ export const loadRichHistory = (exploreId: string): ThunkResult<void> => {
   };
 };
 
-export const loadMoreRichHistory = (exploreId: string): ThunkResult<void> => {
+export const loadMoreRichHistory = (exploreId: ExploreId): ThunkResult<void> => {
   return async (dispatch, getState) => {
-    const currentFilters = getState().explore.panes[exploreId]?.richHistorySearchFilters;
-    const currentRichHistory = getState().explore.panes[exploreId]?.richHistory;
+    const currentFilters = getState().explore![exploreId]?.richHistorySearchFilters;
+    const currentRichHistory = getState().explore![exploreId]?.richHistory;
     if (currentFilters && currentRichHistory) {
       const nextFilters = { ...currentFilters, page: (currentFilters?.page || 1) + 1 };
       const moreRichHistory = await getRichHistory(nextFilters);
@@ -154,7 +160,7 @@ export const loadMoreRichHistory = (exploreId: string): ThunkResult<void> => {
   };
 };
 
-export const clearRichHistoryResults = (exploreId: string): ThunkResult<void> => {
+export const clearRichHistoryResults = (exploreId: ExploreId): ThunkResult<void> => {
   return async (dispatch) => {
     dispatch(richHistorySearchFiltersUpdatedAction({ filters: undefined, exploreId }));
     dispatch(richHistoryUpdatedAction({ richHistoryResults: { richHistory: [], total: 0 }, exploreId }));
@@ -167,6 +173,21 @@ export const clearRichHistoryResults = (exploreId: string): ThunkResult<void> =>
  */
 export const initRichHistory = (): ThunkResult<void> => {
   return async (dispatch, getState) => {
+    const queriesMigrated = store.getBool(RICH_HISTORY_SETTING_KEYS.migrated, false);
+    const migrationFailedDuringThisSession = getState().explore.richHistoryMigrationFailed;
+
+    // Query history migration should always be successful, but in case of unexpected errors we ensure
+    // the migration attempt happens only once per session, and the user is informed about the failure
+    // in a way that can help with potential investigation.
+    if (config.queryHistoryEnabled && !queriesMigrated && !migrationFailedDuringThisSession) {
+      const migrationResult = await migrateQueryHistoryFromLocalStorage();
+      if (migrationResult.status === LocalStorageMigrationStatus.Failed) {
+        dispatch(richHistoryMigrationFailedAction());
+        logError(migrationResult.error!, { explore: { event: 'QueryHistoryMigrationFailed' } });
+      } else {
+        store.set(RICH_HISTORY_SETTING_KEYS.migrated, true);
+      }
+    }
     let settings = getState().explore.richHistorySettings;
     if (!settings) {
       settings = await getRichHistorySettings();
@@ -185,7 +206,10 @@ export const updateHistorySettings = (settings: RichHistorySettings): ThunkResul
 /**
  * Assumed this can be called only when settings and filters are initialised
  */
-export const updateHistorySearchFilters = (exploreId: string, filters: RichHistorySearchFilters): ThunkResult<void> => {
+export const updateHistorySearchFilters = (
+  exploreId: ExploreId,
+  filters: RichHistorySearchFilters
+): ThunkResult<void> => {
   return async (dispatch, getState) => {
     await dispatch(richHistorySearchFiltersUpdatedAction({ exploreId, filters: { ...filters } }));
     const currentSettings = getState().explore.richHistorySettings!;

@@ -1,19 +1,37 @@
 import { render, screen } from '@testing-library/react';
-import React from 'react';
+import React, { useState } from 'react';
 
-import { CoreApp, createDataFrame } from '@grafana/data';
+import { CoreApp, DataFrameView, MutableDataFrame } from '@grafana/data';
 
-import { FlameGraphDataContainer } from '../FlameGraph/dataTransform';
+import { Item, nestedSetToLevels } from '../FlameGraph/dataTransform';
 import { data } from '../FlameGraph/testData/dataNestedSet';
+import { SelectedView } from '../types';
 
 import FlameGraphTopTableContainer from './FlameGraphTopTableContainer';
 
 describe('FlameGraphTopTableContainer', () => {
   const FlameGraphTopTableContainerWithProps = () => {
-    const flameGraphData = createDataFrame(data);
-    const container = new FlameGraphDataContainer(flameGraphData);
+    const [search, setSearch] = useState('');
+    const [selectedView, _] = useState(SelectedView.Both);
 
-    return <FlameGraphTopTableContainer data={container} app={CoreApp.Explore} onSymbolClick={jest.fn()} />;
+    const flameGraphData = new MutableDataFrame(data);
+    const dataView = new DataFrameView<Item>(flameGraphData);
+    const levels = nestedSetToLevels(dataView);
+
+    return (
+      <FlameGraphTopTableContainer
+        data={flameGraphData}
+        app={CoreApp.Explore}
+        totalLevels={levels.length}
+        selectedView={selectedView}
+        search={search}
+        setSearch={setSearch}
+        setTopLevelIndex={jest.fn()}
+        setSelectedBarIndex={jest.fn()}
+        setRangeMin={jest.fn()}
+        setRangeMax={jest.fn()}
+      />
+    );
   };
 
   it('should render without error', async () => {
@@ -27,7 +45,7 @@ describe('FlameGraphTopTableContainer', () => {
 
     render(<FlameGraphTopTableContainerWithProps />);
     const rows = screen.getAllByRole('row');
-    expect(rows).toHaveLength(16);
+    expect(rows).toHaveLength(17); // + 1 for the columnHeaders
 
     const columnHeaders = screen.getAllByRole('columnheader');
     expect(columnHeaders).toHaveLength(3);
@@ -36,7 +54,7 @@ describe('FlameGraphTopTableContainer', () => {
     expect(columnHeaders[2].textContent).toEqual('Total');
 
     const cells = screen.getAllByRole('cell');
-    expect(cells).toHaveLength(45); // 16 rows
+    expect(cells).toHaveLength(48); // 16 rows
     expect(cells[0].textContent).toEqual('net/http.HandlerFunc.ServeHTTP');
     expect(cells[1].textContent).toEqual('31.7 K');
     expect(cells[2].textContent).toEqual('31.7 Bil');

@@ -1,6 +1,7 @@
 import { map } from 'rxjs';
 
 import {
+  ArrayVector,
   DataFrame,
   DataTransformerID,
   FieldType,
@@ -15,7 +16,6 @@ import {
   durationToMilliseconds,
   parseDuration,
 } from '@grafana/data';
-import { isLikelyAscendingVector } from '@grafana/data/src/transformations/transformers/joinDataFrames';
 import {
   ScaleDistribution,
   HeatmapCellLayout,
@@ -33,7 +33,7 @@ export interface HeatmapTransformerOptions extends HeatmapCalculationOptions {
 export const heatmapTransformer: SynchronousDataTransformerInfo<HeatmapTransformerOptions> = {
   id: DataTransformerID.heatmap,
   name: 'Create heatmap',
-  description: 'Calculate heatmap from source data.',
+  description: 'calculate heatmap from source data',
   defaultOptions: {},
 
   operator: (options, ctx) => (source) =>
@@ -104,7 +104,7 @@ export interface RowsHeatmapOptions {
 export function rowsToCellsHeatmap(opts: RowsHeatmapOptions): DataFrame {
   // TODO: handle null-filling w/ fields[0].config.interval?
   const xField = opts.frame.fields[0];
-  const xValues = xField.values;
+  const xValues = xField.values.toArray();
   const yFields = opts.frame.fields.filter((f, idx) => f.type === FieldType.number && idx > 0);
 
   // similar to initBins() below
@@ -113,7 +113,7 @@ export function rowsToCellsHeatmap(opts: RowsHeatmapOptions): DataFrame {
   const ys = new Array(len);
   const counts2 = new Array(len);
 
-  const counts = yFields.map((field) => field.values.slice());
+  const counts = yFields.map((field) => field.values.toArray().slice());
 
   // transpose
   counts.forEach((bucketCounts, bi) => {
@@ -197,13 +197,13 @@ export function rowsToCellsHeatmap(opts: RowsHeatmapOptions): DataFrame {
       {
         name: xField.type === FieldType.time ? 'xMax' : 'x',
         type: xField.type,
-        values: xs,
+        values: new ArrayVector(xs),
         config: xField.config,
       },
       {
         name: ordinalFieldName,
         type: FieldType.number,
-        values: ys,
+        values: new ArrayVector(ys),
         config: {
           unit: 'short', // ordinal lookup
         },
@@ -211,7 +211,7 @@ export function rowsToCellsHeatmap(opts: RowsHeatmapOptions): DataFrame {
       {
         name: opts.value?.length ? opts.value : 'Value',
         type: FieldType.number,
-        values: counts2,
+        values: new ArrayVector(counts2),
         config: valueCfg,
         display: yFields[0].display,
       },
@@ -229,7 +229,7 @@ export function prepBucketFrames(frames: DataFrame[]): DataFrame[] {
   frames.sort((a, b) => sortAscStrInf(a.name, b.name));
 
   // cumulative counts
-  const counts = frames.map((frame) => frame.fields[1].values.slice());
+  const counts = frames.map((frame) => frame.fields[1].values.toArray().slice());
 
   // de-accumulate
   counts.reverse();
@@ -248,7 +248,7 @@ export function prepBucketFrames(frames: DataFrame[]): DataFrame[] {
       frame.fields[0],
       {
         ...frame.fields[1],
-        values: counts[i],
+        values: new ArrayVector(counts[i]),
       },
     ],
   }));
@@ -289,10 +289,10 @@ export function calculateHeatmapFromData(frames: DataFrame[], options: HeatmapCa
       xField = x; // the first X
     }
 
-    const xValues = x.values;
+    const xValues = x.values.toArray();
     for (let field of frame.fields) {
       if (field !== x && field.type === FieldType.number) {
-        const yValues = field.values;
+        const yValues = field.values.toArray();
 
         for (let i = 0; i < xValues.length; i++, j++) {
           xs[j] = xValues[i];
@@ -326,7 +326,7 @@ export function calculateHeatmapFromData(frames: DataFrame[], options: HeatmapCa
   };
 
   const heat2d = heatmap(xs, ys, {
-    xSorted: isLikelyAscendingVector(xs),
+    xSorted: true,
     xTime: xField.type === FieldType.time,
     xMode: xBucketsCfg.mode,
     xSize:
@@ -350,13 +350,13 @@ export function calculateHeatmapFromData(frames: DataFrame[], options: HeatmapCa
       {
         name: 'xMin',
         type: xField.type,
-        values: heat2d.x,
+        values: new ArrayVector(heat2d.x),
         config: xField.config,
       },
       {
         name: 'yMin',
         type: FieldType.number,
-        values: heat2d.y,
+        values: new ArrayVector(heat2d.y),
         config: {
           ...yField.config, // keep units from the original source
           custom: {
@@ -367,7 +367,7 @@ export function calculateHeatmapFromData(frames: DataFrame[], options: HeatmapCa
       {
         name: 'Count',
         type: FieldType.number,
-        values: heat2d.count,
+        values: new ArrayVector(heat2d.count),
         config: {
           unit: 'short', // always integer
         },

@@ -32,15 +32,15 @@ const RESOURCE_GRAPH_URL = '/providers/Microsoft.ResourceGraph/resources?api-ver
 
 const logsSupportedResourceTypesKusto = logsResourceTypes.map((v) => `"${v}"`).join(',');
 
-export type ResourcePickerQueryType = 'logs' | 'metrics' | 'traces';
+export type ResourcePickerQueryType = 'logs' | 'metrics';
 
 export default class ResourcePickerData extends DataSourceWithBackend<AzureMonitorQuery, AzureDataSourceJsonData> {
   private resourcePath: string;
   resultLimit = 200;
   azureMonitorDatasource;
   supportedMetricNamespaces = '';
-  locationsMap: Map<string, AzureMonitorLocations> = new Map();
-  locations: string[] = [];
+  logLocationsMap: Map<string, AzureMonitorLocations> = new Map();
+  logLocations: string[] = [];
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<AzureDataSourceJsonData>,
@@ -57,9 +57,9 @@ export default class ResourcePickerData extends DataSourceWithBackend<AzureMonit
   ): Promise<ResourceRowGroup> {
     const subscriptions = await this.getSubscriptions();
 
-    if (this.locationsMap.size === 0) {
-      this.locationsMap = await this.getLocations(subscriptions);
-      this.locations = Array.from(this.locationsMap.values()).map((location) => `"${location.name}"`);
+    if (this.logLocationsMap.size === 0) {
+      this.logLocationsMap = await this.getLogsLocations(subscriptions);
+      this.logLocations = Array.from(this.logLocationsMap.values()).map((location) => `"${location.name}"`);
     }
 
     if (!currentSelection) {
@@ -140,7 +140,7 @@ export default class ResourcePickerData extends DataSourceWithBackend<AzureMonit
         resourceGroupName: item.resourceGroup,
         type,
         typeLabel: resourceTypeDisplayNames[item.type] || item.type,
-        location: this.locationsMap.get(item.location)?.displayName || item.location,
+        location: this.logLocationsMap.get(item.location)?.displayName || item.location,
       };
     });
   };
@@ -243,14 +243,13 @@ export default class ResourcePickerData extends DataSourceWithBackend<AzureMonit
     resourceGroupId: string,
     type: ResourcePickerQueryType
   ): Promise<ResourceRowGroup> {
-    if (!this.locations) {
+    if (!this.logLocations) {
       return [];
     }
-
     const { data: response } = await this.makeResourceGraphRequest<RawAzureResourceItem[]>(`
       resources
       | where id hasprefix "${resourceGroupId}"
-      ${await this.filterByType(type)} and location in (${this.locations})
+      ${await this.filterByType(type)} and location in (${this.logLocations})
     `);
 
     return response.map((item) => {
@@ -265,7 +264,7 @@ export default class ResourcePickerData extends DataSourceWithBackend<AzureMonit
         resourceGroupName: item.resourceGroup,
         type: ResourceRowType.Resource,
         typeLabel: resourceTypeDisplayNames[item.type] || item.type,
-        locationDisplayName: this.locationsMap.get(item.location)?.displayName || item.location,
+        locationDisplayName: this.logLocationsMap.get(item.location)?.displayName || item.location,
         location: item.location,
       };
     });
@@ -392,10 +391,34 @@ export default class ResourcePickerData extends DataSourceWithBackend<AzureMonit
     this.supportedMetricNamespaces = uniq(supportedMetricNamespaces).join(',');
   }
 
-  async getLocations(subscriptions: ResourceRowGroup): Promise<Map<string, AzureMonitorLocations>> {
+  async getLogsLocations(subscriptions: ResourceRowGroup): Promise<Map<string, AzureMonitorLocations>> {
     const subscriptionIds = subscriptions.map((sub) => sub.id);
     const locations = await this.azureMonitorDatasource.getLocations(subscriptionIds);
-    return locations;
+    const insightsProvider = await this.azureMonitorDatasource.getProvider('Microsoft.Insights');
+    const logsProvider = insightsProvider?.resourceTypes.find((provider) => provider.resourceType === 'logs');
+
+    if (!logsProvider) {
+      return locations;
+    }
+
+    const logsLocations = logsProvider.locations.map((location) => ({
+      displayName: location,
+      name: '',
+      supportsLogs: true,
+    }));
+
+    const logLocationsMap = new Map<string, AzureMonitorLocations>();
+
+    for (const logLocation of logsLocations) {
+      const name =
+        Array.from(locations.values()).find((location) => logLocation.displayName === location.displayName)?.name || '';
+
+      if (name !== '') {
+        logLocationsMap.set(name, { ...logLocation, name });
+      }
+    }
+
+    return logLocationsMap;
   }
 
   parseRows(resources: Array<string | AzureMonitorResource>): ResourceRow[] {
@@ -422,7 +445,7 @@ export default class ResourcePickerData extends DataSourceWithBackend<AzureMonit
         uri: resourceToString(resource),
         typeLabel:
           resourceTypeDisplayNames[resource.metricNamespace?.toLowerCase() ?? ''] ?? resource.metricNamespace ?? '',
-        locationDisplayName: this.locationsMap.get(resource.region ?? '')?.displayName || resource.region,
+        locationDisplayName: this.logLocationsMap.get(resource.region ?? '')?.displayName || resource.region,
         location: resource.region,
       });
     });

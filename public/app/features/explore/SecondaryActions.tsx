@@ -1,8 +1,8 @@
-import { css } from '@emotion/css';
+import { css, cx } from '@emotion/css';
 import React from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
-import { HorizontalGroup, ToolbarButton, useTheme2 } from '@grafana/ui';
+import { Button, HorizontalGroup, useTheme2 } from '@grafana/ui';
 
 type Props = {
   addQueryRowButtonDisabled?: boolean;
@@ -23,7 +23,6 @@ const getStyles = (theme: GrafanaTheme2) => {
     `,
   };
 };
-
 export function SecondaryActions(props: Props) {
   const theme = useTheme2();
   const styles = getStyles(theme);
@@ -31,34 +30,36 @@ export function SecondaryActions(props: Props) {
     <div className={styles.containerMargin}>
       <HorizontalGroup>
         {!props.addQueryRowButtonHidden && (
-          <ToolbarButton
-            variant="canvas"
+          <Button
+            variant="secondary"
             aria-label="Add row button"
             onClick={props.onClickAddQueryRowButton}
             disabled={props.addQueryRowButtonDisabled}
             icon="plus"
           >
             Add query
-          </ToolbarButton>
+          </Button>
         )}
         {!props.richHistoryRowButtonHidden && (
-          <ToolbarButton
-            variant={props.richHistoryButtonActive ? 'active' : 'canvas'}
+          <Button
+            variant="secondary"
             aria-label="Rich history button"
+            className={cx({ ['explore-active-button']: props.richHistoryButtonActive })}
             onClick={props.onClickRichHistoryButton}
             icon="history"
           >
             Query history
-          </ToolbarButton>
+          </Button>
         )}
-        <ToolbarButton
-          variant={props.queryInspectorButtonActive ? 'active' : 'canvas'}
+        <Button
+          variant="secondary"
           aria-label="Query inspector button"
+          className={cx({ ['explore-active-button']: props.queryInspectorButtonActive })}
           onClick={props.onClickQueryInspectorButton}
           icon="info-circle"
         >
           Inspector
-        </ToolbarButton>
+        </Button>
       </HorizontalGroup>
     </div>
   );

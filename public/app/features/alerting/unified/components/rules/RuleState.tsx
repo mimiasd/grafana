@@ -1,9 +1,8 @@
 import { css } from '@emotion/css';
-import React, { useMemo } from 'react';
+import React, { FC, useMemo } from 'react';
 
 import { GrafanaTheme2, intervalToAbbreviatedDurationString } from '@grafana/data';
-import { Stack } from '@grafana/experimental';
-import { Spinner, useStyles2 } from '@grafana/ui';
+import { HorizontalGroup, Spinner, useStyles2 } from '@grafana/ui';
 import { CombinedRule } from 'app/types/unified-alerting';
 import { PromAlertingRuleState } from 'app/types/unified-alerting-dto';
 
@@ -18,7 +17,7 @@ interface Props {
   isPaused?: boolean;
 }
 
-export const RuleState = ({ rule, isDeleting, isCreating, isPaused }: Props) => {
+export const RuleState: FC<Props> = ({ rule, isDeleting, isCreating, isPaused }) => {
   const style = useStyles2(getStyle);
   const { promRule } = rule;
 
@@ -31,7 +30,7 @@ export const RuleState = ({ rule, isDeleting, isCreating, isPaused }: Props) => 
       promRule.state !== PromAlertingRuleState.Inactive
     ) {
       // find earliest alert
-      const firstActiveAt = promRule.activeAt ? new Date(promRule.activeAt) : getFirstActiveAt(promRule);
+      const firstActiveAt = getFirstActiveAt(promRule);
 
       // calculate time elapsed from earliest alert
       if (firstActiveAt) {
@@ -54,24 +53,25 @@ export const RuleState = ({ rule, isDeleting, isCreating, isPaused }: Props) => 
 
   if (isDeleting) {
     return (
-      <Stack gap={1}>
+      <HorizontalGroup align="flex-start">
         <Spinner />
-        Deleting
-      </Stack>
+        deleting
+      </HorizontalGroup>
     );
   } else if (isCreating) {
     return (
-      <Stack gap={1}>
+      <HorizontalGroup align="flex-start">
+        {' '}
         <Spinner />
-        Creating
-      </Stack>
+        creating
+      </HorizontalGroup>
     );
   } else if (promRule && isAlertingRule(promRule)) {
     return (
-      <Stack gap={1}>
+      <HorizontalGroup align="flex-start">
         <AlertStateTag state={promRule.state} isPaused={isPaused} />
         {forTime}
-      </Stack>
+      </HorizontalGroup>
     );
   } else if (promRule && isRecordingRule(promRule)) {
     return <>Recording rule</>;

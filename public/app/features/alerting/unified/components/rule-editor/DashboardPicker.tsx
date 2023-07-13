@@ -6,15 +6,14 @@ import { FixedSizeList } from 'react-window';
 
 import { GrafanaTheme2 } from '@grafana/data/src';
 import {
-  Alert,
-  Button,
-  clearButtonStyles,
   FilterInput,
-  Icon,
   LoadingPlaceholder,
-  Modal,
-  Tooltip,
   useStyles2,
+  Icon,
+  Modal,
+  Button,
+  Alert,
+  clearButtonStyles,
 } from '@grafana/ui';
 
 import { dashboardApi } from '../../api/dashboardApi';
@@ -22,7 +21,6 @@ import { dashboardApi } from '../../api/dashboardApi';
 export interface PanelDTO {
   id: number;
   title?: string;
-  type: string;
 }
 
 function panelSort(a: PanelDTO, b: PanelDTO) {
@@ -73,7 +71,7 @@ export const DashboardPicker = ({ dashboardUid, panelId, isOpen, onChange, onDis
 
   const filteredPanels =
     dashboardResult?.dashboard?.panels
-      ?.filter((panel): panel is PanelDTO => typeof panel.id === 'number' && typeof panel.type === 'string')
+      ?.filter((panel): panel is PanelDTO => typeof panel.id === 'number')
       ?.filter((panel) => panel.title?.toLowerCase().includes(panelFilter.toLowerCase()))
       .sort(panelSort) ?? [];
 
@@ -87,7 +85,7 @@ export const DashboardPicker = ({ dashboardUid, panelId, isOpen, onChange, onDis
   const selectedDashboardIsInPageResult = selectedDashboardIndex >= 0;
 
   const scrollToItem = useCallback(
-    (node: FixedSizeList) => {
+    (node) => {
       const canScroll = selectedDashboardIndex >= 0;
 
       if (isDefaultSelection && canScroll) {
@@ -117,7 +115,7 @@ export const DashboardPicker = ({ dashboardUid, panelId, isOpen, onChange, onDis
         className={cx(styles.rowButton, { [styles.rowOdd]: index % 2 === 1, [styles.rowSelected]: isSelected })}
         onClick={() => handleDashboardChange(dashboard.uid)}
       >
-        <div className={cx(styles.dashboardTitle, styles.rowButtonTitle)}>{dashboard.title}</div>
+        <div className={styles.dashboardTitle}>{dashboard.title}</div>
         <div className={styles.dashboardFolder}>
           <Icon name="folder" /> {dashboard.folderTitle ?? 'General'}
         </div>
@@ -127,28 +125,16 @@ export const DashboardPicker = ({ dashboardUid, panelId, isOpen, onChange, onDis
 
   const PanelRow = ({ index, style }: { index: number; style: CSSProperties }) => {
     const panel = filteredPanels[index];
-    const panelTitle = panel.title || '<No title>';
     const isSelected = selectedPanelId === panel.id.toString();
-    const isAlertingCompatible = panel.type === 'graph' || panel.type === 'timeseries';
 
     return (
       <button
         type="button"
         style={style}
-        className={cx(styles.rowButton, styles.panelButton, {
-          [styles.rowOdd]: index % 2 === 1,
-          [styles.rowSelected]: isSelected,
-        })}
+        className={cx(styles.rowButton, { [styles.rowOdd]: index % 2 === 1, [styles.rowSelected]: isSelected })}
         onClick={() => setSelectedPanelId(panel.id.toString())}
       >
-        <div className={styles.rowButtonTitle} title={panelTitle}>
-          {panelTitle}
-        </div>
-        {!isAlertingCompatible && (
-          <Tooltip content="Alert tab will be disabled for this panel. It is only supported on graph and timeseries panels">
-            <Icon name="exclamation-triangle" className={styles.warnIcon} data-testid="warning-icon" />
-          </Tooltip>
-        )}
+        {panel.title || '<No title>'}
       </button>
     );
   };
@@ -209,16 +195,12 @@ export const DashboardPicker = ({ dashboardUid, panelId, isOpen, onChange, onDis
         </div>
 
         <div className={styles.column}>
-          {!selectedDashboardUid && !isDashboardFetching && (
-            <div className={styles.selectDashboardPlaceholder}>
-              <div>Select a dashboard to get a list of available panels</div>
-            </div>
-          )}
+          {!dashboardUid && !isDashboardFetching && <div>Select a dashboard to get a list of available panels</div>}
           {isDashboardFetching && (
             <LoadingPlaceholder text="Loading dashboard..." className={styles.loadingPlaceholder} />
           )}
 
-          {selectedDashboardUid && !isDashboardFetching && (
+          {!isDashboardFetching && (
             <AutoSizer>
               {({ width, height }) => (
                 <FixedSizeList itemSize={32} height={height} width={width} itemCount={filteredPanels.length}>
@@ -230,7 +212,7 @@ export const DashboardPicker = ({ dashboardUid, panelId, isOpen, onChange, onDis
         </div>
       </div>
       <Modal.ButtonRow>
-        <Button type="button" variant="secondary" onClick={onDismiss} fill="text">
+        <Button type="button" variant="secondary" onClick={onDismiss}>
           Cancel
         </Button>
         <Button
@@ -287,15 +269,6 @@ const getPickerStyles = (theme: GrafanaTheme2) => {
       white-space: nowrap;
       cursor: pointer;
       border: 2px solid transparent;
-
-      &:disabled {
-        cursor: not-allowed;
-        color: ${theme.colors.text.disabled};
-      }
-    `,
-    rowButtonTitle: css`
-      text-overflow: ellipsis;
-      overflow: hidden;
     `,
     rowSelected: css`
       border-color: ${theme.colors.primary.border};
@@ -303,26 +276,11 @@ const getPickerStyles = (theme: GrafanaTheme2) => {
     rowOdd: css`
       background-color: ${theme.colors.background.secondary};
     `,
-    panelButton: css`
-      display: flex;
-      gap: ${theme.spacing(1)};
-      justify-content: space-between;
-      align-items: center;
-    `,
     loadingPlaceholder: css`
       height: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
-    `,
-    selectDashboardPlaceholder: css`
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      text-align: center;
-      font-weight: ${theme.typography.fontWeightBold};
     `,
     modal: css`
       height: 100%;
@@ -334,9 +292,6 @@ const getPickerStyles = (theme: GrafanaTheme2) => {
     `,
     modalAlert: css`
       flex-grow: 0;
-    `,
-    warnIcon: css`
-      fill: ${theme.colors.warning.main};
     `,
   };
 };

@@ -10,7 +10,9 @@
 
 import * as ui from '@grafana/schema';
 
-export interface Options {
+export const PanelCfgModelVersion = Object.freeze([0, 0]);
+
+export interface PanelOptions {
   basemap: ui.MapLayerOptions;
   controls: ControlsOptions;
   layers: Array<ui.MapLayerOptions>;
@@ -18,7 +20,7 @@ export interface Options {
   view: MapViewConfig;
 }
 
-export const defaultOptions: Partial<Options> = {
+export const defaultPanelOptions: Partial<PanelOptions> = {
   layers: [],
 };
 

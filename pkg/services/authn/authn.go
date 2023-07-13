@@ -13,7 +13,7 @@ import (
 
 	"github.com/grafana/grafana/pkg/api/response"
 	"github.com/grafana/grafana/pkg/middleware/cookies"
-	"github.com/grafana/grafana/pkg/models/usertoken"
+	"github.com/grafana/grafana/pkg/services/auth"
 	"github.com/grafana/grafana/pkg/services/login"
 	"github.com/grafana/grafana/pkg/services/org"
 	"github.com/grafana/grafana/pkg/services/user"
@@ -22,16 +22,15 @@ import (
 )
 
 const (
-	ClientAPIKey      = "auth.client.api-key" // #nosec G101
-	ClientAnonymous   = "auth.client.anonymous"
-	ClientBasic       = "auth.client.basic"
-	ClientJWT         = "auth.client.jwt"
-	ClientExtendedJWT = "auth.client.extended-jwt"
-	ClientRender      = "auth.client.render"
-	ClientSession     = "auth.client.session"
-	ClientForm        = "auth.client.form"
-	ClientProxy       = "auth.client.proxy"
-	ClientSAML        = "auth.client.saml"
+	ClientAPIKey    = "auth.client.api-key" // #nosec G101
+	ClientAnonymous = "auth.client.anonymous"
+	ClientBasic     = "auth.client.basic"
+	ClientJWT       = "auth.client.jwt"
+	ClientRender    = "auth.client.render"
+	ClientSession   = "auth.client.session"
+	ClientForm      = "auth.client.form"
+	ClientProxy     = "auth.client.proxy"
+	ClientSAML      = "auth.client.saml"
 )
 
 const (
@@ -58,8 +57,6 @@ type ClientParams struct {
 	CacheAuthProxyKey string
 	// LookUpParams are the arguments used to look up the entity in the DB.
 	LookUpParams login.UserLookupParams
-	// SyncPermissions ensure that permissions are loaded from DB and added to the identity
-	SyncPermissions bool
 }
 
 type PostAuthHookFn func(ctx context.Context, identity *Identity, r *Request) error
@@ -200,9 +197,9 @@ type Identity struct {
 	Email string
 	// IsGrafanaAdmin is true if the entity is a Grafana admin.
 	IsGrafanaAdmin *bool
-	// AuthenticatedBy is the name of the authentication client that was used to authenticate the current Identity.
-	// For example, "password", "apikey", "auth_ldap" or "auth_azuread".
-	AuthenticatedBy string
+	// AuthModule is the name of the external system. For example, "auth_ldap" or "auth_saml".
+	// Empty if the identity is provided by Grafana.
+	AuthModule string
 	// AuthId is the unique identifier for the entity in the external system.
 	// Empty if the identity is provided by Grafana.
 	AuthID string
@@ -220,12 +217,10 @@ type Identity struct {
 	// OAuthToken is the OAuth token used to authenticate the entity.
 	OAuthToken *oauth2.Token
 	// SessionToken is the session token used to authenticate the entity.
-	SessionToken *usertoken.UserToken
+	SessionToken *auth.UserToken
 	// ClientParams are hints for the auth service on how to handle the identity.
 	// Set by the authenticating client.
 	ClientParams ClientParams
-	// Permissions is the list of permissions the entity has.
-	Permissions map[int64]map[string][]string
 }
 
 // Role returns the role of the identity in the active organization.
@@ -262,22 +257,22 @@ func (i *Identity) SignedInUser() *user.SignedInUser {
 	}
 
 	u := &user.SignedInUser{
-		UserID:          0,
-		OrgID:           i.OrgID,
-		OrgName:         i.OrgName,
-		OrgRole:         i.Role(),
-		Login:           i.Login,
-		Name:            i.Name,
-		Email:           i.Email,
-		AuthenticatedBy: i.AuthenticatedBy,
-		OrgCount:        i.OrgCount,
-		IsGrafanaAdmin:  isGrafanaAdmin,
-		IsAnonymous:     i.IsAnonymous,
-		IsDisabled:      i.IsDisabled,
-		HelpFlags1:      i.HelpFlags1,
-		LastSeenAt:      i.LastSeenAt,
-		Teams:           i.Teams,
-		Permissions:     i.Permissions,
+		UserID:             0,
+		OrgID:              i.OrgID,
+		OrgName:            i.OrgName,
+		OrgRole:            i.Role(),
+		ExternalAuthModule: i.AuthModule,
+		ExternalAuthID:     i.AuthID,
+		Login:              i.Login,
+		Name:               i.Name,
+		Email:              i.Email,
+		OrgCount:           i.OrgCount,
+		IsGrafanaAdmin:     isGrafanaAdmin,
+		IsAnonymous:        i.IsAnonymous,
+		IsDisabled:         i.IsDisabled,
+		HelpFlags1:         i.HelpFlags1,
+		LastSeenAt:         i.LastSeenAt,
+		Teams:              i.Teams,
 	}
 
 	namespace, id := i.NamespacedID()
@@ -295,7 +290,7 @@ func (i *Identity) ExternalUserInfo() login.ExternalUserInfo {
 	_, id := i.NamespacedID()
 	return login.ExternalUserInfo{
 		OAuthToken:     i.OAuthToken,
-		AuthModule:     i.AuthenticatedBy,
+		AuthModule:     i.AuthModule,
 		AuthId:         i.AuthID,
 		UserId:         id,
 		Email:          i.Email,
@@ -309,24 +304,22 @@ func (i *Identity) ExternalUserInfo() login.ExternalUserInfo {
 }
 
 // IdentityFromSignedInUser creates an identity from a SignedInUser.
-func IdentityFromSignedInUser(id string, usr *user.SignedInUser, params ClientParams, authenticatedBy string) *Identity {
+func IdentityFromSignedInUser(id string, usr *user.SignedInUser, params ClientParams) *Identity {
 	return &Identity{
-		ID:              id,
-		OrgID:           usr.OrgID,
-		OrgName:         usr.OrgName,
-		OrgRoles:        map[int64]org.RoleType{usr.OrgID: usr.OrgRole},
-		Login:           usr.Login,
-		Name:            usr.Name,
-		Email:           usr.Email,
-		AuthenticatedBy: authenticatedBy,
-		OrgCount:        usr.OrgCount,
-		IsGrafanaAdmin:  &usr.IsGrafanaAdmin,
-		IsDisabled:      usr.IsDisabled,
-		HelpFlags1:      usr.HelpFlags1,
-		LastSeenAt:      usr.LastSeenAt,
-		Teams:           usr.Teams,
-		ClientParams:    params,
-		Permissions:     usr.Permissions,
+		ID:             id,
+		OrgID:          usr.OrgID,
+		OrgName:        usr.OrgName,
+		OrgRoles:       map[int64]org.RoleType{usr.OrgID: usr.OrgRole},
+		Login:          usr.Login,
+		Name:           usr.Name,
+		Email:          usr.Email,
+		OrgCount:       usr.OrgCount,
+		IsGrafanaAdmin: &usr.IsGrafanaAdmin,
+		IsDisabled:     usr.IsDisabled,
+		HelpFlags1:     usr.HelpFlags1,
+		LastSeenAt:     usr.LastSeenAt,
+		Teams:          usr.Teams,
+		ClientParams:   params,
 	}
 }
 
@@ -364,7 +357,7 @@ func handleLogin(r *http.Request, w http.ResponseWriter, cfg *setting.Cfg, ident
 		redirectURL = redirectTo
 	}
 
-	WriteSessionCookie(w, cfg, identity.SessionToken)
+	WriteSessionCookie(w, cfg, identity)
 	return redirectURL
 }
 
@@ -378,28 +371,11 @@ func getRedirectURL(r *http.Request) string {
 	return v
 }
 
-const sessionExpiryCookie = "grafana_session_expiry"
-
-func WriteSessionCookie(w http.ResponseWriter, cfg *setting.Cfg, token *usertoken.UserToken) {
+func WriteSessionCookie(w http.ResponseWriter, cfg *setting.Cfg, identity *Identity) {
 	maxAge := int(cfg.LoginMaxLifetime.Seconds())
 	if cfg.LoginMaxLifetime <= 0 {
 		maxAge = -1
 	}
 
-	cookies.WriteCookie(w, cfg.LoginCookieName, url.QueryEscape(token.UnhashedToken), maxAge, nil)
-	expiry := token.NextRotation(time.Duration(cfg.TokenRotationIntervalMinutes) * time.Minute)
-	cookies.WriteCookie(w, sessionExpiryCookie, url.QueryEscape(strconv.FormatInt(expiry.Unix(), 10)), maxAge, func() cookies.CookieOptions {
-		opts := cookies.NewCookieOptions()
-		opts.NotHttpOnly = true
-		return opts
-	})
-}
-
-func DeleteSessionCookie(w http.ResponseWriter, cfg *setting.Cfg) {
-	cookies.DeleteCookie(w, cfg.LoginCookieName, nil)
-	cookies.DeleteCookie(w, sessionExpiryCookie, func() cookies.CookieOptions {
-		opts := cookies.NewCookieOptions()
-		opts.NotHttpOnly = true
-		return opts
-	})
+	cookies.WriteCookie(w, cfg.LoginCookieName, url.QueryEscape(identity.SessionToken.UnhashedToken), maxAge, nil)
 }

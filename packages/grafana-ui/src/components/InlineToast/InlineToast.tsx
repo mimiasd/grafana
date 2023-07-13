@@ -15,28 +15,13 @@ export interface InlineToastProps {
   suffixIcon?: IconName;
   referenceElement: HTMLElement | null;
   placement: BasePlacement;
-  /** Placement to use if there is not enough space to show the full toast with the original placement*/
-  alternativePlacement?: BasePlacement;
 }
 
-export function InlineToast({
-  referenceElement,
-  children,
-  suffixIcon,
-  placement,
-  alternativePlacement,
-}: InlineToastProps) {
+export function InlineToast({ referenceElement, children, suffixIcon, placement }: InlineToastProps) {
   const [indicatorElement, setIndicatorElement] = useState<HTMLElement | null>(null);
-  const [toastPlacement, setToastPlacement] = useState(placement);
-  const popper = usePopper(referenceElement, indicatorElement, { placement: toastPlacement });
+  const popper = usePopper(referenceElement, indicatorElement, { placement });
   const styles = useStyles2(getStyles);
   const placementStyles = useStyles2(getPlacementStyles);
-
-  React.useEffect(() => {
-    if (alternativePlacement && shouldUseAlt(placement, indicatorElement, referenceElement)) {
-      setToastPlacement(alternativePlacement);
-    }
-  }, [alternativePlacement, placement, indicatorElement, referenceElement]);
 
   return (
     <Portal>
@@ -44,9 +29,8 @@ export function InlineToast({
         style={{ display: 'inline-block', ...popper.styles.popper }}
         {...popper.attributes.popper}
         ref={setIndicatorElement}
-        aria-live="polite"
       >
-        <span className={cx(styles.root, placementStyles[toastPlacement])}>
+        <span className={cx(styles.root, placementStyles[placement])}>
           {children && <span>{children}</span>}
           {suffixIcon && <Icon name={suffixIcon} />}
         </span>
@@ -69,31 +53,6 @@ const getStyles = (theme: GrafanaTheme2) => {
       alignItems: 'center',
     }),
   };
-};
-
-//To calculate if the InlineToast is displayed off-screen and should use the alternative placement
-const shouldUseAlt = (
-  placement: BasePlacement,
-  indicatorElement: HTMLElement | null,
-  referenceElement: HTMLElement | null
-) => {
-  const indicatorSizes = indicatorElement?.getBoundingClientRect();
-  const referenceSizes = referenceElement?.getBoundingClientRect();
-  if (!indicatorSizes || !referenceSizes) {
-    return false;
-  }
-  switch (placement) {
-    case 'right':
-      return indicatorSizes.width + referenceSizes.right > window.innerWidth;
-    case 'bottom':
-      return indicatorSizes.height + referenceSizes.bottom > window.innerHeight;
-    case 'left':
-      return referenceSizes.left - indicatorSizes.width < 0;
-    case 'top':
-      return referenceSizes.top - indicatorSizes.height < 0;
-    default:
-      return false;
-  }
 };
 
 const createAnimation = (fromX: string | number, fromY: string | number) =>

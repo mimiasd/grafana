@@ -13,6 +13,5 @@ type HistoryQuery struct {
 	Labels       map[string]string
 	From         time.Time
 	To           time.Time
-	Limit        int
 	SignedInUser *user.SignedInUser
 }

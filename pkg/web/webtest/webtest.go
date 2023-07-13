@@ -140,7 +140,7 @@ func requestContextMiddleware() web.Middleware {
 				c.IsSignedIn = ctx.IsSignedIn
 				c.IsRenderCall = ctx.IsRenderCall
 				c.AllowAnonymous = ctx.AllowAnonymous
-				c.SkipDSCache = ctx.SkipDSCache
+				c.SkipCache = ctx.SkipCache
 				c.RequestNonce = ctx.RequestNonce
 				c.PerfmonTimer = ctx.PerfmonTimer
 				c.LookupTokenErr = ctx.LookupTokenErr

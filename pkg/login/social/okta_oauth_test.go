@@ -1,7 +1,6 @@
 package social
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -111,7 +110,7 @@ func TestSocialOkta_UserInfo(t *testing.T) {
 				Expiry:       time.Now(),
 			}
 			token := staticToken.WithExtra(tt.OAuth2Extra)
-			got, err := provider.UserInfo(context.Background(), server.Client(), token)
+			got, err := provider.UserInfo(server.Client(), token)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UserInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return

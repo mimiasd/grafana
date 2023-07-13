@@ -8,7 +8,9 @@
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
-export interface Options {
+export const PanelCfgModelVersion = Object.freeze([0, 0]);
+
+export interface PanelOptions {
   /**
    * empty/missing will default to grafana blog
    */
@@ -16,6 +18,6 @@ export interface Options {
   showImage?: boolean;
 }
 
-export const defaultOptions: Partial<Options> = {
+export const defaultPanelOptions: Partial<PanelOptions> = {
   showImage: true,
 };

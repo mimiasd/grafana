@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { FC } from 'react';
 
 import { Tooltip, Icon } from '@grafana/ui';
 import { LdapRole } from 'app/types';
@@ -8,7 +8,7 @@ interface Props {
   showAttributeMapping?: boolean;
 }
 
-export const LdapUserGroups = ({ groups, showAttributeMapping }: Props) => {
+export const LdapUserGroups: FC<Props> = ({ groups, showAttributeMapping }) => {
   const items = showAttributeMapping ? groups : groups.filter((item) => item.orgRole);
 
   return (
@@ -21,7 +21,9 @@ export const LdapUserGroups = ({ groups, showAttributeMapping }: Props) => {
               <th>
                 Organization
                 <Tooltip placement="top" content="Only the first match for an Organization will be used" theme={'info'}>
-                  <Icon name="info-circle" />
+                  <span className="gf-form-help-icon">
+                    <Icon name="info-circle" />
+                  </span>
                 </Tooltip>
               </th>
               <th>Role</th>
@@ -37,10 +39,14 @@ export const LdapUserGroups = ({ groups, showAttributeMapping }: Props) => {
                     <td>{group.orgRole}</td>
                   ) : (
                     <td>
-                      <span className="text-warning">No match</span>
-                      <Tooltip placement="top" content="No matching groups found" theme={'info'}>
-                        <Icon name="info-circle" />
-                      </Tooltip>
+                      <span className="text-warning">
+                        No match
+                        <Tooltip placement="top" content="No matching groups found" theme={'info'}>
+                          <span className="gf-form-help-icon">
+                            <Icon name="info-circle" />
+                          </span>
+                        </Tooltip>
+                      </span>
                     </td>
                   )}
                 </tr>

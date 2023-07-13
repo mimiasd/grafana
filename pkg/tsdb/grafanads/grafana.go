@@ -165,7 +165,7 @@ func (s *Service) doReadQuery(ctx context.Context, query backend.DataQuery) back
 func (s *Service) doRandomWalk(query backend.DataQuery) backend.DataResponse {
 	response := backend.DataResponse{}
 
-	model := testdatasource.JSONModel{}
+	model := simplejson.New()
 	response.Frames = data.Frames{testdatasource.RandomWalk(query, model, 0)}
 
 	return response

@@ -1,12 +1,6 @@
 import React, { useCallback } from 'react';
 
-import {
-  DataTransformerID,
-  standardTransformers,
-  TransformerRegistryItem,
-  TransformerUIProps,
-  TransformerCategory,
-} from '@grafana/data';
+import { DataTransformerID, standardTransformers, TransformerRegistryItem, TransformerUIProps } from '@grafana/data';
 import {
   HistogramTransformerOptions,
   histogramFieldInfo,
@@ -14,11 +8,11 @@ import {
 import { InlineField, InlineFieldRow, InlineSwitch } from '@grafana/ui';
 import { NumberInput } from 'app/core/components/OptionsUI/NumberInput';
 
-export const HistogramTransformerEditor = ({
+export const HistogramTransformerEditor: React.FC<TransformerUIProps<HistogramTransformerOptions>> = ({
   input,
   options,
   onChange,
-}: TransformerUIProps<HistogramTransformerOptions>) => {
+}) => {
   const labelWidth = 18;
 
   const onBucketSizeChanged = useCallback(
@@ -87,5 +81,4 @@ export const histogramTransformRegistryItem: TransformerRegistryItem<HistogramTr
   transformation: standardTransformers.histogramTransformer,
   name: standardTransformers.histogramTransformer.name,
   description: standardTransformers.histogramTransformer.description,
-  categories: new Set([TransformerCategory.CreateNewVisualization]),
 };

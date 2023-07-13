@@ -24,29 +24,19 @@ export class PostgresDatasource extends SqlDatasource {
 
   async getVersion(): Promise<string> {
     const value = await this.runSql<{ version: number }>(getVersion());
-    const results = value.fields.version?.values;
-
-    if (!results) {
-      return '';
-    }
-
+    const results = value.fields.version.values.toArray();
     return results[0].toString();
   }
 
   async getTimescaleDBVersion(): Promise<string | undefined> {
     const value = await this.runSql<{ extversion: string }>(getTimescaleDBVersion());
-    const results = value.fields.extversion?.values;
-
-    if (!results) {
-      return undefined;
-    }
-
+    const results = value.fields.extversion.values.toArray();
     return results[0];
   }
 
   async fetchTables(): Promise<string[]> {
     const tables = await this.runSql<{ table: string[] }>(showTables(), { refId: 'tables' });
-    return tables.fields.table?.values.flat() ?? [];
+    return tables.fields.table.values.toArray().flat();
   }
 
   getSqlLanguageDefinition(db: DB): LanguageDefinition {
@@ -70,8 +60,8 @@ export class PostgresDatasource extends SqlDatasource {
     const schema = await this.runSql<{ column: string; type: string }>(getSchema(query.table), { refId: 'columns' });
     const result: SQLSelectableValue[] = [];
     for (let i = 0; i < schema.length; i++) {
-      const column = schema.fields.column.values[i];
-      const type = schema.fields.type.values[i];
+      const column = schema.fields.column.values.get(i);
+      const type = schema.fields.type.values.get(i);
       result.push({ label: column, value: column, type, ...getFieldConfig(type) });
     }
     return result;
@@ -81,7 +71,6 @@ export class PostgresDatasource extends SqlDatasource {
     if (this.db !== undefined) {
       return this.db;
     }
-
     return {
       init: () => Promise.resolve(true),
       datasets: () => Promise.resolve([]),

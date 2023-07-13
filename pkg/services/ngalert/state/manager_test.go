@@ -113,11 +113,9 @@ func TestWarmStateCache(t *testing.T) {
 		},
 	}
 
-	instances := make([]models.AlertInstance, 0)
-
 	labels := models.InstanceLabels{"test1": "testValue1"}
 	_, hash, _ := labels.StringAndHash()
-	instances = append(instances, models.AlertInstance{
+	instance1 := models.AlertInstance{
 		AlertInstanceKey: models.AlertInstanceKey{
 			RuleOrgID:  rule.OrgID,
 			RuleUID:    rule.UID,
@@ -128,11 +126,11 @@ func TestWarmStateCache(t *testing.T) {
 		CurrentStateSince: evaluationTime.Add(-1 * time.Minute),
 		CurrentStateEnd:   evaluationTime.Add(1 * time.Minute),
 		Labels:            labels,
-	})
+	}
 
 	labels = models.InstanceLabels{"test2": "testValue2"}
 	_, hash, _ = labels.StringAndHash()
-	instances = append(instances, models.AlertInstance{
+	instance2 := models.AlertInstance{
 		AlertInstanceKey: models.AlertInstanceKey{
 			RuleOrgID:  rule.OrgID,
 			RuleUID:    rule.UID,
@@ -143,11 +141,11 @@ func TestWarmStateCache(t *testing.T) {
 		CurrentStateSince: evaluationTime.Add(-1 * time.Minute),
 		CurrentStateEnd:   evaluationTime.Add(1 * time.Minute),
 		Labels:            labels,
-	})
+	}
 
 	labels = models.InstanceLabels{"test3": "testValue3"}
 	_, hash, _ = labels.StringAndHash()
-	instances = append(instances, models.AlertInstance{
+	instance3 := models.AlertInstance{
 		AlertInstanceKey: models.AlertInstanceKey{
 			RuleOrgID:  rule.OrgID,
 			RuleUID:    rule.UID,
@@ -158,11 +156,11 @@ func TestWarmStateCache(t *testing.T) {
 		CurrentStateSince: evaluationTime.Add(-1 * time.Minute),
 		CurrentStateEnd:   evaluationTime.Add(1 * time.Minute),
 		Labels:            labels,
-	})
+	}
 
 	labels = models.InstanceLabels{"test4": "testValue4"}
 	_, hash, _ = labels.StringAndHash()
-	instances = append(instances, models.AlertInstance{
+	instance4 := models.AlertInstance{
 		AlertInstanceKey: models.AlertInstanceKey{
 			RuleOrgID:  rule.OrgID,
 			RuleUID:    rule.UID,
@@ -173,11 +171,11 @@ func TestWarmStateCache(t *testing.T) {
 		CurrentStateSince: evaluationTime.Add(-1 * time.Minute),
 		CurrentStateEnd:   evaluationTime.Add(1 * time.Minute),
 		Labels:            labels,
-	})
+	}
 
 	labels = models.InstanceLabels{"test5": "testValue5"}
 	_, hash, _ = labels.StringAndHash()
-	instances = append(instances, models.AlertInstance{
+	instance5 := models.AlertInstance{
 		AlertInstanceKey: models.AlertInstanceKey{
 			RuleOrgID:  rule.OrgID,
 			RuleUID:    rule.UID,
@@ -188,19 +186,16 @@ func TestWarmStateCache(t *testing.T) {
 		CurrentStateSince: evaluationTime.Add(-1 * time.Minute),
 		CurrentStateEnd:   evaluationTime.Add(1 * time.Minute),
 		Labels:            labels,
-	})
-	for _, instance := range instances {
-		_ = dbstore.SaveAlertInstance(ctx, instance)
 	}
+	_ = dbstore.SaveAlertInstances(ctx, instance1, instance2, instance3, instance4, instance5)
 
 	cfg := state.ManagerCfg{
-		Metrics:                 testMetrics.GetStateMetrics(),
-		ExternalURL:             nil,
-		InstanceStore:           dbstore,
-		Images:                  &state.NoopImageService{},
-		Clock:                   clock.NewMock(),
-		Historian:               &state.FakeHistorian{},
-		MaxStateSaveConcurrency: 1,
+		Metrics:       testMetrics.GetStateMetrics(),
+		ExternalURL:   nil,
+		InstanceStore: dbstore,
+		Images:        &state.NoopImageService{},
+		Clock:         clock.NewMock(),
+		Historian:     &state.FakeHistorian{},
 	}
 	st := state.NewManager(cfg)
 	st.Warm(ctx, dbstore)
@@ -225,16 +220,14 @@ func TestDashboardAnnotations(t *testing.T) {
 	_, dbstore := tests.SetupTestEnv(t, 1)
 
 	fakeAnnoRepo := annotationstest.NewFakeAnnotationsRepo()
-	metrics := metrics.NewHistorianMetrics(prometheus.NewRegistry())
-	hist := historian.NewAnnotationBackend(fakeAnnoRepo, &dashboards.FakeDashboardService{}, nil, metrics)
+	hist := historian.NewAnnotationBackend(fakeAnnoRepo, &dashboards.FakeDashboardService{}, nil)
 	cfg := state.ManagerCfg{
-		Metrics:                 testMetrics.GetStateMetrics(),
-		ExternalURL:             nil,
-		InstanceStore:           dbstore,
-		Images:                  &state.NoopImageService{},
-		Clock:                   clock.New(),
-		Historian:               hist,
-		MaxStateSaveConcurrency: 1,
+		Metrics:       testMetrics.GetStateMetrics(),
+		ExternalURL:   nil,
+		InstanceStore: dbstore,
+		Images:        &state.NoopImageService{},
+		Clock:         clock.New(),
+		Historian:     hist,
 	}
 	st := state.NewManager(cfg)
 
@@ -336,8 +329,6 @@ func TestProcessEvalResults(t *testing.T) {
 							Values:          make(map[string]*float64),
 						},
 					},
-					StartsAt:           evaluationTime,
-					EndsAt:             evaluationTime,
 					LastEvaluationTime: evaluationTime,
 					EvaluationDuration: evaluationDuration,
 					Annotations:        map[string]string{"annotation": "test"},
@@ -393,8 +384,6 @@ func TestProcessEvalResults(t *testing.T) {
 							Values:          make(map[string]*float64),
 						},
 					},
-					StartsAt:           evaluationTime,
-					EndsAt:             evaluationTime,
 					LastEvaluationTime: evaluationTime,
 					EvaluationDuration: evaluationDuration,
 					Annotations:        map[string]string{"annotation": "test"},
@@ -482,8 +471,6 @@ func TestProcessEvalResults(t *testing.T) {
 							Values:          make(map[string]*float64),
 						},
 					},
-					StartsAt:           evaluationTime,
-					EndsAt:             evaluationTime,
 					LastEvaluationTime: evaluationTime.Add(1 * time.Minute),
 					EvaluationDuration: evaluationDuration,
 					Annotations:        map[string]string{"annotation": "test"},
@@ -796,7 +783,7 @@ func TestProcessEvalResults(t *testing.T) {
 							Values:          make(map[string]*float64),
 						},
 					},
-					StartsAt:           evaluationTime.Add(30 * time.Second),
+					StartsAt:           evaluationTime.Add(20 * time.Second),
 					EndsAt:             evaluationTime.Add(30 * time.Second).Add(state.ResendDelay * 3),
 					LastEvaluationTime: evaluationTime.Add(30 * time.Second),
 					EvaluationDuration: evaluationDuration,
@@ -935,7 +922,7 @@ func TestProcessEvalResults(t *testing.T) {
 			},
 		},
 		{
-			desc: "normal -> pending when For is set but not exceeded, result is NoData and NoDataState is alerting",
+			desc: "normal -> alerting when result is NoData and NoDataState is alerting",
 			alertRule: &models.AlertRule{
 				OrgID:           1,
 				Title:           "test_title",
@@ -944,7 +931,6 @@ func TestProcessEvalResults(t *testing.T) {
 				Annotations:     map[string]string{"annotation": "test"},
 				Labels:          map[string]string{"label": "test"},
 				IntervalSeconds: 10,
-				For:             1 * time.Minute,
 				NoDataState:     models.Alerting,
 			},
 			evalResults: []eval.Results{
@@ -979,7 +965,7 @@ func TestProcessEvalResults(t *testing.T) {
 						"instance_label":               "test",
 					},
 					Values:      make(map[string]float64),
-					State:       eval.Pending,
+					State:       eval.Alerting,
 					StateReason: eval.NoData.String(),
 					Results: []state.Evaluation{
 						{
@@ -996,102 +982,6 @@ func TestProcessEvalResults(t *testing.T) {
 					StartsAt:           evaluationTime.Add(10 * time.Second),
 					EndsAt:             evaluationTime.Add(10 * time.Second).Add(state.ResendDelay * 3),
 					LastEvaluationTime: evaluationTime.Add(10 * time.Second),
-					EvaluationDuration: evaluationDuration,
-					Annotations:        map[string]string{"annotation": "test"},
-				},
-			},
-		},
-		{
-			desc: "normal -> alerting when For is exceeded, result is NoData and NoDataState is alerting",
-			alertRule: &models.AlertRule{
-				OrgID:           1,
-				Title:           "test_title",
-				UID:             "test_alert_rule_uid_2",
-				NamespaceUID:    "test_namespace_uid",
-				Annotations:     map[string]string{"annotation": "test"},
-				Labels:          map[string]string{"label": "test"},
-				IntervalSeconds: 10,
-				For:             30 * time.Second,
-				NoDataState:     models.Alerting,
-			},
-			evalResults: []eval.Results{
-				{
-					eval.Result{
-						Instance:           data.Labels{"instance_label": "test"},
-						State:              eval.Normal,
-						EvaluatedAt:        evaluationTime,
-						EvaluationDuration: evaluationDuration,
-					},
-				},
-				{
-					eval.Result{
-						Instance:           data.Labels{"instance_label": "test"},
-						State:              eval.NoData,
-						EvaluatedAt:        evaluationTime.Add(10 * time.Second),
-						EvaluationDuration: evaluationDuration,
-					},
-				},
-				{
-					eval.Result{
-						Instance:           data.Labels{"instance_label": "test"},
-						State:              eval.NoData,
-						EvaluatedAt:        evaluationTime.Add(20 * time.Second),
-						EvaluationDuration: evaluationDuration,
-					},
-				},
-				{
-					eval.Result{
-						Instance:           data.Labels{"instance_label": "test"},
-						State:              eval.NoData,
-						EvaluatedAt:        evaluationTime.Add(30 * time.Second),
-						EvaluationDuration: evaluationDuration,
-					},
-				},
-				{
-					eval.Result{
-						Instance:           data.Labels{"instance_label": "test"},
-						State:              eval.NoData,
-						EvaluatedAt:        evaluationTime.Add(40 * time.Second),
-						EvaluationDuration: evaluationDuration,
-					},
-				},
-			},
-			expectedAnnotations: 2,
-			expectedStates: map[string]*state.State{
-				`[["__alert_rule_namespace_uid__","test_namespace_uid"],["__alert_rule_uid__","test_alert_rule_uid_2"],["alertname","test_title"],["instance_label","test"],["label","test"]]`: {
-					AlertRuleUID: "test_alert_rule_uid_2",
-					OrgID:        1,
-					CacheID:      `[["__alert_rule_namespace_uid__","test_namespace_uid"],["__alert_rule_uid__","test_alert_rule_uid_2"],["alertname","test_title"],["instance_label","test"],["label","test"]]`,
-					Labels: data.Labels{
-						"__alert_rule_namespace_uid__": "test_namespace_uid",
-						"__alert_rule_uid__":           "test_alert_rule_uid_2",
-						"alertname":                    "test_title",
-						"label":                        "test",
-						"instance_label":               "test",
-					},
-					Values:      make(map[string]float64),
-					State:       eval.Alerting,
-					StateReason: eval.NoData.String(),
-					Results: []state.Evaluation{
-						{
-							EvaluationTime:  evaluationTime.Add(20 * time.Second),
-							EvaluationState: eval.NoData,
-							Values:          make(map[string]*float64),
-						},
-						{
-							EvaluationTime:  evaluationTime.Add(30 * time.Second),
-							EvaluationState: eval.NoData,
-							Values:          make(map[string]*float64),
-						},
-						{
-							EvaluationTime:  evaluationTime.Add(40 * time.Second),
-							EvaluationState: eval.NoData,
-							Values:          make(map[string]*float64),
-						},
-					},
-					StartsAt:           evaluationTime.Add(40 * time.Second),
-					EndsAt:             evaluationTime.Add(40 * time.Second).Add(state.ResendDelay * 3),
-					LastEvaluationTime: evaluationTime.Add(40 * time.Second),
 					EvaluationDuration: evaluationDuration,
 					Annotations:        map[string]string{"annotation": "test"},
 				},
@@ -1214,8 +1104,8 @@ func TestProcessEvalResults(t *testing.T) {
 							Values:          make(map[string]*float64),
 						},
 					},
-					StartsAt:           evaluationTime,
-					EndsAt:             evaluationTime,
+					StartsAt:           time.Time{},
+					EndsAt:             time.Time{},
 					LastEvaluationTime: evaluationTime,
 					EvaluationDuration: evaluationDuration,
 					Annotations:        map[string]string{"annotation": "test"},
@@ -1305,8 +1195,8 @@ func TestProcessEvalResults(t *testing.T) {
 							Values:          make(map[string]*float64),
 						},
 					},
-					StartsAt:           evaluationTime,
-					EndsAt:             evaluationTime,
+					StartsAt:           time.Time{},
+					EndsAt:             time.Time{},
 					LastEvaluationTime: evaluationTime,
 					EvaluationDuration: evaluationDuration,
 					Annotations:        map[string]string{"annotation": "test"},
@@ -1331,8 +1221,8 @@ func TestProcessEvalResults(t *testing.T) {
 							Values:          make(map[string]*float64),
 						},
 					},
-					StartsAt:           evaluationTime,
-					EndsAt:             evaluationTime,
+					StartsAt:           time.Time{},
+					EndsAt:             time.Time{},
 					LastEvaluationTime: evaluationTime,
 					EvaluationDuration: evaluationDuration,
 					Annotations:        map[string]string{"annotation": "test"},
@@ -1429,8 +1319,8 @@ func TestProcessEvalResults(t *testing.T) {
 							Values:          make(map[string]*float64),
 						},
 					},
-					StartsAt:           evaluationTime,
-					EndsAt:             evaluationTime,
+					StartsAt:           time.Time{},
+					EndsAt:             time.Time{},
 					LastEvaluationTime: evaluationTime.Add(20 * time.Second),
 					EvaluationDuration: evaluationDuration,
 					Annotations:        map[string]string{"annotation": "test"},
@@ -1520,8 +1410,76 @@ func TestProcessEvalResults(t *testing.T) {
 							Values:          make(map[string]*float64),
 						},
 					},
-					StartsAt:           evaluationTime,
-					EndsAt:             evaluationTime,
+					StartsAt:           evaluationTime.Add(10 * time.Second),
+					EndsAt:             evaluationTime.Add(10 * time.Second).Add(state.ResendDelay * 3),
+					LastEvaluationTime: evaluationTime.Add(10 * time.Second),
+					EvaluationDuration: evaluationDuration,
+					Annotations:        map[string]string{"annotation": "test"},
+				},
+			},
+		},
+		{
+			desc: "EndsAt set correctly. normal -> alerting when result is NoData and NoDataState is alerting and For is set and For is breached",
+			alertRule: &models.AlertRule{
+				OrgID:           1,
+				Title:           "test_title",
+				UID:             "test_alert_rule_uid_2",
+				NamespaceUID:    "test_namespace_uid",
+				Annotations:     map[string]string{"annotation": "test"},
+				Labels:          map[string]string{"label": "test"},
+				IntervalSeconds: 10,
+				For:             1 * time.Minute,
+				NoDataState:     models.Alerting,
+			},
+			evalResults: []eval.Results{
+				{
+					eval.Result{
+						Instance:           data.Labels{"instance_label": "test"},
+						State:              eval.Normal,
+						EvaluatedAt:        evaluationTime,
+						EvaluationDuration: evaluationDuration,
+					},
+				},
+				{
+					eval.Result{
+						Instance:           data.Labels{"instance_label": "test"},
+						State:              eval.NoData,
+						EvaluatedAt:        evaluationTime.Add(10 * time.Second),
+						EvaluationDuration: evaluationDuration,
+					},
+				},
+			},
+			expectedAnnotations: 1,
+			expectedStates: map[string]*state.State{
+				`[["__alert_rule_namespace_uid__","test_namespace_uid"],["__alert_rule_uid__","test_alert_rule_uid_2"],["alertname","test_title"],["instance_label","test"],["label","test"]]`: {
+					AlertRuleUID: "test_alert_rule_uid_2",
+					OrgID:        1,
+					CacheID:      `[["__alert_rule_namespace_uid__","test_namespace_uid"],["__alert_rule_uid__","test_alert_rule_uid_2"],["alertname","test_title"],["instance_label","test"],["label","test"]]`,
+					Labels: data.Labels{
+						"__alert_rule_namespace_uid__": "test_namespace_uid",
+						"__alert_rule_uid__":           "test_alert_rule_uid_2",
+						"alertname":                    "test_title",
+						"label":                        "test",
+						"instance_label":               "test",
+					},
+					Values:      make(map[string]float64),
+					State:       eval.Alerting,
+					StateReason: eval.NoData.String(),
+
+					Results: []state.Evaluation{
+						{
+							EvaluationTime:  evaluationTime,
+							EvaluationState: eval.Normal,
+							Values:          make(map[string]*float64),
+						},
+						{
+							EvaluationTime:  evaluationTime.Add(10 * time.Second),
+							EvaluationState: eval.NoData,
+							Values:          make(map[string]*float64),
+						},
+					},
+					StartsAt:           evaluationTime.Add(10 * time.Second),
+					EndsAt:             evaluationTime.Add(10 * time.Second).Add(state.ResendDelay * 3),
 					LastEvaluationTime: evaluationTime.Add(10 * time.Second),
 					EvaluationDuration: evaluationDuration,
 					Annotations:        map[string]string{"annotation": "test"},
@@ -1841,8 +1799,6 @@ func TestProcessEvalResults(t *testing.T) {
 							Values:          make(map[string]*float64),
 						},
 					},
-					StartsAt:           evaluationTime,
-					EndsAt:             evaluationTime,
 					LastEvaluationTime: evaluationTime.Add(10 * time.Second),
 					EvaluationDuration: evaluationDuration,
 					Annotations:        map[string]string{"annotation": "test"},
@@ -2190,7 +2146,7 @@ func TestProcessEvalResults(t *testing.T) {
 							Values:          make(map[string]*float64),
 						},
 					},
-					StartsAt:           evaluationTime.Add(50 * time.Second),
+					StartsAt:           evaluationTime.Add(30 * time.Second),
 					EndsAt:             evaluationTime.Add(50 * time.Second).Add(state.ResendDelay * 3),
 					LastEvaluationTime: evaluationTime.Add(50 * time.Second),
 					EvaluationDuration: evaluationDuration,
@@ -2243,8 +2199,6 @@ func TestProcessEvalResults(t *testing.T) {
 							Values:          make(map[string]*float64),
 						},
 					},
-					StartsAt:           evaluationTime,
-					EndsAt:             evaluationTime,
 					LastEvaluationTime: evaluationTime,
 					EvaluationDuration: evaluationDuration,
 					Annotations:        map[string]string{"summary": "grafana is down in us-central-1 cluster -> prod namespace"},
@@ -2255,16 +2209,14 @@ func TestProcessEvalResults(t *testing.T) {
 
 	for _, tc := range testCases {
 		fakeAnnoRepo := annotationstest.NewFakeAnnotationsRepo()
-		metrics := metrics.NewHistorianMetrics(prometheus.NewRegistry())
-		hist := historian.NewAnnotationBackend(fakeAnnoRepo, &dashboards.FakeDashboardService{}, nil, metrics)
+		hist := historian.NewAnnotationBackend(fakeAnnoRepo, &dashboards.FakeDashboardService{}, nil)
 		cfg := state.ManagerCfg{
-			Metrics:                 testMetrics.GetStateMetrics(),
-			ExternalURL:             nil,
-			InstanceStore:           &state.FakeInstanceStore{},
-			Images:                  &state.NotAvailableImageService{},
-			Clock:                   clock.New(),
-			Historian:               hist,
-			MaxStateSaveConcurrency: 1,
+			Metrics:       testMetrics.GetStateMetrics(),
+			ExternalURL:   nil,
+			InstanceStore: &state.FakeInstanceStore{},
+			Images:        &state.NotAvailableImageService{},
+			Clock:         clock.New(),
+			Historian:     hist,
 		}
 		st := state.NewManager(cfg)
 		t.Run(tc.desc, func(t *testing.T) {
@@ -2294,13 +2246,12 @@ func TestProcessEvalResults(t *testing.T) {
 		instanceStore := &state.FakeInstanceStore{}
 		clk := clock.New()
 		cfg := state.ManagerCfg{
-			Metrics:                 testMetrics.GetStateMetrics(),
-			ExternalURL:             nil,
-			InstanceStore:           instanceStore,
-			Images:                  &state.NotAvailableImageService{},
-			Clock:                   clk,
-			Historian:               &state.FakeHistorian{},
-			MaxStateSaveConcurrency: 1,
+			Metrics:       testMetrics.GetStateMetrics(),
+			ExternalURL:   nil,
+			InstanceStore: instanceStore,
+			Images:        &state.NotAvailableImageService{},
+			Clock:         clk,
+			Historian:     &state.FakeHistorian{},
 		}
 		st := state.NewManager(cfg)
 		rule := models.AlertRuleGen()()
@@ -2378,9 +2329,7 @@ func TestStaleResultsHandler(t *testing.T) {
 		},
 	}
 
-	for _, instance := range instances {
-		_ = dbstore.SaveAlertInstance(ctx, instance)
-	}
+	_ = dbstore.SaveAlertInstances(ctx, instances...)
 
 	testCases := []struct {
 		desc               string
@@ -2421,8 +2370,6 @@ func TestStaleResultsHandler(t *testing.T) {
 							Condition:       "A",
 						},
 					},
-					StartsAt:           evaluationTime,
-					EndsAt:             evaluationTime,
 					LastEvaluationTime: evaluationTime,
 					EvaluationDuration: 0,
 					Annotations:        map[string]string{"testAnnoKey": "testAnnoValue"},
@@ -2436,13 +2383,12 @@ func TestStaleResultsHandler(t *testing.T) {
 	for _, tc := range testCases {
 		ctx := context.Background()
 		cfg := state.ManagerCfg{
-			Metrics:                 testMetrics.GetStateMetrics(),
-			ExternalURL:             nil,
-			InstanceStore:           dbstore,
-			Images:                  &state.NoopImageService{},
-			Clock:                   clock.New(),
-			Historian:               &state.FakeHistorian{},
-			MaxStateSaveConcurrency: 1,
+			Metrics:       testMetrics.GetStateMetrics(),
+			ExternalURL:   nil,
+			InstanceStore: dbstore,
+			Images:        &state.NoopImageService{},
+			Clock:         clock.New(),
+			Historian:     &state.FakeHistorian{},
 		}
 		st := state.NewManager(cfg)
 		st.Warm(ctx, dbstore)
@@ -2516,13 +2462,12 @@ func TestStaleResults(t *testing.T) {
 	store := &state.FakeInstanceStore{}
 
 	cfg := state.ManagerCfg{
-		Metrics:                 testMetrics.GetStateMetrics(),
-		ExternalURL:             nil,
-		InstanceStore:           store,
-		Images:                  &state.NoopImageService{},
-		Clock:                   clk,
-		Historian:               &state.FakeHistorian{},
-		MaxStateSaveConcurrency: 1,
+		Metrics:       testMetrics.GetStateMetrics(),
+		ExternalURL:   nil,
+		InstanceStore: store,
+		Images:        &state.NoopImageService{},
+		Clock:         clk,
+		Historian:     &state.FakeHistorian{},
 	}
 	st := state.NewManager(cfg)
 
@@ -2633,9 +2578,7 @@ func TestDeleteStateByRuleUID(t *testing.T) {
 		},
 	}
 
-	for _, instance := range instances {
-		_ = dbstore.SaveAlertInstance(ctx, instance)
-	}
+	_ = dbstore.SaveAlertInstances(ctx, instances...)
 
 	testCases := []struct {
 		desc          string
@@ -2684,23 +2627,22 @@ func TestDeleteStateByRuleUID(t *testing.T) {
 			clk := clock.NewMock()
 			clk.Set(time.Now())
 			cfg := state.ManagerCfg{
-				Metrics:                 testMetrics.GetStateMetrics(),
-				ExternalURL:             nil,
-				InstanceStore:           dbstore,
-				Images:                  &state.NoopImageService{},
-				Clock:                   clk,
-				Historian:               &state.FakeHistorian{},
-				MaxStateSaveConcurrency: 1,
+				Metrics:       testMetrics.GetStateMetrics(),
+				ExternalURL:   nil,
+				InstanceStore: dbstore,
+				Images:        &state.NoopImageService{},
+				Clock:         clk,
+				Historian:     &state.FakeHistorian{},
 			}
 			st := state.NewManager(cfg)
 			st.Warm(ctx, dbstore)
 			q := &models.ListAlertInstancesQuery{RuleOrgID: rule.OrgID, RuleUID: rule.UID}
-			alerts, _ := dbstore.ListAlertInstances(ctx, q)
+			_ = dbstore.ListAlertInstances(ctx, q)
 			existingStatesForRule := st.GetStatesForRuleUID(rule.OrgID, rule.UID)
 
 			// We have loaded the expected number of entries from the db
 			assert.Equal(t, tc.startingStateCacheCount, len(existingStatesForRule))
-			assert.Equal(t, tc.startingInstanceDBCount, len(alerts))
+			assert.Equal(t, tc.startingInstanceDBCount, len(q.Result))
 
 			expectedReason := util.GenerateShortUID()
 			transitions := st.DeleteStateByRuleUID(ctx, rule.GetKey(), expectedReason)
@@ -2727,12 +2669,12 @@ func TestDeleteStateByRuleUID(t *testing.T) {
 			}
 
 			q = &models.ListAlertInstancesQuery{RuleOrgID: rule.OrgID, RuleUID: rule.UID}
-			alertInstances, _ := dbstore.ListAlertInstances(ctx, q)
+			_ = dbstore.ListAlertInstances(ctx, q)
 			existingStatesForRule = st.GetStatesForRuleUID(rule.OrgID, rule.UID)
 
 			// The expected number of state entries remains after states are deleted
 			assert.Equal(t, tc.finalStateCacheCount, len(existingStatesForRule))
-			assert.Equal(t, tc.finalInstanceDBCount, len(alertInstances))
+			assert.Equal(t, tc.finalInstanceDBCount, len(q.Result))
 		})
 	}
 }
@@ -2770,9 +2712,7 @@ func TestResetStateByRuleUID(t *testing.T) {
 		},
 	}
 
-	for _, instance := range instances {
-		_ = dbstore.SaveAlertInstance(ctx, instance)
-	}
+	_ = dbstore.SaveAlertInstances(ctx, instances...)
 
 	testCases := []struct {
 		desc          string
@@ -2824,23 +2764,22 @@ func TestResetStateByRuleUID(t *testing.T) {
 			clk := clock.NewMock()
 			clk.Set(time.Now())
 			cfg := state.ManagerCfg{
-				Metrics:                 testMetrics.GetStateMetrics(),
-				ExternalURL:             nil,
-				InstanceStore:           dbstore,
-				Images:                  &state.NoopImageService{},
-				Clock:                   clk,
-				Historian:               fakeHistorian,
-				MaxStateSaveConcurrency: 1,
+				Metrics:       testMetrics.GetStateMetrics(),
+				ExternalURL:   nil,
+				InstanceStore: dbstore,
+				Images:        &state.NoopImageService{},
+				Clock:         clk,
+				Historian:     fakeHistorian,
 			}
 			st := state.NewManager(cfg)
 			st.Warm(ctx, dbstore)
 			q := &models.ListAlertInstancesQuery{RuleOrgID: rule.OrgID, RuleUID: rule.UID}
-			alerts, _ := dbstore.ListAlertInstances(ctx, q)
+			_ = dbstore.ListAlertInstances(ctx, q)
 			existingStatesForRule := st.GetStatesForRuleUID(rule.OrgID, rule.UID)
 
 			// We have loaded the expected number of entries from the db
 			assert.Equal(t, tc.startingStateCacheCount, len(existingStatesForRule))
-			assert.Equal(t, tc.startingInstanceDBCount, len(alerts))
+			assert.Equal(t, tc.startingInstanceDBCount, len(q.Result))
 
 			transitions := st.ResetStateByRuleUID(ctx, rule, models.StateReasonPaused)
 
@@ -2870,12 +2809,12 @@ func TestResetStateByRuleUID(t *testing.T) {
 			assert.Equal(t, transitions, fakeHistorian.StateTransitions)
 
 			q = &models.ListAlertInstancesQuery{RuleOrgID: rule.OrgID, RuleUID: rule.UID}
-			alertInstances, _ := dbstore.ListAlertInstances(ctx, q)
+			_ = dbstore.ListAlertInstances(ctx, q)
 			existingStatesForRule = st.GetStatesForRuleUID(rule.OrgID, rule.UID)
 
 			// The expected number of state entries remains after states are deleted
 			assert.Equal(t, tc.finalStateCacheCount, len(existingStatesForRule))
-			assert.Equal(t, tc.finalInstanceDBCount, len(alertInstances))
+			assert.Equal(t, tc.finalInstanceDBCount, len(q.Result))
 		})
 	}
 }

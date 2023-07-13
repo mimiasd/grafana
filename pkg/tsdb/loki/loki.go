@@ -63,11 +63,6 @@ type QueryJSONModel struct {
 	SupportingQueryType *string `json:"supportingQueryType"`
 }
 
-type ResponseOpts struct {
-	metricDataplane bool
-	logsDataplane   bool
-}
-
 func parseQueryModel(raw json.RawMessage) (*QueryJSONModel, error) {
 	model := &QueryJSONModel{}
 	err := json.Unmarshal(raw, model)
@@ -96,14 +91,14 @@ func newInstanceSettings(httpClientProvider httpclient.Provider) datasource.Inst
 }
 
 func (s *Service) CallResource(ctx context.Context, req *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
-	dsInfo, err := s.getDSInfo(ctx, req.PluginContext)
+	dsInfo, err := s.getDSInfo(req.PluginContext)
 	if err != nil {
 		return err
 	}
-	return callResource(ctx, req, sender, dsInfo, logger.FromContext(ctx), s.tracer)
+	return callResource(ctx, req, sender, dsInfo, logger.FromContext(ctx))
 }
 
-func callResource(ctx context.Context, req *backend.CallResourceRequest, sender backend.CallResourceResponseSender, dsInfo *datasourceInfo, plog log.Logger, tracer tracing.Tracer) error {
+func callResource(ctx context.Context, req *backend.CallResourceRequest, sender backend.CallResourceResponseSender, dsInfo *datasourceInfo, plog log.Logger) error {
 	url := req.URL
 
 	// a very basic is-this-url-valid check
@@ -118,12 +113,8 @@ func callResource(ctx context.Context, req *backend.CallResourceRequest, sender 
 	}
 	lokiURL := fmt.Sprintf("/loki/api/v1/%s", url)
 
-	ctx, span := tracer.Start(ctx, "datasource.loki.CallResource")
-	span.SetAttributes("url", lokiURL, attribute.Key("url").String(lokiURL))
-	defer span.End()
-
 	api := newLokiAPI(dsInfo.HTTPClient, dsInfo.URL, plog)
-	rawLokiResponse, err := api.RawQuery(ctx, lokiURL)
+	encodedBytes, err := api.RawQuery(ctx, lokiURL)
 
 	if err != nil {
 		return err
@@ -132,32 +123,27 @@ func callResource(ctx context.Context, req *backend.CallResourceRequest, sender 
 	respHeaders := map[string][]string{
 		"content-type": {"application/json"},
 	}
-	if rawLokiResponse.Encoding != "" {
-		respHeaders["content-encoding"] = []string{rawLokiResponse.Encoding}
+	if encodedBytes.Encoding != "" {
+		respHeaders["content-encoding"] = []string{encodedBytes.Encoding}
 	}
 	return sender.Send(&backend.CallResourceResponse{
-		Status:  rawLokiResponse.Status,
+		Status:  http.StatusOK,
 		Headers: respHeaders,
-		Body:    rawLokiResponse.Body,
+		Body:    encodedBytes.Body,
 	})
 }
 
 func (s *Service) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
-	dsInfo, err := s.getDSInfo(ctx, req.PluginContext)
+	dsInfo, err := s.getDSInfo(req.PluginContext)
 	if err != nil {
 		result := backend.NewQueryDataResponse()
 		return result, err
 	}
 
-	responseOpts := ResponseOpts{
-		metricDataplane: s.features.IsEnabled(featuremgmt.FlagLokiMetricDataplane),
-		logsDataplane:   s.features.IsEnabled(featuremgmt.FlagLokiLogsDataplane),
-	}
-
-	return queryData(ctx, req, dsInfo, responseOpts, s.tracer)
+	return queryData(ctx, req, dsInfo, s.tracer)
 }
 
-func queryData(ctx context.Context, req *backend.QueryDataRequest, dsInfo *datasourceInfo, responseOpts ResponseOpts, tracer tracing.Tracer) (*backend.QueryDataResponse, error) {
+func queryData(ctx context.Context, req *backend.QueryDataRequest, dsInfo *datasourceInfo, tracer tracing.Tracer) (*backend.QueryDataResponse, error) {
 	result := backend.NewQueryDataResponse()
 
 	api := newLokiAPI(dsInfo.HTTPClient, dsInfo.URL, logger.FromContext(ctx))
@@ -173,14 +159,10 @@ func queryData(ctx context.Context, req *backend.QueryDataRequest, dsInfo *datas
 		span.SetAttributes("start_unixnano", query.Start, attribute.Key("start_unixnano").Int64(query.Start.UnixNano()))
 		span.SetAttributes("stop_unixnano", query.End, attribute.Key("stop_unixnano").Int64(query.End.UnixNano()))
 
-		if req.GetHTTPHeader("X-Query-Group-Id") != "" {
-			span.SetAttributes("query_group_id", req.GetHTTPHeader("X-Query-Group-Id"), attribute.Key("query_group_id").String(req.GetHTTPHeader("X-Query-Group-Id")))
-		}
-
 		logger := logger.FromContext(ctx) // get logger with trace-id and other contextual info
 		logger.Debug("Sending query", "start", query.Start, "end", query.End, "step", query.Step, "query", query.Expr)
 
-		frames, err := runQuery(ctx, api, query, responseOpts)
+		frames, err := runQuery(ctx, api, query)
 
 		span.End()
 		queryRes := backend.DataResponse{}
@@ -197,14 +179,14 @@ func queryData(ctx context.Context, req *backend.QueryDataRequest, dsInfo *datas
 }
 
 // we extracted this part of the functionality to make it easy to unit-test it
-func runQuery(ctx context.Context, api *LokiAPI, query *lokiQuery, responseOpts ResponseOpts) (data.Frames, error) {
-	frames, err := api.DataQuery(ctx, *query, responseOpts)
+func runQuery(ctx context.Context, api *LokiAPI, query *lokiQuery) (data.Frames, error) {
+	frames, err := api.DataQuery(ctx, *query)
 	if err != nil {
 		return data.Frames{}, err
 	}
 
 	for _, frame := range frames {
-		if err = adjustFrame(frame, query, !responseOpts.metricDataplane, responseOpts.logsDataplane); err != nil {
+		if err = adjustFrame(frame, query); err != nil {
 			return data.Frames{}, err
 		}
 		if err != nil {
@@ -215,8 +197,8 @@ func runQuery(ctx context.Context, api *LokiAPI, query *lokiQuery, responseOpts 
 	return frames, nil
 }
 
-func (s *Service) getDSInfo(ctx context.Context, pluginCtx backend.PluginContext) (*datasourceInfo, error) {
-	i, err := s.im.Get(ctx, pluginCtx)
+func (s *Service) getDSInfo(pluginCtx backend.PluginContext) (*datasourceInfo, error) {
+	i, err := s.im.Get(pluginCtx)
 	if err != nil {
 		return nil, err
 	}

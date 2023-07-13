@@ -8,7 +8,6 @@ import {
   SelectableValue,
   TransformerRegistryItem,
   TransformerUIProps,
-  TransformerCategory,
 } from '@grafana/data';
 import { fieldMatchersUI, InlineField, InlineFieldRow, Select, useStyles2 } from '@grafana/ui';
 
@@ -94,7 +93,6 @@ export const configFromQueryTransformRegistryItem: TransformerRegistryItem<Confi
   name: configFromDataTransformer.name,
   description: configFromDataTransformer.description,
   state: PluginState.beta,
-  categories: new Set([TransformerCategory.CalculateNewFields]),
   help: `
 ### Use cases
 

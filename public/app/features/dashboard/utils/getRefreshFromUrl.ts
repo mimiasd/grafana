@@ -2,7 +2,7 @@ import { defaultIntervals } from '@grafana/ui';
 
 interface Args {
   urlRefresh: string | null;
-  currentRefresh: string | false | undefined;
+  currentRefresh: string | boolean | undefined;
   isAllowedIntervalFn: (interval: string) => boolean;
   minRefreshInterval: string;
   refreshIntervals?: string[];
@@ -18,7 +18,7 @@ export function getRefreshFromUrl({
   isAllowedIntervalFn,
   minRefreshInterval,
   refreshIntervals = defaultIntervals,
-}: Args): string | false | undefined {
+}: Args): string | boolean | undefined {
   if (!urlRefresh) {
     return currentRefresh;
   }

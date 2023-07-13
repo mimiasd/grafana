@@ -1,6 +1,5 @@
 import { debounce, trim } from 'lodash';
 
-import { isEmptyObject } from '@grafana/data';
 import { StoreState, ThunkDispatch, ThunkResult } from 'app/types';
 
 import { variableAdapters } from '../../adapters';
@@ -35,13 +34,8 @@ export const navigateOptions = (rootStateKey: string, key: NavigationKey, clearO
     }
 
     if (key === NavigationKey.selectAndClose) {
-      const picker = getVariablesState(rootStateKey, getState()).optionsPicker;
-
-      if (picker.multi) {
-        return dispatch(toggleOptionByHighlight(rootStateKey, clearOthers));
-      }
       dispatch(toggleOptionByHighlight(rootStateKey, clearOthers, true));
-      return dispatch(commitChangesToVariable(rootStateKey));
+      return await dispatch(commitChangesToVariable(rootStateKey));
     }
 
     if (key === NavigationKey.moveDown) {
@@ -65,33 +59,25 @@ export const filterOrSearchOptions = (
     const { id, queryValue } = getVariablesState(rootStateKey, getState()).optionsPicker;
     const identifier: KeyedVariableIdentifier = { id, rootStateKey: rootStateKey, type: 'query' };
     const variable = getVariable(identifier, getState());
-
-    if (!('options' in variable)) {
+    if (!hasOptions(variable)) {
       return;
     }
 
+    const { query, options } = variable;
     dispatch(toKeyedAction(rootStateKey, updateSearchQuery(searchQuery)));
 
     if (trim(queryValue) === trim(searchQuery)) {
       return;
     }
 
-    const { query, options } = variable;
-
-    const queryTarget = typeof query === 'string' ? query : query.target;
-    if (containsSearchFilter(queryTarget)) {
+    if (containsSearchFilter(query)) {
       return searchForOptionsWithDebounce(dispatch, getState, searchQuery, rootStateKey);
     }
-
     return dispatch(toKeyedAction(rootStateKey, updateOptionsAndFilter(options)));
   };
 };
 
 const setVariable = async (updated: VariableWithOptions) => {
-  if (isEmptyObject(updated.current)) {
-    return;
-  }
-
   const adapter = variableAdapters.get(updated.type);
   await adapter.setValue(updated, updated.current, true);
   return;

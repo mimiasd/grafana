@@ -9,9 +9,11 @@ import { getStyles } from '@grafana/ui/src/components/Slider/styles';
 
 import { NumberInput } from './NumberInput';
 
-type Props = FieldConfigEditorProps<number, SliderFieldConfigSettings>;
-
-export const SliderValueEditor = ({ value, onChange, item }: Props) => {
+export const SliderValueEditor: React.FC<FieldConfigEditorProps<number, SliderFieldConfigSettings>> = ({
+  value,
+  onChange,
+  item,
+}) => {
   // Input reference
   const inputRef = useRef<HTMLSpanElement>(null);
 
@@ -131,7 +133,7 @@ function getTextWidth(text: string, font: string): number | null {
 const getStylesSlider = (theme: GrafanaTheme2, width: number) => {
   return {
     numberInputWrapper: css`
-      margin-left: ${theme.spacing(3)};
+      margin-left: 10px;
       max-height: 32px;
       max-width: ${width}px;
       min-width: ${width}px;

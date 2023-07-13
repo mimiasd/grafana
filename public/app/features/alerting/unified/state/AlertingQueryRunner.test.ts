@@ -1,9 +1,9 @@
-import { defaultsDeep } from 'lodash';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, take } from 'rxjs/operators';
 import { createFetchResponse } from 'test/helpers/createFetchResponse';
 
 import {
+  ArrayVector,
   DataFrame,
   DataFrameJSON,
   DataSourceApi,
@@ -15,7 +15,7 @@ import {
 } from '@grafana/data';
 import { DataSourceSrv, FetchResponse } from '@grafana/runtime';
 import { BackendSrv } from 'app/core/services/backend_srv';
-import { AlertDataQuery, AlertQuery } from 'app/types/unified-alerting-dto';
+import { AlertQuery } from 'app/types/unified-alerting-dto';
 
 import { AlertingQueryResponse, AlertingQueryRunner } from './AlertingQueryRunner';
 
@@ -189,7 +189,7 @@ describe('AlertingQueryRunner', () => {
     });
   });
 
-  it('should not execute if all queries fail filterQuery check', async () => {
+  it('should not execute if a query fails filterQuery check', async () => {
     const runner = new AlertingQueryRunner(
       mockBackendSrv({
         fetch: () => throwError(new Error("shouldn't happen")),
@@ -208,39 +208,6 @@ describe('AlertingQueryRunner', () => {
 
       expect(data.B.state).toEqual(LoadingState.Done);
       expect(data.B.series).toHaveLength(0);
-    });
-  });
-
-  it('should skip hidden queries', async () => {
-    const results = createFetchResponse<AlertingQueryResponse>({
-      results: {
-        B: { frames: [createDataFrameJSON([1, 2, 3])] },
-      },
-    });
-
-    const runner = new AlertingQueryRunner(
-      mockBackendSrv({
-        fetch: () => of(results),
-      }),
-      mockDataSourceSrv({ filterQuery: (model: AlertDataQuery) => model.hide !== true })
-    );
-
-    const data = runner.get();
-    runner.run([
-      createQuery('A', {
-        model: {
-          refId: 'A',
-          hide: true,
-        },
-      }),
-      createQuery('B'),
-    ]);
-
-    await expect(data.pipe(take(1))).toEmitValuesWith((values) => {
-      const [loading, _data] = values;
-
-      expect(loading.A).toBeUndefined();
-      expect(loading.B.state).toEqual(LoadingState.Done);
     });
   });
 });
@@ -271,7 +238,7 @@ const expectDataFrameWithValues = ({ time, values }: { time: number[]; values: n
         name: 'time',
         state: null,
         type: FieldType.time,
-        values: time,
+        values: new ArrayVector(time),
       } as Field,
       {
         config: {},
@@ -279,7 +246,7 @@ const expectDataFrameWithValues = ({ time, values }: { time: number[]; values: n
         name: 'value',
         state: null,
         type: FieldType.number,
-        values: values,
+        values: new ArrayVector(values),
       } as Field,
     ],
     length: values.length,
@@ -303,12 +270,12 @@ const createDataFrameJSON = (values: number[]): DataFrameJSON => {
   };
 };
 
-const createQuery = (refId: string, options?: Partial<AlertQuery>): AlertQuery => {
-  return defaultsDeep(options, {
+const createQuery = (refId: string): AlertQuery => {
+  return {
     refId,
     queryType: '',
     datasourceUid: '',
     model: { refId },
     relativeTimeRange: getDefaultRelativeTimeRange(),
-  });
+  };
 };

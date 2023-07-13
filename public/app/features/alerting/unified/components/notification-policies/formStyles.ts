@@ -16,11 +16,11 @@ export const getFormStyles = (theme: GrafanaTheme2) => {
     input: css`
       flex: 1;
     `,
-    promDurationInput: css`
-      max-width: ${theme.spacing(32)};
+    timingContainer: css`
+      max-width: ${theme.spacing(33)};
     `,
-    timingFormContainer: css`
-      padding: ${theme.spacing(1)};
+    smallInput: css`
+      width: ${theme.spacing(6.5)};
     `,
     linkText: css`
       text-decoration: underline;

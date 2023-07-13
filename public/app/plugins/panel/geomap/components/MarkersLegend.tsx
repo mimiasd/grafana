@@ -36,14 +36,14 @@ export function MarkersLegend(props: MarkersLegendProps) {
     }
 
     const props = hoverEvent.getProperties();
-    const frame: DataFrame = props.frame;
+    const frame = props.frame as DataFrame; // eslint-disable-line
 
     if (!frame) {
       return undefined;
     }
 
-    const rowIndex: number = props.rowIndex;
-    return colorField.values[rowIndex];
+    const rowIndex = props.rowIndex as number; // eslint-disable-line
+    return colorField.values.get(rowIndex);
   }, [hoverEvent, colorField]);
 
   if (!styleConfig) {
@@ -99,8 +99,8 @@ export function MarkersLegend(props: MarkersLegendProps) {
           <ColorScale
             hoverValue={hoverValue}
             colorPalette={colors}
-            min={colorRange.min ?? 0}
-            max={colorRange.max ?? 100}
+            min={colorRange.min as number}
+            max={colorRange.max as number}
             display={display}
             useStopsPercentage={false}
           />
@@ -159,7 +159,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
       float: left;
       margin-right: 8px;
       opacity: 0.7;
-      border-radius: ${theme.shape.radius.circle};
+      border-radius: 50%;
     }
   `,
   legendItem: css`

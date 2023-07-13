@@ -50,13 +50,11 @@ export interface DashboardSearchItem {
   folderUrl?: string;
 }
 
-export type DashboardViewItemKind = 'folder' | 'dashboard' | 'panel';
-
 /**
  * Type used in the folder view components
  */
 export interface DashboardViewItem {
-  kind: DashboardViewItemKind;
+  kind: 'folder' | 'dashboard' | 'panel';
   uid: string;
   title: string;
   url?: string;
@@ -64,14 +62,11 @@ export interface DashboardViewItem {
 
   icon?: string;
 
-  parentUID?: string;
-  /** @deprecated Not used in new Browse UI */
+  // Most commonly parent folder title, but can be dashboard if panelTitleSearch is enabled
   parentTitle?: string;
-  /** @deprecated Not used in new Browse UI */
   parentKind?: string;
 
   // Used only for psuedo-folders, such as Starred or Recent
-  /** @deprecated Not used in new Browse UI */
   itemsUIDs?: string[];
 
   // For enterprise sort options
@@ -107,6 +102,7 @@ export type OnToggleChecked = (item: DashboardViewItem) => void;
 export enum SearchLayout {
   List = 'list',
   Folders = 'folders',
+  Grid = 'grid', // preview
 }
 
 export interface SearchQueryParams {

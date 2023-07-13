@@ -8,7 +8,6 @@ import {
   LoadingState,
   MutableDataFrame,
   PanelData,
-  QueryHint,
   TimeRange,
 } from '@grafana/data';
 
@@ -228,45 +227,6 @@ describe('PromQueryBuilder', () => {
       />
     );
     expect(await screen.queryByText(EXPLAIN_LABEL_FILTER_CONTENT)).not.toBeInTheDocument();
-  });
-
-  it('renders hint if initial hint provided', async () => {
-    const { datasource } = createDatasource();
-    datasource.getInitHints = (): QueryHint[] => [
-      {
-        label: 'Initial hint',
-        type: 'warning',
-      },
-    ];
-    const props = createProps(datasource);
-    render(
-      <PromQueryBuilder
-        {...props}
-        query={{
-          metric: 'histogram_metric_sum',
-          labels: [],
-          operations: [],
-        }}
-      />
-    );
-    expect(await screen.queryByText('Initial hint')).toBeInTheDocument();
-  });
-
-  it('renders no hint if no initial hint provided', async () => {
-    const { datasource } = createDatasource();
-    datasource.getInitHints = (): QueryHint[] => [];
-    const props = createProps(datasource);
-    render(
-      <PromQueryBuilder
-        {...props}
-        query={{
-          metric: 'histogram_metric_sum',
-          labels: [],
-          operations: [],
-        }}
-      />
-    );
-    expect(await screen.queryByText('Initial hint')).not.toBeInTheDocument();
   });
 
   // <ModernPrometheus>

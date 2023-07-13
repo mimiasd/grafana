@@ -22,7 +22,7 @@ const apiModes: Array<SelectableValue<CloudWatchQueryMode>> = [
   { label: 'CloudWatch Logs', value: 'Logs' },
 ];
 
-const QueryHeader = ({
+const QueryHeader: React.FC<Props> = ({
   query,
   onChange,
   datasource,
@@ -31,7 +31,7 @@ const QueryHeader = ({
   dataIsStale,
   data,
   onRunQuery,
-}: Props) => {
+}) => {
   const { queryMode, region } = query;
   const isMonitoringAccount = useIsMonitoringAccount(datasource.resources, query.region);
   const [regions, regionIsLoading] = useRegions(datasource);
@@ -98,7 +98,7 @@ const QueryHeader = ({
             <Badge
               text="Monitoring account"
               color="blue"
-              tooltip="AWS monitoring accounts view data from source accounts so you can centralize monitoring and troubleshoot activities"
+              tooltip="AWS monitoring accounts view data from source accounts so you can centralize monitoring and troubleshoot activites"
             ></Badge>
           </>
         )}

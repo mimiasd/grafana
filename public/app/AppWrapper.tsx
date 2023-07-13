@@ -1,8 +1,7 @@
 import { Action, KBarProvider } from 'kbar';
 import React, { ComponentType } from 'react';
 import { Provider } from 'react-redux';
-import { Router, Redirect, Switch, RouteComponentProps } from 'react-router-dom';
-import { CompatRouter, CompatRoute } from 'react-router-dom-v5-compat';
+import { Router, Route, Redirect, Switch } from 'react-router-dom';
 
 import { config, locationService, navigationLogger, reportInteraction } from '@grafana/runtime';
 import { ErrorBoundaryAlert, GlobalStyles, ModalRoot, ModalsProvider, PortalContainer } from '@grafana/ui';
@@ -57,12 +56,13 @@ export class AppWrapper extends React.Component<AppWrapperProps, AppWrapperState
     const roles = route.roles ? route.roles() : [];
 
     return (
-      <CompatRoute
+      <Route
         exact={route.exact === undefined ? true : route.exact}
         sensitive={route.sensitive === undefined ? false : route.sensitive}
         path={route.path}
         key={route.path}
-        render={(props: RouteComponentProps) => {
+        render={(props) => {
+          navigationLogger('AppWrapper', false, 'Rendering route', route, 'with match', props.location);
           // TODO[Router]: test this logic
           if (roles?.length) {
             if (!roles.some((r: string) => contextSrv.hasRole(r))) {
@@ -94,19 +94,19 @@ export class AppWrapper extends React.Component<AppWrapperProps, AppWrapperState
     };
 
     return (
-      <Provider store={store}>
-        <ErrorBoundaryAlert style="page">
-          <GrafanaContext.Provider value={app.context}>
-            <ThemeProvider value={config.theme2}>
-              <KBarProvider
-                actions={[]}
-                options={{ enableHistory: true, callbacks: { onSelectAction: commandPaletteActionSelected } }}
-              >
-                <ModalsProvider>
-                  <GlobalStyles />
-                  <div className="grafana-app">
-                    <Router history={locationService.getHistory()}>
-                      <CompatRouter>
+      <React.StrictMode>
+        <Provider store={store}>
+          <ErrorBoundaryAlert style="page">
+            <GrafanaContext.Provider value={app.context}>
+              <ThemeProvider value={config.theme2}>
+                <KBarProvider
+                  actions={[]}
+                  options={{ enableHistory: true, callbacks: { onSelectAction: commandPaletteActionSelected } }}
+                >
+                  <ModalsProvider>
+                    <GlobalStyles />
+                    <div className="grafana-app">
+                      <Router history={locationService.getHistory()}>
                         <AppChrome>
                           {pageBanners.map((Banner, index) => (
                             <Banner key={index.toString()} />
@@ -118,18 +118,18 @@ export class AppWrapper extends React.Component<AppWrapperProps, AppWrapperState
                             <Hook key={index.toString()} />
                           ))}
                         </AppChrome>
-                      </CompatRouter>
-                    </Router>
-                  </div>
-                  <LiveConnectionWarning />
-                  <ModalRoot />
-                  <PortalContainer />
-                </ModalsProvider>
-              </KBarProvider>
-            </ThemeProvider>
-          </GrafanaContext.Provider>
-        </ErrorBoundaryAlert>
-      </Provider>
+                      </Router>
+                    </div>
+                    <LiveConnectionWarning />
+                    <ModalRoot />
+                    <PortalContainer />
+                  </ModalsProvider>
+                </KBarProvider>
+              </ThemeProvider>
+            </GrafanaContext.Provider>
+          </ErrorBoundaryAlert>
+        </Provider>
+      </React.StrictMode>
     );
   }
 }

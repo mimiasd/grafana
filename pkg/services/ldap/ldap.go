@@ -306,7 +306,7 @@ func (server *Server) Users(logins []string) (
 	}
 
 	server.log.Debug(
-		"LDAP users found", "users", fmt.Sprintf("%+v", serializedUsers),
+		"LDAP users found", "users", fmt.Sprintf("%v", serializedUsers),
 	)
 
 	return serializedUsers, nil
@@ -456,7 +456,6 @@ func (server *Server) buildGrafanaUser(user *ldap.Entry) (*login.ExternalUserInf
 		return extUser, nil
 	}
 
-	isGrafanaAdmin := false
 	for _, group := range server.Config.Groups {
 		// only use the first match for each org
 		if extUser.OrgRoles[group.OrgId] != "" {
@@ -468,12 +467,11 @@ func (server *Server) buildGrafanaUser(user *ldap.Entry) (*login.ExternalUserInf
 				extUser.OrgRoles[group.OrgId] = group.OrgRole
 			}
 
-			if !isGrafanaAdmin && (group.IsGrafanaAdmin != nil && *group.IsGrafanaAdmin) {
-				isGrafanaAdmin = true
+			if extUser.IsGrafanaAdmin == nil || !*extUser.IsGrafanaAdmin {
+				extUser.IsGrafanaAdmin = group.IsGrafanaAdmin
 			}
 		}
 	}
-	extUser.IsGrafanaAdmin = &isGrafanaAdmin
 
 	// If there are group org mappings configured, but no matching mappings,
 	// the user will not be able to login and will be disabled

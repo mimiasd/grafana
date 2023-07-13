@@ -5,6 +5,7 @@ import { getFieldDisplayName } from '../../field';
 import { KeyValue } from '../../types/data';
 import { DataFrame, Field, FieldType } from '../../types/dataFrame';
 import { DataTransformerInfo, FieldMatcher, MatcherConfig } from '../../types/transformations';
+import { ArrayVector } from '../../vector/ArrayVector';
 import { fieldReducers, reduceField, ReducerID } from '../fieldReducer';
 import { getFieldMatcher } from '../matchers';
 import { alwaysFieldMatcher, notTimeFieldMatcher } from '../matchers/predicates';
@@ -15,7 +16,6 @@ export enum ReduceTransformerMode {
   SeriesToRows = 'seriesToRows', // default
   ReduceFields = 'reduceFields', // same structure, add additional row for each type
 }
-
 export interface ReduceTransformerOptions {
   reducers: ReducerID[];
   fields?: MatcherConfig; // Assume all fields
@@ -27,13 +27,13 @@ export interface ReduceTransformerOptions {
 export const reduceTransformer: DataTransformerInfo<ReduceTransformerOptions> = {
   id: DataTransformerID.reduce,
   name: 'Reduce',
-  description: 'Reduce all rows or data points to a single value using a function like max, min, mean or last.',
+  description: 'Reduce all rows or data points to a single value using a function like max, min, mean or last',
   defaultOptions: {
     reducers: [ReducerID.max],
   },
 
   /**
-   * Return a modified copy of the series. If the transform is not or should not
+   * Return a modified copy of the series.  If the transform is not or should not
    * be applied, just return the input series
    */
   operator: (options) => (source) =>
@@ -80,7 +80,7 @@ export function reduceSeriesToRows(
 
     const size = source.length;
     const fields: Field[] = [];
-    const names: string[] = new Array(size);
+    const names = new ArrayVector<string>(new Array(size));
     fields.push({
       name: 'Field',
       type: FieldType.string,
@@ -88,10 +88,10 @@ export function reduceSeriesToRows(
       config: {},
     });
 
-    const labels: KeyValue<any[]> = {};
+    const labels: KeyValue<ArrayVector> = {};
     if (labelsToFields) {
       for (const key of distinctLabels) {
-        labels[key] = new Array(size);
+        labels[key] = new ArrayVector<string>(new Array(size));
         fields.push({
           name: key,
           type: FieldType.string,
@@ -101,9 +101,9 @@ export function reduceSeriesToRows(
       }
     }
 
-    const calcs: KeyValue<any[]> = {};
+    const calcs: KeyValue<ArrayVector> = {};
     for (const info of calculators) {
-      calcs[info.id] = new Array(size);
+      calcs[info.id] = new ArrayVector(new Array(size));
       fields.push({
         name: info.name,
         type: FieldType.other, // UNKNOWN until after we call the functions
@@ -120,19 +120,19 @@ export function reduceSeriesToRows(
       });
 
       if (labelsToFields) {
-        names[i] = field.name;
+        names.buffer[i] = field.name;
         if (field.labels) {
           for (const key of Object.keys(field.labels)) {
-            labels[key][i] = field.labels[key];
+            labels[key].set(i, field.labels[key]);
           }
         }
       } else {
-        names[i] = getFieldDisplayName(field, series, data);
+        names.buffer[i] = getFieldDisplayName(field, series, data);
       }
 
       for (const info of calculators) {
         const v = results[info.id];
-        calcs[info.id][i] = v;
+        calcs[info.id].buffer[i] = v;
       }
     }
 
@@ -191,9 +191,9 @@ export function mergeResults(data: DataFrame[]): DataFrame | undefined {
         const isSameField = baseField.type === field.type && baseField.name === field.name;
 
         if (isFirstField || isSameField) {
-          const baseValues = baseField.values;
-          const values = field.values;
-          baseField.values = baseValues.concat(values);
+          const baseValues: any[] = baseField.values.toArray();
+          const values: any[] = field.values.toArray();
+          (baseField.values as unknown as ArrayVector).buffer = baseValues.concat(values);
         }
       }
     }
@@ -224,7 +224,7 @@ export function reduceFields(data: DataFrame[], matcher: FieldMatcher, reducerId
           const value = results[reducer];
           const copy = {
             ...field,
-            values: [value],
+            values: new ArrayVector([value]),
           };
           copy.state = undefined;
           if (reducers.length > 1) {

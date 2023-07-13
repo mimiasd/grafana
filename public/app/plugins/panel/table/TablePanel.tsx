@@ -5,20 +5,21 @@ import { DataFrame, FieldMatcherID, getFrameDisplayName, PanelProps, SelectableV
 import { PanelDataErrorView } from '@grafana/runtime';
 import { Select, Table, usePanelContext, useTheme2 } from '@grafana/ui';
 import { TableSortByFieldState } from '@grafana/ui/src/components/Table/types';
+import { OPTIONAL_ROW_NUMBER_COLUMN_WIDTH } from '@grafana/ui/src/components/Table/utils';
 
-import { Options } from './panelcfg.gen';
+import { PanelOptions } from './panelcfg.gen';
 
-interface Props extends PanelProps<Options> {}
+interface Props extends PanelProps<PanelOptions> {}
 
 export function TablePanel(props: Props) {
-  const { data, height, width, options, fieldConfig, id, timeRange } = props;
+  const { data, height, width, options, fieldConfig, id } = props;
 
   const theme = useTheme2();
   const panelContext = usePanelContext();
   const frames = data.series;
   const mainFrames = frames.filter((f) => f.meta?.custom?.parentRowIndex === undefined);
   const subFrames = frames.filter((f) => f.meta?.custom?.parentRowIndex !== undefined);
-  const count = mainFrames?.length;
+  const count = mainFrames.length;
   const hasFields = mainFrames[0]?.fields.length;
   const currentIndex = getCurrentFrameIndex(mainFrames, options);
   const main = mainFrames[currentIndex];
@@ -41,11 +42,13 @@ export function TablePanel(props: Props) {
   const tableElement = (
     <Table
       height={tableHeight}
-      width={width}
+      // This calculation is to accommodate the optionally rendered Row Numbers Column
+      width={options.showRowNums ? width : width + OPTIONAL_ROW_NUMBER_COLUMN_WIDTH}
       data={main}
       noHeader={!options.showHeader}
       showTypeIcons={options.showTypeIcons}
       resizable={true}
+      showRowNums={options.showRowNums}
       initialSortBy={options.sortBy}
       onSortByChange={(sortBy) => onSortByChange(sortBy, props)}
       onColumnResize={(displayName, resizedWidth) => onColumnResize(displayName, resizedWidth, props)}
@@ -53,8 +56,6 @@ export function TablePanel(props: Props) {
       footerOptions={options.footer}
       enablePagination={options.footer?.enablePagination}
       subData={subData}
-      cellHeight={options.cellHeight}
-      timeRange={timeRange}
     />
   );
 
@@ -79,7 +80,7 @@ export function TablePanel(props: Props) {
   );
 }
 
-function getCurrentFrameIndex(frames: DataFrame[], options: Options) {
+function getCurrentFrameIndex(frames: DataFrame[], options: PanelOptions) {
   return options.frameIndex > 0 && options.frameIndex < frames.length ? options.frameIndex : 0;
 }
 

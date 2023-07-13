@@ -1,7 +1,7 @@
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 import { DataSourceInstanceSettings, DataSourceRef, getDataSourceRef, ScopedVars } from '@grafana/data';
-import { BackendDataSourceResponse, FetchResponse, getBackendSrv } from '@grafana/runtime';
+import { getBackendSrv } from '@grafana/runtime';
 import { notifyApp } from 'app/core/actions';
 import { createErrorNotification } from 'app/core/copy/appNotification';
 import { TemplateSrv } from 'app/features/templating/template_srv';
@@ -9,7 +9,7 @@ import { store } from 'app/store/store';
 import { AppNotificationTimeout } from 'app/types';
 
 import memoizedDebounce from '../memoizedDebounce';
-import { CloudWatchJsonData, Dimensions, MetricRequest, MultiFilters } from '../types';
+import { CloudWatchJsonData, Dimensions, MetricRequest, MultiFilters, TSDBResponse } from '../types';
 
 export abstract class CloudWatchRequest {
   templateSrv: TemplateSrv;
@@ -25,11 +25,7 @@ export abstract class CloudWatchRequest {
     this.ref = getDataSourceRef(instanceSettings);
   }
 
-  awsRequest(
-    url: string,
-    data: MetricRequest,
-    headers: Record<string, string> = {}
-  ): Observable<FetchResponse<BackendDataSourceResponse>> {
+  awsRequest(url: string, data: MetricRequest, headers: Record<string, string> = {}): Observable<TSDBResponse> {
     const options = {
       method: 'POST',
       url,
@@ -37,7 +33,9 @@ export abstract class CloudWatchRequest {
       headers,
     };
 
-    return getBackendSrv().fetch<BackendDataSourceResponse>(options);
+    return getBackendSrv()
+      .fetch<TSDBResponse>(options)
+      .pipe(map((result) => result.data));
   }
 
   convertDimensionFormat(dimensions: Dimensions, scopedVars: ScopedVars): Dimensions {

@@ -10,11 +10,9 @@
 
 import * as ui from '@grafana/schema';
 
-export interface Options {
-  /**
-   * Controls the height of the rows
-   */
-  cellHeight?: ui.TableCellHeight;
+export const PanelCfgModelVersion = Object.freeze([0, 0]);
+
+export interface PanelOptions {
   /**
    * Controls footer options
    */
@@ -28,6 +26,10 @@ export interface Options {
    */
   showHeader: boolean;
   /**
+   * Controls whether the columns should be numbered
+   */
+  showRowNums?: boolean;
+  /**
    * Controls whether the header should show icons for the column types
    */
   showTypeIcons?: boolean;
@@ -37,8 +39,7 @@ export interface Options {
   sortBy?: Array<ui.TableSortByFieldState>;
 }
 
-export const defaultOptions: Partial<Options> = {
-  cellHeight: ui.TableCellHeight.Sm,
+export const defaultPanelOptions: Partial<PanelOptions> = {
   footer: {
     /**
      * Controls whether the footer should be shown
@@ -55,6 +56,7 @@ export const defaultOptions: Partial<Options> = {
   },
   frameIndex: 0,
   showHeader: true,
+  showRowNums: false,
   showTypeIcons: false,
   sortBy: [],
 };

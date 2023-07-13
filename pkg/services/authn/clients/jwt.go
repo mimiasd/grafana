@@ -19,8 +19,6 @@ import (
 	"github.com/grafana/grafana/pkg/util/errutil"
 )
 
-const authQueryParamName = "auth_token"
-
 var _ authn.ContextAwareClient = new(JWT)
 
 var (
@@ -52,7 +50,6 @@ func (s *JWT) Name() string {
 
 func (s *JWT) Authenticate(ctx context.Context, r *authn.Request) (*authn.Identity, error) {
 	jwtToken := s.retrieveToken(r.HTTPRequest)
-	s.stripSensitiveParam(r.HTTPRequest)
 
 	claims, err := s.jwtService.Verify(ctx, jwtToken)
 	if err != nil {
@@ -62,17 +59,17 @@ func (s *JWT) Authenticate(ctx context.Context, r *authn.Request) (*authn.Identi
 
 	sub, _ := claims["sub"].(string)
 	if sub == "" {
+		s.log.FromContext(ctx).Warn("Got a JWT without the mandatory 'sub' claim", "error", err)
 		return nil, errJWTMissingClaim.Errorf("missing mandatory 'sub' claim in JWT")
 	}
 
 	id := &authn.Identity{
-		AuthenticatedBy: login.JWTModule,
-		AuthID:          sub,
-		OrgRoles:        map[int64]org.RoleType{},
+		AuthModule: login.JWTModule,
+		AuthID:     sub,
+		OrgRoles:   map[int64]org.RoleType{},
 		ClientParams: authn.ClientParams{
 			SyncUser:        true,
 			FetchSyncedUser: true,
-			SyncPermissions: true,
 			SyncOrgRoles:    !s.cfg.JWTAuthSkipOrgRoleSync,
 			AllowSignUp:     s.cfg.JWTAuthAutoSignUp,
 		}}
@@ -121,18 +118,6 @@ func (s *JWT) Authenticate(ctx context.Context, r *authn.Request) (*authn.Identi
 	}
 
 	return id, nil
-}
-
-// remove sensitive query param
-// avoid JWT URL login passing auth_token in URL
-func (s *JWT) stripSensitiveParam(httpRequest *http.Request) {
-	if s.cfg.JWTAuthURLLogin {
-		params := httpRequest.URL.Query()
-		if params.Has(authQueryParamName) {
-			params.Del(authQueryParamName)
-			httpRequest.URL.RawQuery = params.Encode()
-		}
-	}
 }
 
 // retrieveToken retrieves the JWT token from the request.

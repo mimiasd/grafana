@@ -1,26 +1,20 @@
-import { css } from '@emotion/css';
-import React, { useCallback, useEffect, useMemo, useReducer } from 'react';
+import React, { FC, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 
-import { getDefaultRelativeTimeRange, GrafanaTheme2 } from '@grafana/data';
+import { LoadingState, PanelData } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
 import { Stack } from '@grafana/experimental';
-import { config, getDataSourceSrv } from '@grafana/runtime';
-import { Alert, Button, Dropdown, Field, Icon, InputControl, Menu, MenuItem, Tooltip, useStyles2 } from '@grafana/ui';
-import { H5 } from '@grafana/ui/src/unstable';
+import { config } from '@grafana/runtime';
+import { Alert, Button, Field, InputControl, Tooltip } from '@grafana/ui';
 import { isExpressionQuery } from 'app/features/expressions/guards';
-import { ExpressionQueryType, expressionTypes } from 'app/features/expressions/types';
 import { AlertQuery } from 'app/types/unified-alerting-dto';
 
-import { useRulesSourcesWithRuler } from '../../../hooks/useRuleSourcesWithRuler';
+import { AlertingQueryRunner } from '../../../state/AlertingQueryRunner';
 import { RuleFormType, RuleFormValues } from '../../../types/rule-form';
 import { getDefaultOrFirstCompatibleDataSource } from '../../../utils/datasource';
-import { isPromOrLokiQuery } from '../../../utils/rule-form';
 import { ExpressionEditor } from '../ExpressionEditor';
 import { ExpressionsEditor } from '../ExpressionsEditor';
-import { NeedHelpInfo } from '../NeedHelpInfo';
 import { QueryEditor } from '../QueryEditor';
-import { RecordingRuleEditor } from '../RecordingRuleEditor';
 import { RuleEditorSection } from '../RuleEditorSection';
 import { errorFromSeries, refIdExists } from '../util';
 
@@ -33,20 +27,19 @@ import {
   removeExpression,
   rewireExpressions,
   setDataQueries,
-  setRecordingRulesQueries,
   updateExpression,
   updateExpressionRefId,
   updateExpressionTimeRange,
   updateExpressionType,
 } from './reducer';
-import { useAlertQueryRunner } from './useAlertQueryRunner';
 
 interface Props {
   editingExistingRule: boolean;
   onDataChange: (error: string) => void;
 }
 
-export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: Props) => {
+export const QueryAndExpressionsStep: FC<Props> = ({ editingExistingRule, onDataChange }) => {
+  const runner = useRef(new AlertingQueryRunner());
   const {
     setValue,
     getValues,
@@ -54,32 +47,51 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
     formState: { errors },
     control,
   } = useFormContext<RuleFormValues>();
-
-  const { queryPreviewData, runQueries, cancelQueries, isPreviewLoading, clearPreviewData } = useAlertQueryRunner();
+  const [panelData, setPanelData] = useState<Record<string, PanelData>>({});
 
   const initialState = {
     queries: getValues('queries'),
+    panelData: {},
   };
-
   const [{ queries }, dispatch] = useReducer(queriesAndExpressionsReducer, initialState);
+
   const [type, condition, dataSourceName] = watch(['type', 'condition', 'dataSourceName']);
 
   const isGrafanaManagedType = type === RuleFormType.grafana;
-  const isRecordingRuleType = type === RuleFormType.cloudRecording;
   const isCloudAlertRuleType = type === RuleFormType.cloudAlerting;
+  const isRecordingRuleType = type === RuleFormType.cloudRecording;
 
-  const rulesSourcesWithRuler = useRulesSourcesWithRuler();
+  const showCloudExpressionEditor = (isRecordingRuleType || isCloudAlertRuleType) && dataSourceName;
 
-  const runQueriesPreview = useCallback(() => {
-    runQueries(getValues('queries'));
-  }, [runQueries, getValues]);
+  const cancelQueries = useCallback(() => {
+    runner.current.cancel();
+  }, []);
+
+  const runQueries = useCallback(() => {
+    runner.current.run(getValues('queries'));
+  }, [getValues]);
 
   // whenever we update the queries we have to update the form too
   useEffect(() => {
     setValue('queries', queries, { shouldValidate: false });
   }, [queries, runQueries, setValue]);
 
+  // set up the AlertQueryRunner
+  useEffect(() => {
+    const currentRunner = runner.current;
+
+    runner.current.get().subscribe((data) => {
+      setPanelData(data);
+    });
+
+    return () => currentRunner.destroy();
+  }, []);
+
   const noCompatibleDataSources = getDefaultOrFirstCompatibleDataSource() === undefined;
+
+  const isDataLoading = useMemo(() => {
+    return Object.values(panelData).some((d) => d.state === LoadingState.Loading);
+  }, [panelData]);
 
   // data queries only
   const dataQueries = useMemo(() => {
@@ -96,13 +108,13 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
   useEffect(() => {
     const currentCondition = getValues('condition');
 
-    if (!currentCondition || RuleFormType.cloudRecording) {
+    if (!currentCondition) {
       return;
     }
 
-    const error = errorFromSeries(queryPreviewData[currentCondition]?.series || []);
+    const error = errorFromSeries(panelData[currentCondition]?.series || []);
     onDataChange(error?.message || '');
-  }, [queryPreviewData, getValues, onDataChange]);
+  }, [panelData, getValues, onDataChange]);
 
   const handleSetCondition = useCallback(
     (refId: string | null) => {
@@ -110,11 +122,11 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
         return;
       }
 
-      runQueriesPreview(); //we need to run the queries to know if the condition is valid
+      runQueries(); //we need to run the queries to know if the condition is valid
 
       setValue('condition', refId);
     },
-    [runQueriesPreview, setValue]
+    [runQueries, setValue]
   );
 
   const onUpdateRefId = useCallback(
@@ -137,13 +149,6 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
 
   const onChangeQueries = useCallback(
     (updatedQueries: AlertQuery[]) => {
-      // Most data sources triggers onChange and onRunQueries consecutively
-      // It means our reducer state is always one step behind when runQueries is invoked
-      // Invocation cycle => onChange -> dispatch(setDataQueries) -> onRunQueries -> setDataQueries Reducer
-      // As a workaround we update form values as soon as possible to avoid stale state
-      // This way we can access up to date queries in runQueriesPreview without waiting for re-render
-      setValue('queries', updatedQueries, { shouldValidate: false });
-
       dispatch(setDataQueries(updatedQueries));
       dispatch(updateExpressionTimeRange());
       // check if we need to rewire expressions
@@ -156,64 +161,8 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
         }
       });
     },
-    [queries, setValue]
+    [queries]
   );
-
-  const onChangeRecordingRulesQueries = useCallback(
-    (updatedQueries: AlertQuery[]) => {
-      const query = updatedQueries[0];
-
-      const dataSourceSettings = getDataSourceSrv().getInstanceSettings(query.datasourceUid);
-      if (!dataSourceSettings) {
-        throw new Error('The Data source has not been defined.');
-      }
-
-      if (!isPromOrLokiQuery(query.model)) {
-        return;
-      }
-
-      const expression = query.model.expr;
-
-      setValue('queries', updatedQueries, { shouldValidate: false });
-      setValue('dataSourceName', dataSourceSettings.name);
-      setValue('expression', expression);
-
-      dispatch(setRecordingRulesQueries({ recordingRuleQueries: updatedQueries, expression }));
-      runQueriesPreview();
-    },
-    [runQueriesPreview, setValue]
-  );
-
-  const recordingRuleDefaultDatasource = rulesSourcesWithRuler[0];
-
-  useEffect(() => {
-    clearPreviewData();
-    if (type === RuleFormType.cloudRecording) {
-      const expr = getValues('expression');
-
-      if (!recordingRuleDefaultDatasource) {
-        return;
-      }
-
-      const datasourceUid =
-        (editingExistingRule && getDataSourceSrv().getInstanceSettings(dataSourceName)?.uid) ||
-        recordingRuleDefaultDatasource.uid;
-
-      const defaultQuery = {
-        refId: 'A',
-        datasourceUid,
-        queryType: '',
-        relativeTimeRange: getDefaultRelativeTimeRange(),
-        expr,
-        model: {
-          refId: 'A',
-          hide: false,
-          expr,
-        },
-      };
-      dispatch(setRecordingRulesQueries({ recordingRuleQueries: [defaultQuery], expression: expr }));
-    }
-  }, [type, recordingRuleDefaultDatasource, editingExistingRule, getValues, dataSourceName, clearPreviewData]);
 
   const onDuplicateQuery = useCallback((query: AlertQuery) => {
     dispatch(duplicateQuery(query));
@@ -227,34 +176,12 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
     }
   }, [condition, queries, handleSetCondition]);
 
-  const onClickType = useCallback(
-    (type: ExpressionQueryType) => {
-      dispatch(addNewExpression(type));
-    },
-    [dispatch]
-  );
-
-  const styles = useStyles2(getStyles);
-
   return (
-    <RuleEditorSection stepNo={2} title="Define query and alert condition">
+    <RuleEditorSection stepNo={2} title="Set a query and alert condition">
       <AlertType editingExistingRule={editingExistingRule} />
 
-      {/* This is the PromQL Editor for recording rules */}
-      {isRecordingRuleType && dataSourceName && (
-        <Field error={errors.expression?.message} invalid={!!errors.expression?.message}>
-          <RecordingRuleEditor
-            dataSourceName={dataSourceName}
-            queries={queries}
-            runQueries={runQueriesPreview}
-            onChangeQuery={onChangeRecordingRulesQueries}
-            panelData={queryPreviewData}
-          />
-        </Field>
-      )}
-
-      {/* This is the PromQL Editor for Cloud rules */}
-      {isCloudAlertRuleType && dataSourceName && (
+      {/* This is the PromQL Editor for Cloud rules and recording rules */}
+      {showCloudExpressionEditor && (
         <Field error={errors.expression?.message} invalid={!!errors.expression?.message}>
           <InputControl
             name="expression"
@@ -279,52 +206,20 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
       {isGrafanaManagedType && (
         <Stack direction="column">
           {/* Data Queries */}
-          <Stack direction="row" gap={1} alignItems="baseline">
-            <div className={styles.mutedText}>
-              Define queries and/or expressions and then choose one of them as the alert rule condition. This is the
-              threshold that an alert rule must meet or exceed in order to fire.
-            </div>
-
-            <NeedHelpInfo
-              contentText={`An alert rule consists of one or more queries and expressions that select the data you want to measure.
-          Define queries and/or expressions and then choose one of them as the alert rule condition. This is the threshold that an alert rule must meet or exceed in order to fire.
-          For more information on queries and expressions, see Query and transform data.`}
-              externalLink={`https://grafana.com/docs/grafana/latest/panels-visualizations/query-transform-data/`}
-              linkText={`Read about query and condition`}
-              title="Define query and alert condition"
-            />
-          </Stack>
-
           <QueryEditor
             queries={dataQueries}
             expressions={expressionQueries}
-            onRunQueries={runQueriesPreview}
+            onRunQueries={runQueries}
             onChangeQueries={onChangeQueries}
             onDuplicateQuery={onDuplicateQuery}
-            panelData={queryPreviewData}
+            panelData={panelData}
             condition={condition}
             onSetCondition={handleSetCondition}
           />
-          <Tooltip content={'You appear to have no compatible data sources'} show={noCompatibleDataSources}>
-            <Button
-              type="button"
-              onClick={() => {
-                dispatch(addNewDataQuery());
-              }}
-              variant="secondary"
-              aria-label={selectors.components.QueryTab.addQuery}
-              disabled={noCompatibleDataSources}
-              className={styles.addQueryButton}
-            >
-              Add query
-            </Button>
-          </Tooltip>
           {/* Expression Queries */}
-          <H5>Expressions</H5>
-          <div className={styles.mutedText}>Manipulate data returned from queries with math and other operations</div>
           <ExpressionsEditor
             queries={queries}
-            panelData={queryPreviewData}
+            panelData={panelData}
             condition={condition}
             onSetCondition={handleSetCondition}
             onRemoveExpression={(refId) => {
@@ -340,15 +235,41 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
           />
           {/* action buttons */}
           <Stack direction="row">
-            {config.expressionsEnabled && <TypeSelectorButton onClickType={onClickType} />}
+            <Tooltip content={'You appear to have no compatible data sources'} show={noCompatibleDataSources}>
+              <Button
+                type="button"
+                icon="plus"
+                onClick={() => {
+                  dispatch(addNewDataQuery());
+                }}
+                variant="secondary"
+                aria-label={selectors.components.QueryTab.addQuery}
+                disabled={noCompatibleDataSources}
+              >
+                Add query
+              </Button>
+            </Tooltip>
 
-            {isPreviewLoading && (
+            {config.expressionsEnabled && (
+              <Button
+                type="button"
+                icon="plus"
+                onClick={() => {
+                  dispatch(addNewExpression());
+                }}
+                variant="secondary"
+              >
+                Add expression
+              </Button>
+            )}
+
+            {isDataLoading && (
               <Button icon="fa fa-spinner" type="button" variant="destructive" onClick={cancelQueries}>
                 Cancel
               </Button>
             )}
-            {!isPreviewLoading && (
-              <Button icon="sync" type="button" onClick={runQueriesPreview} disabled={emptyQueries}>
+            {!isDataLoading && (
+              <Button icon="sync" type="button" onClick={() => runQueries()} disabled={emptyQueries}>
                 Preview
               </Button>
             )}
@@ -365,56 +286,3 @@ export const QueryAndExpressionsStep = ({ editingExistingRule, onDataChange }: P
     </RuleEditorSection>
   );
 };
-
-function TypeSelectorButton({ onClickType }: { onClickType: (type: ExpressionQueryType) => void }) {
-  const newMenu = (
-    <Menu>
-      {expressionTypes.map((type) => (
-        <Tooltip key={type.value} content={type.description ?? ''} placement="right">
-          <MenuItem
-            key={type.value}
-            onClick={() => onClickType(type.value ?? ExpressionQueryType.math)}
-            label={type.label ?? ''}
-          />
-        </Tooltip>
-      ))}
-    </Menu>
-  );
-
-  return (
-    <Dropdown overlay={newMenu}>
-      <Button variant="secondary">
-        Add expression
-        <Icon name="angle-down" />
-      </Button>
-    </Dropdown>
-  );
-}
-
-const getStyles = (theme: GrafanaTheme2) => ({
-  mutedText: css`
-    color: ${theme.colors.text.secondary};
-    font-size: ${theme.typography.size.sm};
-    margin-top: ${theme.spacing(-1)};
-  `,
-  addQueryButton: css`
-    width: fit-content;
-  `,
-  helpInfo: css`
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    width: fit-content;
-    font-weight: ${theme.typography.fontWeightMedium};
-    margin-left: ${theme.spacing(1)};
-    font-size: ${theme.typography.size.sm};
-    cursor: pointer;
-  `,
-  helpInfoText: css`
-    margin-left: ${theme.spacing(0.5)};
-    text-decoration: underline;
-  `,
-  infoLink: css`
-    color: ${theme.colors.text.link};
-  `,
-});

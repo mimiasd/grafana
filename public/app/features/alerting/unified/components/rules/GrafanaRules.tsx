@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import React from 'react';
+import React, { FC } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { LoadingPlaceholder, Pagination, Spinner, useStyles2 } from '@grafana/ui';
@@ -22,7 +22,7 @@ interface Props {
   expandAll: boolean;
 }
 
-export const GrafanaRules = ({ namespaces, expandAll }: Props) => {
+export const GrafanaRules: FC<Props> = ({ namespaces, expandAll }) => {
   const styles = useStyles2(getStyles);
   const [queryParams] = useQueryParams();
 
@@ -81,7 +81,6 @@ const getStyles = (theme: GrafanaTheme2) => ({
   sectionHeader: css`
     display: flex;
     justify-content: space-between;
-    margin-bottom: ${theme.spacing(1)};
   `,
   wrapper: css`
     margin-bottom: ${theme.spacing(4)};

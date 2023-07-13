@@ -28,6 +28,7 @@ export default function createMockPanelData(overrides?: DeepPartial<PanelData>) 
       requestId: 'request',
       timezone: 'browser',
       panelId: 1,
+      dashboardId: 0,
       timeInfo: '',
       interval: '20s',
       intervalMs: 20000,

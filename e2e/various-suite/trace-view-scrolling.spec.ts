@@ -4,7 +4,7 @@ describe('Trace view', () => {
   it('Can lazy load big traces', () => {
     e2e.flows.login('admin', 'admin');
     e2e()
-      .intercept('GET', '**/api/traces/trace', {
+      .intercept('GET', '**/api/traces/long-trace', {
         fixture: 'long-trace-response.json',
       })
       .as('longTrace');
@@ -13,9 +13,7 @@ describe('Trace view', () => {
 
     e2e.components.DataSourcePicker.container().should('be.visible').type('gdev-jaeger{enter}');
 
-    e2e().wait(500);
-
-    e2e.components.QueryField.container().should('be.visible').type('trace', { delay: 100 });
+    e2e.components.QueryField.container().should('be.visible').type('long-trace');
 
     e2e().wait(500);
 
@@ -31,9 +29,7 @@ describe('Trace view', () => {
         e2e.pages.Explore.General.scrollView().children('.scrollbar-view').scrollTo('center');
 
         // After scrolling we should load more spans
-        e2e.components.TraceViewer.spanBar().should(($span) => {
-          expect($span.length).to.be.gt(oldLength);
-        });
+        e2e.components.TraceViewer.spanBar().its('length').should('be.gt', oldLength);
       });
   });
 });

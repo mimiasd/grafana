@@ -49,7 +49,7 @@ export const getStyles = (theme: GrafanaTheme2) => ({
   `,
   guideline: css`
     left: -19px;
-    border-left: 1px solid ${theme.colors.border.weak};
+    border-left: 1px solid ${theme.colors.border.medium};
     position: absolute;
 
     ${theme.breakpoints.down('md')} {
@@ -72,7 +72,7 @@ export const getStyles = (theme: GrafanaTheme2) => ({
     left: -49px !important;
   `,
   headerGuideline: css`
-    top: -17px;
+    top: -25px;
     bottom: 0;
   `,
 });

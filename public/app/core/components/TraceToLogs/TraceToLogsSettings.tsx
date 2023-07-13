@@ -1,13 +1,14 @@
 import { css } from '@emotion/css';
 import React, { useCallback, useMemo } from 'react';
 
-import { DataSourceJsonData, DataSourceInstanceSettings, DataSourcePluginOptionsEditorProps } from '@grafana/data';
-import { ConfigSection } from '@grafana/experimental';
+import {
+  DataSourceJsonData,
+  DataSourceInstanceSettings,
+  DataSourcePluginOptionsEditorProps,
+  GrafanaTheme2,
+} from '@grafana/data';
 import { DataSourcePicker } from '@grafana/runtime';
-import { InlineField, InlineFieldRow, Input, InlineSwitch } from '@grafana/ui';
-import { ConfigDescriptionLink } from 'app/core/components/ConfigDescriptionLink';
-
-import { IntervalInput } from '../IntervalInput/IntervalInput';
+import { InlineField, InlineFieldRow, Input, useStyles2, InlineSwitch } from '@grafana/ui';
 
 import { TagMappingInput } from './TagMappingInput';
 
@@ -68,13 +69,12 @@ export function getTraceToLogsOptions(data?: TraceToLogsData): TraceToLogsOption
 interface Props extends DataSourcePluginOptionsEditorProps<TraceToLogsData> {}
 
 export function TraceToLogsSettings({ options, onOptionsChange }: Props) {
+  const styles = useStyles2(getStyles);
   const supportedDataSourceTypes = [
     'loki',
     'elasticsearch',
     'grafana-splunk-datasource', // external
     'grafana-opensearch-datasource', // external
-    'grafana-falconlogscale-datasource', // external
-    'googlecloud-logging-datasource', // external
   ];
 
   const traceToLogs = useMemo(
@@ -104,6 +104,10 @@ export function TraceToLogsSettings({ options, onOptionsChange }: Props) {
 
   return (
     <div className={css({ width: '100%' })}>
+      <h3 className="page-heading">Trace to logs</h3>
+
+      <div className={styles.infoText}>Navigate from a trace span to the selected data source&apos;s logs.</div>
+
       <InlineFieldRow>
         <InlineField
           tooltip="The logs data source the trace is going to navigate to"
@@ -125,23 +129,15 @@ export function TraceToLogsSettings({ options, onOptionsChange }: Props) {
         </InlineField>
       </InlineFieldRow>
 
-      <IntervalInput
-        label={getTimeShiftLabel('start')}
-        tooltip={getTimeShiftTooltip('start')}
+      <TimeRangeShift
+        type={'start'}
         value={traceToLogs.spanStartTimeShift || ''}
-        onChange={(val) => {
-          updateTracesToLogs({ spanStartTimeShift: val });
-        }}
-        isInvalidError={invalidTimeShiftError}
+        onChange={(val) => updateTracesToLogs({ spanStartTimeShift: val })}
       />
-      <IntervalInput
-        label={getTimeShiftLabel('end')}
-        tooltip={getTimeShiftTooltip('end')}
+      <TimeRangeShift
+        type={'end'}
         value={traceToLogs.spanEndTimeShift || ''}
-        onChange={(val) => {
-          updateTracesToLogs({ spanEndTimeShift: val });
-        }}
-        isInvalidError={invalidTimeShiftError}
+        onChange={(val) => updateTracesToLogs({ spanEndTimeShift: val })}
       />
 
       <InlineFieldRow>
@@ -171,7 +167,7 @@ export function TraceToLogsSettings({ options, onOptionsChange }: Props) {
 
       <InlineFieldRow>
         <InlineField
-          tooltip="Use a custom query with the possibility to interpolate variables from the trace or span"
+          tooltip="Use a custom query with possibility to interpolate variables from the trace or span"
           label="Use custom query"
           labelWidth={26}
         >
@@ -232,31 +228,35 @@ function IdFilter(props: IdFilterProps) {
   );
 }
 
-export const getTimeShiftLabel = (type: 'start' | 'end') => {
-  return `Span ${type} time shift`;
-};
-
-export const getTimeShiftTooltip = (type: 'start' | 'end') => {
-  return `Shifts the ${type} time of the span. Default: 0 (Time units can be used here, for example: 5s, -1m, 3h)`;
-};
-
-export const invalidTimeShiftError = 'Invalid time shift. See tooltip for examples.';
-
-export const TraceToLogsSection = ({ options, onOptionsChange }: DataSourcePluginOptionsEditorProps) => {
+interface TimeRangeShiftProps {
+  type: 'start' | 'end';
+  value: string;
+  onChange: (val: string) => void;
+}
+function TimeRangeShift(props: TimeRangeShiftProps) {
   return (
-    <ConfigSection
-      title="Trace to logs"
-      description={
-        <ConfigDescriptionLink
-          description="Navigate from a trace span to the selected data source's logs."
-          suffix={`${options.type}/#trace-to-logs`}
-          feature="trace to logs"
+    <InlineFieldRow>
+      <InlineField
+        label={`Span ${props.type} time shift`}
+        labelWidth={26}
+        grow
+        tooltip={`Shifts the ${props.type} time of the span. Default 0 Time units can be used here, for example: 5s, 1m, 3h`}
+      >
+        <Input
+          type="text"
+          placeholder="1h"
+          width={40}
+          onChange={(e) => props.onChange(e.currentTarget.value)}
+          value={props.value}
         />
-      }
-      isCollapsible={true}
-      isInitiallyOpen={true}
-    >
-      <TraceToLogsSettings options={options} onOptionsChange={onOptionsChange} />
-    </ConfigSection>
+      </InlineField>
+    </InlineFieldRow>
   );
-};
+}
+
+const getStyles = (theme: GrafanaTheme2) => ({
+  infoText: css`
+    padding-bottom: ${theme.spacing(2)};
+    color: ${theme.colors.text.secondary};
+  `,
+});

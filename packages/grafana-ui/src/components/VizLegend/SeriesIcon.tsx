@@ -1,9 +1,8 @@
-import { css, cx } from '@emotion/css';
 import React, { CSSProperties } from 'react';
 
 import { fieldColorModeRegistry } from '@grafana/data';
 
-import { useTheme2, useStyles2 } from '../../themes';
+import { useTheme2 } from '../../themes';
 
 export interface Props extends React.HTMLAttributes<HTMLDivElement> {
   color?: string;
@@ -13,8 +12,6 @@ export interface Props extends React.HTMLAttributes<HTMLDivElement> {
 export const SeriesIcon = React.memo(
   React.forwardRef<HTMLDivElement, Props>(({ color, className, gradient, ...restProps }, ref) => {
     const theme = useTheme2();
-    const styles2 = useStyles2(getStyles);
-
     let cssColor: string;
 
     if (gradient) {
@@ -33,29 +30,13 @@ export const SeriesIcon = React.memo(
       background: cssColor,
       width: '14px',
       height: '4px',
-      borderRadius: theme.shape.radius.pill,
+      borderRadius: '1px',
       display: 'inline-block',
       marginRight: '8px',
     };
 
-    return (
-      <div
-        data-testid="series-icon"
-        ref={ref}
-        className={cx(className, styles2.forcedColors)}
-        style={styles}
-        {...restProps}
-      />
-    );
+    return <div data-testid="series-icon" ref={ref} className={className} style={styles} {...restProps} />;
   })
 );
-
-const getStyles = () => ({
-  forcedColors: css`
-    @media (forced-colors: active) {
-      forced-color-adjust: none;
-    }
-  `,
-});
 
 SeriesIcon.displayName = 'SeriesIcon';

@@ -1,32 +1,24 @@
 import { BettererFileTest } from '@betterer/betterer';
-import { promises as fs } from 'fs';
 import { ESLint, Linter } from 'eslint';
+import { existsSync } from 'fs';
 import path from 'path';
 import glob from 'glob';
 
 export default {
-  'better eslint': () =>
-    countEslintErrors()
-      .include('**/*.{ts,tsx}')
-      .exclude(/public\/app\/angular/),
-  'no undocumented stories': () => countUndocumentedStories().include('**/!(*.internal).story.tsx'),
+  'better eslint': () => countEslintErrors().include('**/*.{ts,tsx}'),
+  'no undocumented stories': () => countUndocumentedStories().include('**/*.story.tsx'),
 };
 
 function countUndocumentedStories() {
   return new BettererFileTest(async (filePaths, fileTestResult) => {
-    await Promise.all(
-      filePaths.map(async (filePath) => {
-        // look for .mdx import in the story file
-        const regex = new RegExp("^import.*.mdx';$", 'gm');
-        const fileText = await fs.readFile(filePath, 'utf8');
-        if (!regex.test(fileText)) {
-          // In this case the file contents don't matter:
-          const file = fileTestResult.addFile(filePath, '');
-          // Add the issue to the first character of the file:
-          file.addIssue(0, 0, 'No undocumented stories are allowed, please add an .mdx file with some documentation');
-        }
-      })
-    );
+    filePaths.forEach((filePath) => {
+      if (!existsSync(filePath.replace(/\.story.tsx$/, '.mdx'))) {
+        // In this case the file contents don't matter:
+        const file = fileTestResult.addFile(filePath, '');
+        // Add the issue to the first character of the file:
+        file.addIssue(0, 0, 'No undocumented stories are allowed, please add an .mdx file with some documentation');
+      }
+    });
   });
 }
 

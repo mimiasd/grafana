@@ -102,7 +102,7 @@ export const Pagination = ({
       <ol>
         <li className={styles.item}>
           <Button
-            aria-label={`previous page`}
+            aria-label="previous"
             size="sm"
             variant="secondary"
             onClick={() => onNavigate(currentPage - 1)}
@@ -114,7 +114,7 @@ export const Pagination = ({
         {pageButtons}
         <li className={styles.item}>
           <Button
-            aria-label={`next page`}
+            aria-label="next"
             size="sm"
             variant="secondary"
             onClick={() => onNavigate(currentPage + 1)}

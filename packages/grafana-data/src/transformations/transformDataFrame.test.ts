@@ -3,6 +3,7 @@ import { map } from 'rxjs';
 import { toDataFrame } from '../dataframe/processDataFrame';
 import { CustomTransformOperator, FieldType } from '../types';
 import { mockTransformationsRegistry } from '../utils/tests/mockTransformationsRegistry';
+import { ArrayVector } from '../vector/ArrayVector';
 
 import { ReducerID } from './fieldReducer';
 import { FrameMatcherID } from './matchers/ids';
@@ -30,7 +31,7 @@ const customTransform1: CustomTransformOperator = () => (source) => {
           fields: frame.fields.map((field) => {
             return {
               ...field,
-              values: field.values.map((v) => v / 100),
+              values: new ArrayVector(field.values.toArray().map((v) => v / 100)),
             };
           }),
         };
@@ -49,7 +50,7 @@ const customTransform2: CustomTransformOperator = () => (source) => {
           fields: frame.fields.map((field) => {
             return {
               ...field,
-              values: field.values.map((v) => v * 2),
+              values: new ArrayVector(field.values.toArray().map((v) => v * 2)),
             };
           }),
         };
@@ -85,7 +86,7 @@ describe('transformDataFrame', () => {
       const processed = received[0];
       expect(processed[0].length).toEqual(1);
       expect(processed[0].fields.length).toEqual(1);
-      expect(processed[0].fields[0].values[0]).toEqual(3);
+      expect(processed[0].fields[0].values.get(0)).toEqual(3);
     });
   });
 
@@ -112,7 +113,7 @@ describe('transformDataFrame', () => {
       const processed = received[0];
       expect(processed[0].length).toEqual(1);
       expect(processed[0].fields.length).toEqual(2);
-      expect(processed[0].fields[0].values[0]).toEqual('temperature');
+      expect(processed[0].fields[0].values.get(0)).toEqual('temperature');
     });
   });
 
@@ -142,7 +143,7 @@ describe('transformDataFrame', () => {
 
     // Only apply A
     await expect(transformDataFrame(cfg, [frameA, frameB])).toEmitValuesWith((received) => {
-      const processed = received[0].map((v) => v.fields[0].values);
+      const processed = received[0].map((v) => v.fields[0].values.toArray());
       expect(processed).toBeTruthy();
       expect(processed).toMatchObject([[5], [7, 8]]);
     });
@@ -150,7 +151,7 @@ describe('transformDataFrame', () => {
     // Only apply to B
     cfg[0].filter.options = 'B';
     await expect(transformDataFrame(cfg, [frameA, frameB])).toEmitValuesWith((received) => {
-      const processed = received[0].map((v) => v.fields[0].values);
+      const processed = received[0].map((v) => v.fields[0].values.toArray());
       expect(processed).toBeTruthy();
       expect(processed).toMatchObject([[5, 6], [7]]);
     });
@@ -181,7 +182,7 @@ describe('transformDataFrame', () => {
         const processed = received[0];
         expect(processed[0].length).toEqual(1);
         expect(processed[0].fields.length).toEqual(1);
-        expect(processed[0].fields[0].values[0]).toEqual(0.03);
+        expect(processed[0].fields[0].values.get(0)).toEqual(0.03);
       });
     });
     it('supports trailing custom transformation', async () => {
@@ -208,7 +209,7 @@ describe('transformDataFrame', () => {
         const processed = received[0];
         expect(processed[0].length).toEqual(1);
         expect(processed[0].fields.length).toEqual(1);
-        expect(processed[0].fields[0].values[0]).toEqual(0.03);
+        expect(processed[0].fields[0].values.get(0)).toEqual(0.03);
       });
     });
 
@@ -237,7 +238,7 @@ describe('transformDataFrame', () => {
         const processed = received[0];
         expect(processed[0].length).toEqual(1);
         expect(processed[0].fields.length).toEqual(1);
-        expect(processed[0].fields[0].values[0]).toEqual(0.06);
+        expect(processed[0].fields[0].values.get(0)).toEqual(0.06);
       });
     });
   });

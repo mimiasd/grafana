@@ -62,7 +62,6 @@ export function mapRemoteToCatalog(plugin: RemotePlugin, error?: PluginError): C
     updatedAt,
     createdAt: publishedAt,
     status,
-    angularDetected,
   } = plugin;
 
   const isDisabled = !!error || isDisabledSecretsPlugin(typeCode);
@@ -91,7 +90,6 @@ export function mapRemoteToCatalog(plugin: RemotePlugin, error?: PluginError): C
     isEnterprise: status === 'enterprise',
     type: typeCode,
     error: error?.errorCode,
-    angularDetected,
   };
 }
 
@@ -107,7 +105,6 @@ export function mapLocalToCatalog(plugin: LocalPlugin, error?: PluginError): Cat
     signatureType,
     hasUpdate,
     accessControl,
-    angularDetected,
   } = plugin;
 
   const isDisabled = !!error || isDisabledSecretsPlugin(type);
@@ -135,7 +132,6 @@ export function mapLocalToCatalog(plugin: LocalPlugin, error?: PluginError): Cat
     type,
     error: error?.errorCode,
     accessControl: accessControl,
-    angularDetected,
   };
 }
 
@@ -190,7 +186,6 @@ export function mapToCatalogPlugin(local?: LocalPlugin, remote?: RemotePlugin, e
     error: error?.errorCode,
     // Only local plugins have access control metadata
     accessControl: local?.accessControl,
-    angularDetected: local?.angularDetected || remote?.angularDetected,
   };
 }
 

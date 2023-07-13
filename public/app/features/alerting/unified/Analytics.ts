@@ -2,9 +2,8 @@ import { dateTime } from '@grafana/data';
 import { faro, LogLevel as GrafanaLogLevel } from '@grafana/faro-web-sdk';
 import { getBackendSrv } from '@grafana/runtime';
 import { config, reportInteraction } from '@grafana/runtime/src';
-import { contextSrv } from 'app/core/core';
 
-export const USER_CREATION_MIN_DAYS = 7;
+export const USER_CREATION_MIN_DAYS = 15;
 
 export const LogMessages = {
   filterByLabel: 'filtering alert instances by label',
@@ -18,7 +17,7 @@ export const LogMessages = {
   unknownMessageFromError: 'unknown messageFromError',
 };
 
-// logInfo from '@grafana/runtime' should be used, but it doesn't handle Grafana JS Agent correctly
+// logInfo from '@grafana/runtime' should be used, but it doesn't handle Grafana JS Agent and Sentry correctly
 export function logInfo(message: string, context: Record<string, string | number> = {}) {
   if (config.grafanaJavascriptAgent.enabled) {
     faro.api.pushLog([message], {
@@ -46,9 +45,9 @@ export function withPerformanceLogging<TFunc extends (...args: any[]) => Promise
   };
 }
 
-export async function isNewUser() {
+export async function isNewUser(userId: number) {
   try {
-    const { createdAt } = await getBackendSrv().get(`/api/user`);
+    const { createdAt } = await getBackendSrv().get(`/api/users/${userId}`);
 
     const limitDateForNewUser = dateTime().subtract(USER_CREATION_MIN_DAYS, 'days');
     const userCreationDate = dateTime(createdAt);
@@ -61,22 +60,8 @@ export async function isNewUser() {
   }
 }
 
-export const trackRuleListNavigation = async (
-  props: AlertRuleTrackingProps = {
-    grafana_version: config.buildInfo.version,
-    org_id: contextSrv.user.orgId,
-    user_id: contextSrv.user.id,
-  }
-) => {
-  const isNew = await isNewUser();
-  if (isNew) {
-    return;
-  }
-  reportInteraction('grafana_alerting_navigation', props);
-};
-
 export const trackNewAlerRuleFormSaved = async (props: AlertRuleTrackingProps) => {
-  const isNew = await isNewUser();
+  const isNew = await isNewUser(props.user_id);
   if (isNew) {
     return;
   }
@@ -84,7 +69,7 @@ export const trackNewAlerRuleFormSaved = async (props: AlertRuleTrackingProps) =
 };
 
 export const trackNewAlerRuleFormCancelled = async (props: AlertRuleTrackingProps) => {
-  const isNew = await isNewUser();
+  const isNew = await isNewUser(props.user_id);
   if (isNew) {
     return;
   }
@@ -92,7 +77,7 @@ export const trackNewAlerRuleFormCancelled = async (props: AlertRuleTrackingProp
 };
 
 export const trackNewAlerRuleFormError = async (props: AlertRuleTrackingProps & { error: string }) => {
-  const isNew = await isNewUser();
+  const isNew = await isNewUser(props.user_id);
   if (isNew) {
     return;
   }

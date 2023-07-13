@@ -9,20 +9,16 @@ import (
 
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/grafana/grafana/pkg/infra/db"
-	"github.com/grafana/grafana/pkg/infra/localcache"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/plugins"
 	acmock "github.com/grafana/grafana/pkg/services/accesscontrol/mock"
 	"github.com/grafana/grafana/pkg/services/datasources"
 	datasourceservice "github.com/grafana/grafana/pkg/services/datasources/service"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
-	"github.com/grafana/grafana/pkg/services/pluginsintegration/plugincontext"
-	pluginSettings "github.com/grafana/grafana/pkg/services/pluginsintegration/pluginsettings/service"
 	"github.com/grafana/grafana/pkg/services/quota/quotatest"
 	"github.com/grafana/grafana/pkg/services/secrets/fakes"
 	secretskvs "github.com/grafana/grafana/pkg/services/secrets/kvstore"
 	secretsmng "github.com/grafana/grafana/pkg/services/secrets/manager"
-	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/tsdb/legacydata"
 )
 
@@ -42,19 +38,15 @@ func TestHandleRequest(t *testing.T) {
 		dsService, err := datasourceservice.ProvideService(nil, secretsService, secretsStore, sqlStore.Cfg, featuremgmt.WithFeatures(), acmock.New(), datasourcePermissions, quotaService)
 		require.NoError(t, err)
 
-		pCtxProvider := plugincontext.ProvideService(localcache.ProvideService(), &plugins.FakePluginStore{
-			PluginList: []plugins.PluginDTO{{JSONData: plugins.JSONData{ID: "test"}}},
-		}, dsService, pluginSettings.ProvideService(sqlStore, secretsService))
-		s := ProvideService(client, nil, dsService, pCtxProvider)
+		s := ProvideService(client, nil, dsService)
 
-		ds := &datasources.DataSource{ID: 12, Type: "test", JsonData: simplejson.New()}
+		ds := &datasources.DataSource{ID: 12, Type: "unregisteredType", JsonData: simplejson.New()}
 		req := legacydata.DataQuery{
 			TimeRange: &legacydata.DataTimeRange{},
 			Queries: []legacydata.DataSubQuery{
-				{RefID: "A", Model: simplejson.New()},
-				{RefID: "B", Model: simplejson.New()},
+				{RefID: "A", DataSource: &datasources.DataSource{ID: 1, Type: "test"}, Model: simplejson.New()},
+				{RefID: "B", DataSource: &datasources.DataSource{ID: 1, Type: "test"}, Model: simplejson.New()},
 			},
-			User: &user.SignedInUser{},
 		}
 		res, err := s.HandleRequest(context.Background(), ds, req)
 		require.NoError(t, err)

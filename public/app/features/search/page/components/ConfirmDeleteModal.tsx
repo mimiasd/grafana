@@ -1,9 +1,8 @@
 import { css } from '@emotion/css';
-import React from 'react';
+import React, { FC } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { ConfirmModal, useStyles2 } from '@grafana/ui';
-import { config } from 'app/core/config';
 import { deleteFoldersAndDashboards } from 'app/features/manage-dashboards/state/actions';
 
 import { OnMoveOrDeleleSelectedItems } from '../../types';
@@ -11,10 +10,11 @@ import { OnMoveOrDeleleSelectedItems } from '../../types';
 interface Props {
   onDeleteItems: OnMoveOrDeleleSelectedItems;
   results: Map<string, Set<string>>;
+  isOpen: boolean;
   onDismiss: () => void;
 }
 
-export const ConfirmDeleteModal = ({ results, onDeleteItems, onDismiss }: Props) => {
+export const ConfirmDeleteModal: FC<Props> = ({ results, onDeleteItems, isOpen, onDismiss }) => {
   const styles = useStyles2(getStyles);
 
   const dashboards = Array.from(results.get('dashboard') ?? []);
@@ -44,11 +44,9 @@ export const ConfirmDeleteModal = ({ results, onDeleteItems, onDismiss }: Props)
     });
   };
 
-  const requireDoubleConfirm = config.featureToggles.nestedFolders && folderCount > 0;
-
-  return (
+  return isOpen ? (
     <ConfirmModal
-      isOpen
+      isOpen={isOpen}
       title="Delete"
       body={
         <>
@@ -56,11 +54,10 @@ export const ConfirmDeleteModal = ({ results, onDeleteItems, onDismiss }: Props)
         </>
       }
       confirmText="Delete"
-      confirmationText={requireDoubleConfirm ? 'delete' : undefined}
       onConfirm={deleteItems}
       onDismiss={onDismiss}
     />
-  );
+  ) : null;
 };
 
 const getStyles = (theme: GrafanaTheme2) => ({

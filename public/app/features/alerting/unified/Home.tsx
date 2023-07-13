@@ -4,6 +4,7 @@ import SVG from 'react-inlinesvg';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { Stack } from '@grafana/experimental';
+import { config } from '@grafana/runtime';
 import { Icon, useStyles2, useTheme2 } from '@grafana/ui';
 
 import { AlertingPageWrapper } from './components/AlertingPageWrapper';
@@ -13,7 +14,7 @@ export default function Home() {
   const styles = useStyles2(getWelcomePageStyles);
 
   return (
-    <AlertingPageWrapper pageId={'alerting'}>
+    <AlertingPageWrapper pageId={config.featureToggles.topnav ? 'alerting' : 'alert-home'}>
       <div className={styles.grid}>
         <WelcomeHeader className={styles.ctaContainer} />
         <ContentBox className={styles.flowBlock}>
@@ -139,7 +140,7 @@ function WelcomeHeader({ className }: { className?: string }) {
     <ContentBox className={cx(styles.ctaContainer, className)}>
       <WelcomeCTABox
         title="Alert rules"
-        description="Define the condition that must be met before an alert rule fires"
+        description="Define the condition that must be me before an alert rule fires"
         href="/alerting/list"
         hrefText="Manage alert rules"
       />
@@ -249,7 +250,8 @@ const getContentBoxStyles = (theme: GrafanaTheme2) => ({
   box: css`
     padding: ${theme.spacing(2)};
     background-color: ${theme.colors.background.secondary};
-    border-radius: ${theme.shape.borderRadius()};
+    border-radius: 3px;
+    outline: 1px solid ${theme.colors.border.strong};
   `,
 });
 

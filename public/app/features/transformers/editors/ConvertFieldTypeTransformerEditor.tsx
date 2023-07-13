@@ -9,7 +9,6 @@ import {
   standardTransformers,
   TransformerRegistryItem,
   TransformerUIProps,
-  TransformerCategory,
 } from '@grafana/data';
 import {
   ConvertFieldTypeOptions,
@@ -174,5 +173,4 @@ export const convertFieldTypeTransformRegistryItem: TransformerRegistryItem<Conv
   transformation: standardTransformers.convertFieldTypeTransformer,
   name: standardTransformers.convertFieldTypeTransformer.name,
   description: standardTransformers.convertFieldTypeTransformer.description,
-  categories: new Set([TransformerCategory.Reformat]),
 };

@@ -9,16 +9,14 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/gtime"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/grafana/grafana/pkg/expr/mathexp"
-	"github.com/grafana/grafana/pkg/infra/tracing"
 )
 
 // Command is an interface for all expression commands.
 type Command interface {
 	NeedsVars() []string
-	Execute(ctx context.Context, now time.Time, vars mathexp.Vars, tracer tracing.Tracer) (mathexp.Results, error)
+	Execute(ctx context.Context, now time.Time, vars mathexp.Vars) (mathexp.Results, error)
 }
 
 // MathCommand is a command for a math expression such as "1 + $GA / 2"
@@ -68,11 +66,8 @@ func (gm *MathCommand) NeedsVars() []string {
 
 // Execute runs the command and returns the results or an error if the command
 // failed to execute.
-func (gm *MathCommand) Execute(ctx context.Context, _ time.Time, vars mathexp.Vars, tracer tracing.Tracer) (mathexp.Results, error) {
-	_, span := tracer.Start(ctx, "SSE.ExecuteMath")
-	span.SetAttributes("expression", gm.RawExpression, attribute.Key("expression").String(gm.RawExpression))
-	defer span.End()
-	return gm.Expression.Execute(gm.refID, vars, tracer)
+func (gm *MathCommand) Execute(_ context.Context, _ time.Time, vars mathexp.Vars) (mathexp.Results, error) {
+	return gm.Expression.Execute(gm.refID, vars)
 }
 
 // ReduceCommand is an expression command for reduction of a timeseries such as a min, mean, or max.
@@ -159,12 +154,7 @@ func (gr *ReduceCommand) NeedsVars() []string {
 
 // Execute runs the command and returns the results or an error if the command
 // failed to execute.
-func (gr *ReduceCommand) Execute(ctx context.Context, _ time.Time, vars mathexp.Vars, tracer tracing.Tracer) (mathexp.Results, error) {
-	_, span := tracer.Start(ctx, "SSE.ExecuteReduce")
-	defer span.End()
-
-	span.SetAttributes("reducer", gr.Reducer, attribute.Key("reducer").String(gr.Reducer))
-
+func (gr *ReduceCommand) Execute(_ context.Context, _ time.Time, vars mathexp.Vars) (mathexp.Results, error) {
 	newRes := mathexp.Results{}
 	for _, val := range vars[gr.VarToReduce].Values {
 		switch v := val.(type) {
@@ -272,9 +262,7 @@ func (gr *ResampleCommand) NeedsVars() []string {
 
 // Execute runs the command and returns the results or an error if the command
 // failed to execute.
-func (gr *ResampleCommand) Execute(ctx context.Context, now time.Time, vars mathexp.Vars, tracer tracing.Tracer) (mathexp.Results, error) {
-	_, span := tracer.Start(ctx, "SSE.ExecuteResample")
-	defer span.End()
+func (gr *ResampleCommand) Execute(_ context.Context, now time.Time, vars mathexp.Vars) (mathexp.Results, error) {
 	newRes := mathexp.Results{}
 	timeRange := gr.TimeRange.AbsoluteTime(now)
 	for _, val := range vars[gr.VarToResample].Values {

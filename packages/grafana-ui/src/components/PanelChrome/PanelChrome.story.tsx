@@ -1,20 +1,18 @@
 import { action } from '@storybook/addon-actions';
-import { Meta, StoryFn } from '@storybook/react';
+import { ComponentMeta, ComponentStory } from '@storybook/react';
 import { merge } from 'lodash';
 import React, { CSSProperties, useState, ReactNode } from 'react';
 import { useInterval } from 'react-use';
 
 import { LoadingState } from '@grafana/data';
-import { Button, Icon, PanelChrome, PanelChromeProps, RadioButtonGroup } from '@grafana/ui';
+import { PanelChrome, PanelChromeProps } from '@grafana/ui';
 
 import { DashboardStoryCanvas } from '../../utils/storybook/DashboardStoryCanvas';
 import { withCenteredStory } from '../../utils/storybook/withCenteredStory';
 import { HorizontalGroup } from '../Layout/Layout';
 import { Menu } from '../Menu/Menu';
 
-import mdx from './PanelChrome.mdx';
-
-const meta: Meta<typeof PanelChrome> = {
+const meta: ComponentMeta<typeof PanelChrome> = {
   title: 'Visualizations/PanelChrome',
   component: PanelChrome,
   decorators: [withCenteredStory],
@@ -22,9 +20,7 @@ const meta: Meta<typeof PanelChrome> = {
     controls: {
       exclude: ['children'],
     },
-    docs: {
-      page: mdx,
-    },
+    docs: {},
   },
 };
 
@@ -40,7 +36,7 @@ function getContentStyle(): CSSProperties {
 function renderPanel(name: string, overrides?: Partial<PanelChromeProps>) {
   const props: PanelChromeProps = {
     width: 400,
-    height: 150,
+    height: 130,
     children: () => undefined,
   };
 
@@ -131,6 +127,10 @@ export const Examples = () => {
           {renderPanel('No title, streaming loadingState', {
             loadingState: LoadingState.Streaming,
           })}
+          {renderPanel('No title, loading loadingState', {
+            loadingState: LoadingState.Loading,
+          })}
+
           {renderPanel('Error status, menu', {
             title: 'Default title',
             menu,
@@ -179,59 +179,22 @@ export const Examples = () => {
               />,
             ],
           })}
+          {renderPanel('Deprecated error indicator, menu', {
+            title: 'Default title',
+            menu,
+            leftItems: [
+              <PanelChrome.ErrorIndicator
+                key="errorIndicator"
+                error="Error text"
+                onClick={action('ErrorIndicator: onClick fired')}
+              />,
+            ],
+          })}
           {renderPanel('Display mode = transparent', {
             title: 'Default title',
             displayMode: 'transparent',
             menu,
-          })}
-          {renderPanel('Actions with button no menu', {
-            title: 'Actions with button no menu',
-            actions: (
-              <Button size="sm" variant="secondary" key="A">
-                Breakdown
-              </Button>
-            ),
-          })}
-          {renderPanel('Panel with two actions', {
-            title: 'I have two buttons',
-            actions: [
-              <Button size="sm" variant="secondary" key="A">
-                Breakdown
-              </Button>,
-              <Button size="sm" variant="secondary" icon="times" key="B" />,
-            ],
-          })}
-          {renderPanel('With radio button', {
-            title: 'I have a radio button',
-            actions: [
-              <RadioButtonGroup
-                key="radio-button-group"
-                size="sm"
-                value="A"
-                options={[
-                  { label: 'Graph', value: 'A' },
-                  { label: 'Table', value: 'B' },
-                ]}
-              />,
-            ],
-          })}
-          {renderPanel('Panel with action link', {
-            title: 'Panel with action link',
-            actions: (
-              <a className="external-link" href="/some/page">
-                Error details
-                <Icon name="arrow-right" />
-              </a>
-            ),
-          })}
-          {renderPanel('Action and menu (should be rare)', {
-            title: 'Action and menu',
-            menu,
-            actions: (
-              <Button size="sm" variant="secondary">
-                Breakdown
-              </Button>
-            ),
+            leftItems: [],
           })}
         </HorizontalGroup>
       </div>
@@ -239,68 +202,7 @@ export const Examples = () => {
   );
 };
 
-export const ExamplesHoverHeader = () => {
-  return (
-    <DashboardStoryCanvas>
-      <div>
-        <HorizontalGroup spacing="md" align="flex-start" wrap>
-          {renderPanel('Title items, menu, hover header', {
-            title: 'Default title',
-            description: 'This is a description',
-            menu,
-            hoverHeader: true,
-            dragClass: 'draggable',
-            titleItems: (
-              <PanelChrome.TitleItem title="Online">
-                <Icon name="heart" />
-              </PanelChrome.TitleItem>
-            ),
-          })}
-          {renderPanel('Multiple title items', {
-            title: 'Default title',
-            menu,
-            hoverHeader: true,
-            dragClass: 'draggable',
-            titleItems: [
-              <PanelChrome.TitleItem title="Online" key="A">
-                <Icon name="heart" />
-              </PanelChrome.TitleItem>,
-              <PanelChrome.TitleItem title="Link" key="B" onClick={() => {}}>
-                <Icon name="external-link-alt" />
-              </PanelChrome.TitleItem>,
-            ],
-          })}
-          {renderPanel('Hover header, loading loadingState', {
-            loadingState: LoadingState.Loading,
-            hoverHeader: true,
-            title: 'I am a hover header',
-            dragClass: 'draggable',
-          })}
-          {renderPanel('No title, Hover header', {
-            hoverHeader: true,
-            dragClass: 'draggable',
-          })}
-          {renderPanel('Should not have drag icon', {
-            title: 'No drag icon',
-            hoverHeader: true,
-          })}
-          {renderPanel('With action link', {
-            title: 'With link in hover header',
-            hoverHeader: true,
-            actions: (
-              <a className="external-link" href="/some/page">
-                Error details
-                <Icon name="arrow-right" />
-              </a>
-            ),
-          })}
-        </HorizontalGroup>
-      </div>
-    </DashboardStoryCanvas>
-  );
-};
-
-export const Basic: StoryFn<typeof PanelChrome> = (args: PanelChromeProps) => {
+export const Basic: ComponentStory<typeof PanelChrome> = (args: PanelChromeProps) => {
   const contentStyle = getContentStyle();
 
   return (

@@ -161,7 +161,7 @@ func (s *Service) GetDataSources(ctx context.Context, query *datasources.GetData
 	return s.SQLStore.GetDataSources(ctx, query)
 }
 
-func (s *Service) GetAllDataSources(ctx context.Context, query *datasources.GetAllDataSourcesQuery) (res []*datasources.DataSource, err error) {
+func (s *Service) GetAllDataSources(ctx context.Context, query *datasources.GetAllDataSourcesQuery) error {
 	return s.SQLStore.GetAllDataSources(ctx, query)
 }
 
@@ -424,11 +424,10 @@ func (s *Service) httpClientOptions(ctx context.Context, ds *datasources.DataSou
 	if ds.JsonData != nil {
 		opts.CustomOptions = ds.JsonData.MustMap()
 		// allow the plugin sdk to get the json data in JSONDataFromHTTPClientOptions
-		deepJsonDataCopy := make(map[string]interface{}, len(opts.CustomOptions))
+		opts.CustomOptions["grafanaData"] = make(map[string]interface{})
 		for k, v := range opts.CustomOptions {
-			deepJsonDataCopy[k] = v
+			opts.CustomOptions[k] = v
 		}
-		opts.CustomOptions["grafanaData"] = deepJsonDataCopy
 	}
 	if ds.BasicAuth {
 		password, err := s.DecryptedBasicAuthPassword(ctx, ds)
@@ -561,8 +560,8 @@ func (s *Service) getCustomHeaders(jsonData *simplejson.Json, decryptedValues ma
 	index := 0
 	for {
 		index++
-		headerNameSuffix := fmt.Sprintf("%s%d", datasources.CustomHeaderName, index)
-		headerValueSuffix := fmt.Sprintf("%s%d", datasources.CustomHeaderValue, index)
+		headerNameSuffix := fmt.Sprintf("httpHeaderName%d", index)
+		headerValueSuffix := fmt.Sprintf("httpHeaderValue%d", index)
 
 		key := jsonData.Get(headerNameSuffix).MustString()
 		if key == "" {
@@ -650,13 +649,4 @@ func readQuotaConfig(cfg *setting.Cfg) (*quota.Map, error) {
 	limits.Set(globalQuotaTag, cfg.Quota.Global.DataSource)
 	limits.Set(orgQuotaTag, cfg.Quota.Org.DataSource)
 	return limits, nil
-}
-
-// CustomerHeaders returns the custom headers specified in the datasource. The context is used for the decryption operation that might use the store, so consider setting an acceptable timeout for your use case.
-func (s *Service) CustomHeaders(ctx context.Context, ds *datasources.DataSource) (map[string]string, error) {
-	values, err := s.SecretsService.DecryptJsonData(ctx, ds.SecureJsonData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get custom headers: %w", err)
-	}
-	return s.getCustomHeaders(ds.JsonData, values), nil
 }

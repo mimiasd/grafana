@@ -2,7 +2,11 @@ import React, { PureComponent } from 'react';
 
 import { CanvasElementItem, CanvasElementProps } from '../element';
 
-class NotFoundDisplay extends PureComponent<CanvasElementProps> {
+interface NotFoundConfig {
+  orig?: any;
+}
+
+class NotFoundDisplay extends PureComponent<CanvasElementProps<NotFoundConfig>> {
   render() {
     const { config } = this.props;
     return (
@@ -14,7 +18,7 @@ class NotFoundDisplay extends PureComponent<CanvasElementProps> {
   }
 }
 
-export const notFoundItem: CanvasElementItem = {
+export const notFoundItem: CanvasElementItem<NotFoundConfig> = {
   id: 'not-found',
   name: 'Not found',
   description: 'Display when element type is not found in the registry',

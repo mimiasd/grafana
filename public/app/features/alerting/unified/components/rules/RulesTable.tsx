@@ -1,17 +1,8 @@
 import { css, cx } from '@emotion/css';
-import { isBefore, formatDuration } from 'date-fns';
-import React, { useCallback, useMemo } from 'react';
+import React, { FC, useMemo } from 'react';
 
-import {
-  GrafanaTheme2,
-  addDurationToDate,
-  isValidDate,
-  isValidDuration,
-  parseDuration,
-  dateTimeFormat,
-  dateTime,
-} from '@grafana/data';
-import { useStyles2, Tooltip } from '@grafana/ui';
+import { GrafanaTheme2 } from '@grafana/data';
+import { useStyles2 } from '@grafana/ui';
 import { CombinedRule } from 'app/types/unified-alerting';
 
 import { DEFAULT_PER_PAGE_PAGINATION } from '../../../../../core/constants';
@@ -38,20 +29,18 @@ interface Props {
   showGuidelines?: boolean;
   showGroupColumn?: boolean;
   showSummaryColumn?: boolean;
-  showNextEvaluationColumn?: boolean;
   emptyMessage?: string;
   className?: string;
 }
 
-export const RulesTable = ({
+export const RulesTable: FC<Props> = ({
   rules,
   className,
   showGuidelines = false,
   emptyMessage = 'No rules found.',
   showGroupColumn = false,
   showSummaryColumn = false,
-  showNextEvaluationColumn = false,
-}: Props) => {
+}) => {
   const styles = useStyles2(getStyles);
 
   const wrapperClass = cx(styles.wrapper, className, { [styles.wrapperMargin]: showGuidelines });
@@ -65,7 +54,7 @@ export const RulesTable = ({
     });
   }, [rules]);
 
-  const columns = useColumns(showSummaryColumn, showGroupColumn, showNextEvaluationColumn);
+  const columns = useColumns(showSummaryColumn, showGroupColumn);
 
   if (!rules.length) {
     return <div className={cx(wrapperClass, styles.emptyMessage)}>{emptyMessage}</div>;
@@ -106,43 +95,14 @@ export const getStyles = (theme: GrafanaTheme2) => ({
     padding-top: ${theme.spacing(1)};
     padding-bottom: ${theme.spacing(0.25)};
     justify-content: center;
-    border-left: 1px solid ${theme.colors.border.medium};
-    border-right: 1px solid ${theme.colors.border.medium};
-    border-bottom: 1px solid ${theme.colors.border.medium};
+    border-left: 1px solid ${theme.colors.border.strong};
+    border-right: 1px solid ${theme.colors.border.strong};
+    border-bottom: 1px solid ${theme.colors.border.strong};
   `,
 });
 
-function useColumns(showSummaryColumn: boolean, showGroupColumn: boolean, showNextEvaluationColumn: boolean) {
+function useColumns(showSummaryColumn: boolean, showGroupColumn: boolean) {
   const { hasRuler, rulerRulesLoaded } = useHasRuler();
-
-  const calculateNextEvaluationDate = useCallback((rule: CombinedRule) => {
-    const isValidLastEvaluation = rule.promRule?.lastEvaluation && isValidDate(rule.promRule.lastEvaluation);
-    const isValidIntervalDuration = rule.group.interval && isValidDuration(rule.group.interval);
-
-    if (!isValidLastEvaluation || !isValidIntervalDuration || isGrafanaRulerRulePaused(rule)) {
-      return;
-    }
-
-    const intervalDuration = parseDuration(rule.group.interval!);
-    const lastEvaluationDate = Date.parse(rule.promRule?.lastEvaluation || '');
-    const nextEvaluationDate = addDurationToDate(lastEvaluationDate, intervalDuration);
-
-    //when `nextEvaluationDate` is a past date it means lastEvaluation was more than one evaluation interval ago.
-    //in this case we use the interval value to show a more generic estimate.
-    //See https://github.com/grafana/grafana/issues/65125
-    const isPastDate = isBefore(nextEvaluationDate, new Date());
-    if (isPastDate) {
-      return {
-        humanized: `within ${formatDuration(intervalDuration)}`,
-        fullDate: `within ${formatDuration(intervalDuration)}`,
-      };
-    }
-
-    return {
-      humanized: `in ${dateTime(nextEvaluationDate).locale('en').fromNow(true)}`,
-      fullDate: dateTimeFormat(nextEvaluationDate, { format: 'YYYY-MM-DD HH:mm:ss' }),
-    };
-  }, []);
 
   return useMemo((): RuleTableColumnProps[] => {
     const columns: RuleTableColumnProps[] = [
@@ -168,7 +128,7 @@ function useColumns(showSummaryColumn: boolean, showGroupColumn: boolean, showNe
         label: 'Name',
         // eslint-disable-next-line react/display-name
         renderCell: ({ data: rule }) => rule.name,
-        size: showNextEvaluationColumn ? 4 : 5,
+        size: 5,
       },
       {
         id: 'provisioned',
@@ -209,28 +169,9 @@ function useColumns(showSummaryColumn: boolean, showGroupColumn: boolean, showNe
         renderCell: ({ data: rule }) => {
           return <Tokenize input={rule.annotations[Annotation.summary] ?? ''} />;
         },
-        size: showNextEvaluationColumn ? 4 : 5,
+        size: 5,
       });
     }
-
-    if (showNextEvaluationColumn) {
-      columns.push({
-        id: 'nextEvaluation',
-        label: 'Next evaluation',
-        renderCell: ({ data: rule }) => {
-          const nextEvalInfo = calculateNextEvaluationDate(rule);
-          return (
-            nextEvalInfo && (
-              <Tooltip placement="top" content={`${nextEvalInfo?.fullDate}`} theme="info">
-                <span>{nextEvalInfo?.humanized}</span>
-              </Tooltip>
-            )
-          );
-        },
-        size: 2,
-      });
-    }
-
     if (showGroupColumn) {
       columns.push({
         id: 'group',
@@ -262,12 +203,5 @@ function useColumns(showSummaryColumn: boolean, showGroupColumn: boolean, showNe
     });
 
     return columns;
-  }, [
-    showSummaryColumn,
-    showGroupColumn,
-    showNextEvaluationColumn,
-    hasRuler,
-    rulerRulesLoaded,
-    calculateNextEvaluationDate,
-  ]);
+  }, [showSummaryColumn, showGroupColumn, hasRuler, rulerRulesLoaded]);
 }

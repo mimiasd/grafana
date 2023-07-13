@@ -6,6 +6,6 @@ import (
 	"github.com/grafana/grafana/pkg/plugins"
 )
 
-type Registry interface {
+type Resolver interface {
 	List(context.Context) []plugins.PluginSource
 }

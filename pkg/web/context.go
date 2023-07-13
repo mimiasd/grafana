@@ -16,15 +16,12 @@ package web
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"html/template"
 	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/grafana/grafana/pkg/util/errutil"
 	"github.com/grafana/grafana/pkg/util/errutil/errhttp"
@@ -106,10 +103,7 @@ func (ctx *Context) HTML(status int, name string, data interface{}) {
 	ctx.Resp.Header().Set(headerContentType, contentTypeHTML)
 	ctx.Resp.WriteHeader(status)
 	if err := ctx.template.ExecuteTemplate(ctx.Resp, name, data); err != nil {
-		if errors.Is(err, syscall.EPIPE) { // Client has stopped listening.
-			return
-		}
-		panic(fmt.Sprintf("Context.HTML - Error rendering template: %s. You may need to build frontend assets \n %s", name, err.Error()))
+		panic("Context.HTML:" + err.Error())
 	}
 }
 
@@ -185,14 +179,6 @@ func (ctx *Context) QueryInt(name string) int {
 // QueryInt64 returns query result in int64 type.
 func (ctx *Context) QueryInt64(name string) int64 {
 	n, _ := strconv.ParseInt(ctx.Query(name), 10, 64)
-	return n
-}
-
-func (ctx *Context) QueryInt64WithDefault(name string, d int64) int64 {
-	n, err := strconv.ParseInt(ctx.Query(name), 10, 64)
-	if err != nil {
-		return d
-	}
 	return n
 }
 

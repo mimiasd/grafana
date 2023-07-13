@@ -66,6 +66,7 @@ type ListDashboardVersionsQuery struct {
 	Limit        int
 	Start        int
 }
+
 type DashboardVersionDTO struct {
 	ID            int64            `json:"id"`
 	DashboardID   int64            `json:"dashboardId"`

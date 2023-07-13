@@ -3,12 +3,14 @@ import { TemplateSrv } from '@grafana/runtime';
 import { AzureMonitorResource, GetMetricNamespacesQuery, GetMetricNamesQuery } from '../types';
 
 export default class UrlBuilder {
-  static buildResourceUri(templateSrv: TemplateSrv, resource: AzureMonitorResource, multipleResources?: boolean) {
+  static buildResourceUri(templateSrv: TemplateSrv, resource: AzureMonitorResource) {
     const urlArray = [];
     const { subscription, resourceGroup, metricNamespace, resourceName } = resource;
+
     if (subscription) {
       urlArray.push('/subscriptions', subscription);
-      if (resourceGroup && !multipleResources) {
+
+      if (resourceGroup) {
         urlArray.push('resourceGroups', resourceGroup);
 
         if (metricNamespace && resourceName) {
@@ -76,38 +78,24 @@ export default class UrlBuilder {
     baseUrl: string,
     apiVersion: string,
     query: GetMetricNamesQuery,
-    templateSrv: TemplateSrv,
-    multipleResources?: boolean,
-    region?: string
+    templateSrv: TemplateSrv
   ) {
     let resourceUri: string;
-    const { customNamespace, metricNamespace } = query;
+    const { customNamespace } = query;
     if ('resourceUri' in query) {
       resourceUri = query.resourceUri;
     } else {
       const { subscription, resourceGroup, metricNamespace, resourceName } = query;
-      resourceUri = UrlBuilder.buildResourceUri(
-        templateSrv,
-        {
-          subscription,
-          resourceGroup,
-          metricNamespace,
-          resourceName,
-        },
-        multipleResources
-      );
+      resourceUri = UrlBuilder.buildResourceUri(templateSrv, {
+        subscription,
+        resourceGroup,
+        metricNamespace,
+        resourceName,
+      });
     }
     let url = `${baseUrl}${resourceUri}/providers/microsoft.insights/metricdefinitions?api-version=${apiVersion}`;
     if (customNamespace) {
       url += `&metricnamespace=${encodeURIComponent(customNamespace)}`;
-    }
-
-    if (multipleResources && !customNamespace && metricNamespace) {
-      url += `&metricnamespace=${encodeURIComponent(metricNamespace)}`;
-
-      if (region) {
-        url += `&region=${region}`;
-      }
     }
 
     return url;

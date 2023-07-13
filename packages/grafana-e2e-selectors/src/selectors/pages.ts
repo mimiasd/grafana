@@ -20,7 +20,7 @@ export const Pages = {
     name: 'Data source settings page name input field',
     delete: 'Data source settings page Delete button',
     readOnly: 'Data source settings page read only message',
-    saveAndTest: 'data-testid Data source settings page Save and Test button',
+    saveAndTest: 'Data source settings page Save and Test button',
     alert: 'Data source settings page Alert',
   },
   DataSources: {
@@ -38,11 +38,10 @@ export const Pages = {
     dataSourcePluginsV2: (pluginName: string) => `Add new data source ${pluginName}`,
   },
   ConfirmModal: {
-    delete: 'data-testid Confirm Modal Danger Button',
+    delete: 'Confirm Modal Danger Button',
   },
   AddDashboard: {
     url: '/dashboard/new',
-    itemButton: (title: string) => `data-testid ${title}`,
     addNewPanel: 'Add new panel',
     addNewRow: 'Add new row',
     addNewPanelLibrary: 'Add new panel from panel library',
@@ -66,16 +65,8 @@ export const Pages = {
       submenuItemValueDropDownDropDown: 'Variable options',
       submenuItemValueDropDownOptionTexts: (item: string) =>
         `data-testid Dashboard template variables Variable Value DropDown option text ${item}`,
-      Annotations: {
-        annotationsWrapper: 'data-testid annotation-wrapper',
-        annotationLabel: (label: string) => `data-testid Dashboard annotations submenu Label ${label}`,
-        annotationToggle: (label: string) => `data-testid Dashboard annotations submenu Toggle ${label}`,
-      },
     },
     Settings: {
-      Actions: {
-        close: 'data-testid dashboard-settings-close',
-      },
       General: {
         deleteDashBoard: 'Dashboard settings page delete dashboard button',
         sectionItems: (item: string) => `Dashboard settings section item ${item}`,
@@ -97,11 +88,6 @@ export const Pages = {
         },
         Settings: {
           name: 'Annotations settings name input',
-        },
-        NewAnnotation: {
-          panelFilterSelect: 'data-testid annotations-panel-filter',
-          showInLabel: 'show-in-label',
-          previewInDashboard: 'data-testid annotations-preview',
         },
       },
       Variables: {
@@ -177,9 +163,6 @@ export const Pages = {
         },
       },
     },
-    Annotations: {
-      marker: 'data-testid annotation-marker',
-    },
   },
   Dashboards: {
     url: '/dashboards',
@@ -218,13 +201,10 @@ export const Pages = {
       NoUpsertPermissionsWarningAlert: 'data-testid public dashboard no upsert permissions alert',
       EnableTimeRangeSwitch: 'data-testid public dashboard on off switch for time range',
       EmailSharingConfiguration: {
-        Container: 'data-testid email sharing config container',
         ShareType: 'data-testid public dashboard share type',
         EmailSharingInput: 'data-testid public dashboard email sharing input',
         EmailSharingInviteButton: 'data-testid public dashboard email sharing invite button',
         EmailSharingList: 'data-testid public dashboard email sharing list',
-        DeleteEmail: 'data-testid public dashboard delete email button',
-        ReshareLink: 'data-testid public dashboard reshare link button',
       },
     },
   },
@@ -235,11 +215,6 @@ export const Pages = {
       title: 'public-dashboard-title',
       pausedDescription: 'public-dashboard-paused-description',
     },
-  },
-  RequestViewAccess: {
-    form: 'request-view-access-form',
-    recipientInput: 'request-view-access-recipient-input',
-    submitButton: 'request-view-access-submit-button',
   },
   Explore: {
     url: '/explore',
@@ -269,12 +244,6 @@ export const Pages = {
     interval: 'Playlist interval',
     itemDelete: 'Delete playlist item',
   },
-  BrowseDashbards: {
-    table: {
-      row: (uid: string) => `data-testid ${uid} row`,
-      checkbox: (uid: string) => `data-testid ${uid} checkbox`,
-    },
-  },
   Search: {
     url: '/?search=openn',
     FolderView: {
@@ -286,36 +255,14 @@ export const Pages = {
       linkButton: 'public-dashboard-link-button',
       configButton: 'public-dashboard-configuration-button',
       trashcanButton: 'public-dashboard-remove-button',
-      pauseSwitch: 'data-testid public dashboard pause switch',
     },
   },
   UserListPage: {
-    tabs: {
-      allUsers: 'data-testid all-users-tab',
-      orgUsers: 'data-testid org-users-tab',
-      publicDashboardsUsers: 'data-testid public-dashboards-users-tab',
-      users: 'data-testid users-tab',
-    },
     org: {
       url: '/org/users',
     },
     admin: {
       url: '/admin/users',
-    },
-    publicDashboards: {
-      container: 'data-testid public-dashboards-users-list',
-    },
-    UserListAdminPage: {
-      container: 'data-testid user-list-admin-page',
-    },
-    UsersListPage: {
-      container: 'data-testid users-list-page',
-    },
-    UsersListPublicDashboardsPage: {
-      container: 'data-testid users-list-public-dashboards-page',
-      DashboardsListModal: {
-        listItem: (uid: string) => `data-testid dashboards-list-item-${uid}`,
-      },
     },
   },
 };

@@ -1,5 +1,5 @@
 import { css, cx } from '@emotion/css';
-import React from 'react';
+import React, { FC } from 'react';
 
 import { DataFrame, DataLink, GrafanaTheme2 } from '@grafana/data';
 
@@ -18,7 +18,7 @@ export interface DataLinksListItemProps {
   isEditing?: boolean;
 }
 
-export const DataLinksListItem = ({ link, onEdit, onRemove }: DataLinksListItemProps) => {
+export const DataLinksListItem: FC<DataLinksListItemProps> = ({ link, onEdit, onRemove }) => {
   const theme = useTheme2();
   const styles = getDataLinkListItemStyles(theme);
   const { title = '', url = '' } = link;
@@ -35,8 +35,8 @@ export const DataLinksListItem = ({ link, onEdit, onRemove }: DataLinksListItemP
           {hasTitle ? title : 'Data link title not provided'}
         </div>
         <div className={styles.actionButtons}>
-          <IconButton name="pen" onClick={onEdit} tooltip="Edit data link title" />
-          <IconButton name="times" onClick={onRemove} tooltip="Remove data link title" />
+          <IconButton name="pen" onClick={onEdit} />
+          <IconButton name="times" onClick={onRemove} />
         </div>
       </div>
       <div

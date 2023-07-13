@@ -1,26 +1,26 @@
-import { FieldType, DataFrame, dateTime } from '@grafana/data';
+import { ArrayVector, FieldType, DataFrame, dateTime } from '@grafana/data';
 
 import { Feed } from './types';
 
 export function feedToDataFrame(feed: Feed): DataFrame {
-  const date: number[] = [];
-  const title: string[] = [];
-  const link: string[] = [];
-  const content: string[] = [];
-  const ogImage: Array<string | undefined | null> = [];
+  const date = new ArrayVector<number>([]);
+  const title = new ArrayVector<string>([]);
+  const link = new ArrayVector<string>([]);
+  const content = new ArrayVector<string>([]);
+  const ogImage = new ArrayVector<string | undefined | null>([]);
 
   for (const item of feed.items) {
     const val = dateTime(item.pubDate);
 
     try {
-      date.push(val.valueOf());
-      title.push(item.title);
-      link.push(item.link);
-      ogImage.push(item.ogImage);
+      date.buffer.push(val.valueOf());
+      title.buffer.push(item.title);
+      link.buffer.push(item.link);
+      ogImage.buffer.push(item.ogImage);
 
       if (item.content) {
         const body = item.content.replace(/<\/?[^>]+(>|$)/g, '');
-        content.push(body);
+        content.buffer.push(body);
       }
     } catch (err) {
       console.warn('Error reading news item:', err, item);

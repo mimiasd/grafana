@@ -48,16 +48,14 @@ Folders help you organize and group dashboards, which is useful when you have ma
 
 **To create a dashboard folder:**
 
-1. Sign in to Grafana.
-1. Click **Dashboards** in the left-side menu.
-1. On the Dashboards page, click **New** and select **New folder** in the dropdown.
+1. Sign in to Grafana and on the side menu, click **Dashboards > New folder**.
 1. Enter a unique name and click **Create**.
 
 When you save a dashboard, you can either select a folder for the dashboard to be saved in or create a new folder.
 
 ## Manage dashboards
 
-On the Dashboards page, you can:
+On the **Manage dashboards and folders** page, you can:
 
 - create a folder
 - create a dashboard
@@ -67,17 +65,17 @@ On the Dashboards page, you can:
 
 ### Dashboard folder page
 
-You can complete the following tasks on a dashboard folder page:
+You can complete the following tasks on the **Dashboard Folder** page:
 
 - Move or delete dashboards in a folder
-- Rename a folder (available on the Settings tab)
+- Rename a folder (available under the **Settings** tab)
 - Assign permissions to folders (which are inherited by the dashboards in the folder)
 
-To navigate to the dashboard folder page, hover over the name of the folder and click **Go to folder** in the dashboard search result list or on the Dashboards page.
+To navigate to the dashboard folder page, click the cog appears when you hover over a folder in the dashboard search result list or the **Manage dashboards and folders** page.
 
 ### Dashboard permissions
 
-You can assign permissions to a folder. Any permissions you assign are inherited by the dashboards in the folder. An Access Control List (ACL) is used where **Organization Role**, **Team**, and a **User** can be assigned permissions.
+You can assign permissions to a folder. Any permissions you assign are inherited by the dashboards in the folder. An Access Control List (ACL) is used where **Organization Role**, **Team** and a **User** can be assigned permissions.
 
 For more information about dashboard permissions, refer to [Dashboard permissions]({{< relref "../../administration/roles-and-permissions/#dashboard-permissions" >}}).
 
@@ -89,11 +87,10 @@ You can use the Grafana UI or the [HTTP API]({{< relref "../../developers/http_a
 
 The dashboard export action creates a Grafana JSON file that contains everything you need, including layout, variables, styles, data sources, queries, and so on, so that you can later import the dashboard.
 
-1. Click **Dashboards** in the left-side menu.
 1. Open the dashboard you want to export.
-1. Click the **Share** icon.
-1. Click **Export**.
-1. Click **Save to file**.
+2. Click the **Share** icon.
+3. Click **Export**.
+4. Click **Save to file**.
 
 Grafana downloads a JSON file to your local machine.
 
@@ -105,8 +102,7 @@ A template variable of the type `Constant` will automatically be hidden in the d
 
 ### Import a dashboard
 
-1. Click **Dashboards** in the left-side menu.
-1. Click **New** and select **Import** in the dropdown menu.
+1. Click **Dashboards > Import** in the side menu.
 1. Perform one of the following steps:
 
    - Upload a dashboard JSON file
@@ -122,7 +118,7 @@ The import process enables you to change the name of the dashboard, pick the dat
 
 Find dashboards for common server applications at [Grafana.com/dashboards](https://grafana.com/dashboards).
 
-{{< figure src="/media/docs/grafana/dashboards/screenshot-gcom-dashboards.png" >}}
+{{< figure src="/static/img/docs/v50/gcom_dashboard_list.png" max-width="700px" >}}
 
 ## Troubleshoot dashboards
 

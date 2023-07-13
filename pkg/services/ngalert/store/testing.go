@@ -9,15 +9,10 @@ import (
 	"github.com/grafana/grafana/pkg/services/ngalert/models"
 )
 
-func NewFakeImageStore(t *testing.T, images ...*models.Image) *FakeImageStore {
-	imageMap := make(map[string]*models.Image)
-	for _, image := range images {
-		imageMap[image.Token] = image
-	}
-
+func NewFakeImageStore(t *testing.T) *FakeImageStore {
 	return &FakeImageStore{
 		t:      t,
-		images: imageMap,
+		images: make(map[string]*models.Image),
 	}
 }
 
@@ -34,29 +29,6 @@ func (s *FakeImageStore) GetImage(_ context.Context, token string) (*models.Imag
 		return image, nil
 	}
 	return nil, models.ErrImageNotFound
-}
-
-func (s *FakeImageStore) GetImageByURL(_ context.Context, url string) (*models.Image, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	for _, image := range s.images {
-		if image.URL == url {
-			return image, nil
-		}
-	}
-
-	return nil, models.ErrImageNotFound
-}
-
-func (s *FakeImageStore) URLExists(_ context.Context, url string) (bool, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	for _, image := range s.images {
-		if image.URL == url {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 func (s *FakeImageStore) GetImages(_ context.Context, tokens []string) ([]models.Image, []string, error) {

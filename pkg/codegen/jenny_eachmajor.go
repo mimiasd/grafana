@@ -5,28 +5,24 @@ import (
 	"path/filepath"
 
 	"github.com/grafana/codejen"
-	"github.com/grafana/kindsys"
+	"github.com/grafana/grafana/pkg/kindsys"
 )
 
-// LatestMajorsOrXJenny returns a jenny that repeats the input for the latest in each major version.
-//
-// TODO remove forceGroup option, it's a temporary hack to accommodate core kinds
-func LatestMajorsOrXJenny(parentdir string, forceGroup bool, inner codejen.OneToOne[SchemaForGen]) OneToMany {
+// LatestMajorsOrXJenny returns a jenny that repeats the input for the latest in each major version,
+func LatestMajorsOrXJenny(parentdir string, inner codejen.OneToOne[SchemaForGen]) OneToMany {
 	if inner == nil {
 		panic("inner jenny must not be nil")
 	}
 
 	return &lmox{
-		parentdir:  parentdir,
-		inner:      inner,
-		forceGroup: forceGroup,
+		parentdir: parentdir,
+		inner:     inner,
 	}
 }
 
 type lmox struct {
-	parentdir  string
-	inner      codejen.OneToOne[SchemaForGen]
-	forceGroup bool
+	parentdir string
+	inner     codejen.OneToOne[SchemaForGen]
 }
 
 func (j *lmox) JennyName() string {
@@ -34,19 +30,10 @@ func (j *lmox) JennyName() string {
 }
 
 func (j *lmox) Generate(kind kindsys.Kind) (codejen.Files, error) {
-	// TODO remove this once codejen catches nils https://github.com/grafana/codejen/issues/5
-	if kind == nil {
-		return nil, nil
-	}
-
 	comm := kind.Props().Common()
 	sfg := SchemaForGen{
 		Name:    comm.Name,
 		IsGroup: comm.LineageIsGroup,
-	}
-
-	if j.forceGroup {
-		sfg.IsGroup = true
 	}
 
 	do := func(sfg SchemaForGen, infix string) (codejen.Files, error) {
@@ -69,13 +56,7 @@ func (j *lmox) Generate(kind kindsys.Kind) (codejen.Files, error) {
 	}
 
 	var fl codejen.Files
-	major := -1
 	for sch := kind.Lineage().First(); sch != nil; sch = sch.Successor() {
-		if int(sch.Version()[0]) == major {
-			continue
-		}
-		major = int(sch.Version()[0])
-
 		sfg.Schema = sch.LatestInMajor()
 		files, err := do(sfg, fmt.Sprintf("v%v", sch.Version()[0]))
 		if err != nil {

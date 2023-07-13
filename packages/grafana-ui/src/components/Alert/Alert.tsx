@@ -1,6 +1,5 @@
 import { css, cx } from '@emotion/css';
 import React, { AriaRole, HTMLAttributes, ReactNode } from 'react';
-import tinycolor2 from 'tinycolor2';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
@@ -9,6 +8,7 @@ import { useTheme2 } from '../../themes';
 import { IconName } from '../../types/icon';
 import { Button } from '../Button/Button';
 import { Icon } from '../Icon/Icon';
+import { IconButton } from '../IconButton/IconButton';
 
 export type AlertVariant = 'success' | 'warning' | 'error' | 'info';
 
@@ -22,6 +22,18 @@ export interface Props extends HTMLAttributes<HTMLDivElement> {
   buttonContent?: React.ReactNode | string;
   bottomSpacing?: number;
   topSpacing?: number;
+}
+
+export function getIconFromSeverity(severity: AlertVariant): IconName {
+  switch (severity) {
+    case 'error':
+    case 'warning':
+      return 'exclamation-triangle';
+    case 'info':
+      return 'info-circle';
+    case 'success':
+      return 'check';
+  }
 }
 
 export const Alert = React.forwardRef<HTMLDivElement, Props>(
@@ -73,14 +85,7 @@ export const Alert = React.forwardRef<HTMLDivElement, Props>(
         {/* If onRemove is specified, giving preference to onRemove */}
         {onRemove && !buttonContent && (
           <div className={styles.close}>
-            <Button
-              aria-label="Close alert"
-              icon="times"
-              onClick={onRemove}
-              type="button"
-              fill="text"
-              variant="secondary"
-            />
+            <IconButton aria-label="Close alert" name="times" onClick={onRemove} size="lg" type="button" />
           </div>
         )}
 
@@ -98,18 +103,6 @@ export const Alert = React.forwardRef<HTMLDivElement, Props>(
 
 Alert.displayName = 'Alert';
 
-export const getIconFromSeverity = (severity: AlertVariant): IconName => {
-  switch (severity) {
-    case 'error':
-    case 'warning':
-      return 'exclamation-triangle';
-    case 'info':
-      return 'info-circle';
-    case 'success':
-      return 'check';
-  }
-};
-
 const getStyles = (
   theme: GrafanaTheme2,
   severity: AlertVariant,
@@ -120,7 +113,6 @@ const getStyles = (
 ) => {
   const color = theme.colors[severity];
   const borderRadius = theme.shape.borderRadius();
-  const borderColor = tinycolor2(color.border).setAlpha(0.2).toString();
 
   return {
     alert: css`
@@ -130,10 +122,8 @@ const getStyles = (
       display: flex;
       flex-direction: row;
       align-items: stretch;
-      background: ${color.transparent};
-      box-shadow: ${elevated ? theme.shadows.z3 : 'none'};
-      padding: ${theme.spacing(1, 2)};
-      border: 1px solid ${borderColor};
+      background: ${theme.colors.background.secondary};
+      box-shadow: ${elevated ? theme.shadows.z3 : theme.shadows.z1};
       margin-bottom: ${theme.spacing(bottomSpacing ?? 2)};
       margin-top: ${theme.spacing(topSpacing ?? 0)};
 
@@ -149,15 +139,21 @@ const getStyles = (
       }
     `,
     icon: css`
-      padding: ${theme.spacing(1, 2, 0, 0)};
-      color: ${color.text};
+      padding: ${theme.spacing(2, 3)};
+      background: ${color.main};
+      border-radius: ${borderRadius} 0 0 ${borderRadius};
+      color: ${color.contrastText};
       display: flex;
+      align-items: center;
+      justify-content: center;
     `,
-    title: css({
-      fontWeight: theme.typography.fontWeightMedium,
-    }),
+    title: css`
+      font-weight: ${theme.typography.fontWeightMedium};
+      color: ${theme.colors.text.primary};
+    `,
     body: css`
-      padding: ${theme.spacing(1, 0)};
+      color: ${theme.colors.text.secondary};
+      padding: ${theme.spacing(2)};
       flex-grow: 1;
       display: flex;
       flex-direction: column;
@@ -166,23 +162,21 @@ const getStyles = (
       word-break: break-word;
     `,
     content: css`
-      padding-top: ${hasTitle ? theme.spacing(0.5) : 0};
+      color: ${theme.colors.text.secondary};
+      padding-top: ${hasTitle ? theme.spacing(1) : 0};
       max-height: 50vh;
       overflow-y: auto;
     `,
     buttonWrapper: css`
-      margin-left: ${theme.spacing(1)};
-      display: flex;
-      align-items: center;
-      align-self: center;
-    `,
-    close: css`
-      position: relative;
-      color: ${theme.colors.text.secondary};
+      padding: ${theme.spacing(1)};
       background: none;
       display: flex;
-      top: -6px;
-      right: -14px;
+      align-items: center;
+    `,
+    close: css`
+      padding: ${theme.spacing(2, 1)};
+      background: none;
+      display: flex;
     `,
   };
 };

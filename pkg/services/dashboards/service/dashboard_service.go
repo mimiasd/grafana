@@ -8,17 +8,16 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/gtime"
 
+	"github.com/grafana/grafana/pkg/infra/appcontext"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/services/accesscontrol"
 	"github.com/grafana/grafana/pkg/services/alerting"
 	"github.com/grafana/grafana/pkg/services/dashboards"
-	"github.com/grafana/grafana/pkg/services/datasources"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/services/folder"
 	"github.com/grafana/grafana/pkg/services/guardian"
 	"github.com/grafana/grafana/pkg/services/org"
 	"github.com/grafana/grafana/pkg/services/search/model"
-	"github.com/grafana/grafana/pkg/services/store/entity"
 	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/setting"
 	"github.com/grafana/grafana/pkg/util"
@@ -30,7 +29,6 @@ var (
 		{Action: dashboards.ActionFoldersWrite, Scope: dashboards.ScopeFoldersAll},
 		{Action: dashboards.ActionDashboardsCreate, Scope: dashboards.ScopeFoldersAll},
 		{Action: dashboards.ActionDashboardsWrite, Scope: dashboards.ScopeFoldersAll},
-		{Action: datasources.ActionRead, Scope: datasources.ScopeAll},
 	}
 	// DashboardServiceImpl implements the DashboardService interface
 	_ dashboards.DashboardService             = (*DashboardServiceImpl)(nil)
@@ -52,12 +50,12 @@ type DashboardServiceImpl struct {
 }
 
 // This is the uber service that implements a three smaller services
-func ProvideDashboardServiceImpl(
+func ProvideDashboardService(
 	cfg *setting.Cfg, dashboardStore dashboards.Store, folderStore folder.FolderStore, dashAlertExtractor alerting.DashAlertExtractor,
 	features featuremgmt.FeatureToggles, folderPermissionsService accesscontrol.FolderPermissionsService,
 	dashboardPermissionsService accesscontrol.DashboardPermissionsService, ac accesscontrol.AccessControl,
 	folderSvc folder.Service,
-) (*DashboardServiceImpl, error) {
+) *DashboardServiceImpl {
 	dashSvc := &DashboardServiceImpl{
 		cfg:                  cfg,
 		log:                  log.New("dashboard-service"),
@@ -74,11 +72,7 @@ func ProvideDashboardServiceImpl(
 	ac.RegisterScopeAttributeResolver(dashboards.NewDashboardIDScopeResolver(folderStore, dashSvc, folderSvc))
 	ac.RegisterScopeAttributeResolver(dashboards.NewDashboardUIDScopeResolver(folderStore, dashSvc, folderSvc))
 
-	if err := folderSvc.RegisterService(dashSvc); err != nil {
-		return nil, err
-	}
-
-	return dashSvc, nil
+	return dashSvc
 }
 
 func (dr *DashboardServiceImpl) GetProvisionedDashboardData(ctx context.Context, name string) ([]*dashboards.DashboardProvisioning, error) {
@@ -553,15 +547,15 @@ func (dr *DashboardServiceImpl) FindDashboards(ctx context.Context, query *dashb
 	return dr.dashboardStore.FindDashboards(ctx, query)
 }
 
-func (dr *DashboardServiceImpl) SearchDashboards(ctx context.Context, query *dashboards.FindPersistedDashboardsQuery) (model.HitList, error) {
+func (dr *DashboardServiceImpl) SearchDashboards(ctx context.Context, query *dashboards.FindPersistedDashboardsQuery) error {
 	res, err := dr.FindDashboards(ctx, query)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	hits := makeQueryResult(query, res)
+	makeQueryResult(query, res)
 
-	return hits, nil
+	return nil
 }
 
 func getHitType(item dashboards.DashboardSearchProjection) model.HitType {
@@ -575,8 +569,8 @@ func getHitType(item dashboards.DashboardSearchProjection) model.HitType {
 	return hitType
 }
 
-func makeQueryResult(query *dashboards.FindPersistedDashboardsQuery, res []dashboards.DashboardSearchProjection) model.HitList {
-	hitList := make([]*model.Hit, 0)
+func makeQueryResult(query *dashboards.FindPersistedDashboardsQuery, res []dashboards.DashboardSearchProjection) {
+	query.Result = make([]*model.Hit, 0)
 	hits := make(map[int64]*model.Hit)
 
 	for _, item := range res {
@@ -604,18 +598,25 @@ func makeQueryResult(query *dashboards.FindPersistedDashboardsQuery, res []dashb
 				hit.SortMetaName = query.Sort.MetaName
 			}
 
-			hitList = append(hitList, hit)
+			query.Result = append(query.Result, hit)
 			hits[item.ID] = hit
 		}
 		if len(item.Term) > 0 {
 			hit.Tags = append(hit.Tags, item.Term)
 		}
 	}
-	return hitList
 }
 
 func (dr *DashboardServiceImpl) GetDashboardACLInfoList(ctx context.Context, query *dashboards.GetDashboardACLInfoListQuery) ([]*dashboards.DashboardACLInfoDTO, error) {
 	return dr.dashboardStore.GetDashboardACLInfoList(ctx, query)
+}
+
+func (dr *DashboardServiceImpl) HasAdminPermissionInDashboardsOrFolders(ctx context.Context, query *folder.HasAdminPermissionInDashboardsOrFoldersQuery) (bool, error) {
+	return dr.dashboardStore.HasAdminPermissionInDashboardsOrFolders(ctx, query)
+}
+
+func (dr *DashboardServiceImpl) HasEditPermissionInFolders(ctx context.Context, query *folder.HasEditPermissionInFoldersQuery) (bool, error) {
+	return dr.dashboardStore.HasEditPermissionInFolders(ctx, query)
 }
 
 func (dr *DashboardServiceImpl) GetDashboardTags(ctx context.Context, query *dashboards.GetDashboardTagsQuery) ([]*dashboards.DashboardTagCloudItem, error) {
@@ -626,17 +627,16 @@ func (dr *DashboardServiceImpl) DeleteACLByUser(ctx context.Context, userID int6
 	return dr.dashboardStore.DeleteACLByUser(ctx, userID)
 }
 
-func (dr DashboardServiceImpl) CountInFolder(ctx context.Context, orgID int64, folderUID string, u *user.SignedInUser) (int64, error) {
-	folder, err := dr.folderService.Get(ctx, &folder.GetFolderQuery{UID: &folderUID, OrgID: orgID, SignedInUser: u})
+func (dr DashboardServiceImpl) CountDashboardsInFolder(ctx context.Context, query *dashboards.CountDashboardsInFolderQuery) (int64, error) {
+	u, err := appcontext.User(ctx)
 	if err != nil {
 		return 0, err
 	}
 
-	return dr.dashboardStore.CountDashboardsInFolder(ctx, &dashboards.CountDashboardsInFolderRequest{FolderID: folder.ID, OrgID: orgID})
-}
+	folder, err := dr.folderService.Get(ctx, &folder.GetFolderQuery{UID: &query.FolderUID, OrgID: u.OrgID, SignedInUser: u})
+	if err != nil {
+		return 0, err
+	}
 
-func (dr *DashboardServiceImpl) DeleteInFolder(ctx context.Context, orgID int64, folderUID string) error {
-	return dr.dashboardStore.DeleteDashboardsInFolder(ctx, &dashboards.DeleteDashboardsInFolderRequest{FolderUID: folderUID, OrgID: orgID})
+	return dr.dashboardStore.CountDashboardsInFolder(ctx, &dashboards.CountDashboardsInFolderRequest{FolderID: folder.ID, OrgID: u.OrgID})
 }
-
-func (dr *DashboardServiceImpl) Kind() string { return entity.StandardKindDashboard }

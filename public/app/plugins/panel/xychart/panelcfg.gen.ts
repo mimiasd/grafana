@@ -10,6 +10,8 @@
 
 import * as common from '@grafana/schema';
 
+export const PanelCfgModelVersion = Object.freeze([0, 0]);
+
 export enum SeriesMapping {
   Auto = 'auto',
   Manual = 'manual',
@@ -31,7 +33,7 @@ export const defaultXYDimensionConfig: Partial<XYDimensionConfig> = {
   exclude: [],
 };
 
-export interface FieldConfig extends common.HideableFieldConfig, common.AxisConfig {
+export interface ScatterFieldConfig extends common.HideableFieldConfig, common.AxisConfig {
   label?: common.VisibilityMode;
   labelValue?: common.TextDimensionConfig;
   lineColor?: common.ColorDimensionConfig;
@@ -42,23 +44,23 @@ export interface FieldConfig extends common.HideableFieldConfig, common.AxisConf
   show?: ScatterShow;
 }
 
-export const defaultFieldConfig: Partial<FieldConfig> = {
+export const defaultScatterFieldConfig: Partial<ScatterFieldConfig> = {
   label: common.VisibilityMode.Auto,
   show: ScatterShow.Points,
 };
 
-export interface ScatterSeriesConfig extends FieldConfig {
+export interface ScatterSeriesConfig extends ScatterFieldConfig {
   name?: string;
   x?: string;
   y?: string;
 }
 
-export interface Options extends common.OptionsWithLegend, common.OptionsWithTooltip {
+export interface PanelOptions extends common.OptionsWithLegend, common.OptionsWithTooltip {
   dims: XYDimensionConfig;
   series: Array<ScatterSeriesConfig>;
   seriesMapping?: SeriesMapping;
 }
 
-export const defaultOptions: Partial<Options> = {
+export const defaultPanelOptions: Partial<PanelOptions> = {
   series: [],
 };

@@ -16,11 +16,10 @@ type Service struct {
 	pluginRegistry registry.Service
 }
 
-func ProvideService(pluginRegistry registry.Service, pluginSources sources.Registry,
+func ProvideService(pluginRegistry registry.Service, pluginSources sources.Resolver,
 	pluginLoader loader.Service) (*Service, error) {
-	ctx := context.Background()
-	for _, ps := range pluginSources.List(ctx) {
-		if _, err := pluginLoader.Load(ctx, ps); err != nil {
+	for _, ps := range pluginSources.List(context.Background()) {
+		if _, err := pluginLoader.Load(context.Background(), ps.Class, ps.Paths); err != nil {
 			return nil, err
 		}
 	}
@@ -96,10 +95,8 @@ func (s *Service) plugin(ctx context.Context, pluginID string) (*plugins.Plugin,
 
 // availablePlugins returns all non-decommissioned plugins from the registry sorted by alphabetic order on `plugin.ID`
 func (s *Service) availablePlugins(ctx context.Context) []*plugins.Plugin {
-	ps := s.pluginRegistry.Plugins(ctx)
-
-	res := make([]*plugins.Plugin, 0, len(ps))
-	for _, p := range ps {
+	var res []*plugins.Plugin
+	for _, p := range s.pluginRegistry.Plugins(ctx) {
 		if !p.IsDecommissioned() {
 			res = append(res, p)
 		}

@@ -1,4 +1,5 @@
 import {
+  ArrayVector,
   DataFrame,
   DataFrameJSON,
   DataFrameView,
@@ -180,8 +181,8 @@ export class BlugeSearcher implements GrafanaSearcher {
         // Append the raw values to the same array buffer
         const length = frame.length + view.dataFrame.length;
         for (let i = 0; i < frame.fields.length; i++) {
-          const values = view.dataFrame.fields[i].values;
-          values.push(...frame.fields[i].values);
+          const values = (view.dataFrame.fields[i].values as ArrayVector).buffer;
+          values.push(...frame.fields[i].values.toArray());
         }
         view.dataFrame.length = length;
 
@@ -226,7 +227,7 @@ function getTermCountsFrom(frame: DataFrame): TermCount[] {
   const vals = frame.fields[1].values;
   const counts: TermCount[] = [];
   for (let i = 0; i < frame.length; i++) {
-    counts.push({ term: keys[i], count: vals[i] });
+    counts.push({ term: keys.get(i), count: vals.get(i) });
   }
   return counts;
 }

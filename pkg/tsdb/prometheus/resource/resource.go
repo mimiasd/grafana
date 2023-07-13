@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/tsdb/prometheus/client"
 	"github.com/grafana/grafana/pkg/tsdb/prometheus/utils"
@@ -29,10 +30,6 @@ func New(
 	}
 	httpMethod, _ := maputil.GetStringOptional(jsonData, "httpMethod")
 
-	if httpMethod == "" {
-		httpMethod = http.MethodPost
-	}
-
 	return &Resource{
 		log:        plog,
 		promClient: client.NewClient(httpClient, httpMethod, settings.URL),
@@ -44,12 +41,6 @@ func (r *Resource) Execute(ctx context.Context, req *backend.CallResourceRequest
 	resp, err := r.promClient.QueryResource(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("error querying resource: %v", err)
-	}
-
-	// frontend sets the X-Grafana-Cache with the desired response cache control value
-	if len(req.GetHTTPHeaders().Get("X-Grafana-Cache")) > 0 {
-		resp.Header.Set("X-Grafana-Cache", "y")
-		resp.Header.Set("Cache-Control", req.GetHTTPHeaders().Get("X-Grafana-Cache"))
 	}
 
 	defer func() {
@@ -81,5 +72,16 @@ func (r *Resource) DetectVersion(ctx context.Context, req *backend.CallResourceR
 		Path:          "/api/v1/status/buildinfo",
 	}
 
-	return r.Execute(ctx, newReq)
+	resp, err := r.Execute(ctx, newReq)
+
+	if err != nil {
+		return nil, err
+	}
+
+	callResponse := &backend.CallResourceResponse{
+		Status: 200,
+		Body:   resp.Body,
+	}
+
+	return callResponse, nil
 }

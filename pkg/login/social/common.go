@@ -1,7 +1,6 @@
 package social
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +12,7 @@ import (
 )
 
 var (
-	errMissingGroupMembership = &Error{"user not a member of one of the required groups"}
+	errMissingGroupMembership = Error{"user not a member of one of the required groups"}
 )
 
 type httpGetResponse struct {
@@ -43,15 +42,10 @@ func isEmailAllowed(email string, allowedDomains []string) bool {
 	return valid
 }
 
-func (s *SocialBase) httpGet(ctx context.Context, client *http.Client, url string) (*httpGetResponse, error) {
-	req, errReq := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if errReq != nil {
-		return nil, errReq
-	}
-
-	r, errDo := client.Do(req)
-	if errDo != nil {
-		return nil, errDo
+func (s *SocialBase) httpGet(client *http.Client, url string) (response httpGetResponse, err error) {
+	r, err := client.Get(url)
+	if err != nil {
+		return
 	}
 
 	defer func() {
@@ -60,20 +54,21 @@ func (s *SocialBase) httpGet(ctx context.Context, client *http.Client, url strin
 		}
 	}()
 
-	body, errRead := io.ReadAll(r.Body)
-	if errRead != nil {
-		return nil, errRead
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return
 	}
 
-	response := &httpGetResponse{body, r.Header}
+	response = httpGetResponse{body, r.Header}
 
 	if r.StatusCode >= 300 {
-		return nil, fmt.Errorf("unsuccessful response status code %d: %s", r.StatusCode, string(response.Body))
+		err = fmt.Errorf(string(response.Body))
+		return
 	}
-
 	s.log.Debug("HTTP GET", "url", url, "status", r.Status, "response_body", string(response.Body))
 
-	return response, nil
+	err = nil
+	return
 }
 
 func (s *SocialBase) searchJSONForAttr(attributePath string, data []byte) (interface{}, error) {

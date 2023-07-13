@@ -1,67 +1,51 @@
 import { css } from '@emotion/css';
-import React from 'react';
+import React, { PureComponent } from 'react';
 
 import { LogRowModel, Field, LinkModel, DataFrame } from '@grafana/data';
+import { withTheme2, Themeable2 } from '@grafana/ui';
 
-import { LogRowMenuCell } from './LogRowMenuCell';
-import { LogRowStyles } from './getLogRowStyles';
 import { getAllFields } from './logParser';
 
-export interface Props {
+export interface Props extends Themeable2 {
   row: LogRowModel;
-  detectedFields: string[];
+  showDetectedFields: string[];
   wrapLogMessage: boolean;
   getFieldLinks?: (field: Field, rowIndex: number, dataFrame: DataFrame) => Array<LinkModel<Field>>;
-  styles: LogRowStyles;
-  showContextToggle?: (row?: LogRowModel) => boolean;
-  onOpenContext: (row: LogRowModel) => void;
-  onPermalinkClick?: (row: LogRowModel) => Promise<void>;
-  onPinLine?: (row: LogRowModel) => void;
-  onUnpinLine?: (row: LogRowModel) => void;
-  pinned?: boolean;
 }
 
-export const LogRowMessageDisplayedFields = React.memo((props: Props) => {
-  const { row, detectedFields, getFieldLinks, wrapLogMessage, styles, ...rest } = props;
-  const fields = getAllFields(row, getFieldLinks);
-  const wrapClassName = wrapLogMessage ? '' : displayedFieldsStyles.noWrap;
-  // only single key/value rows are filterable, so we only need the first field key for filtering
-  const line = detectedFields
-    .map((parsedKey) => {
-      const field = fields.find((field) => {
-        const { keys } = field;
-        return keys[0] === parsedKey;
-      });
+class UnThemedLogRowMessageDisplayedFields extends PureComponent<Props> {
+  render() {
+    const { row, showDetectedFields, getFieldLinks, wrapLogMessage } = this.props;
+    const fields = getAllFields(row, getFieldLinks);
+    const wrapClassName = wrapLogMessage
+      ? ''
+      : css`
+          white-space: nowrap;
+        `;
 
-      if (field !== undefined && field !== null) {
-        return `${parsedKey}=${field.values}`;
-      }
+    const line = showDetectedFields
+      .map((parsedKey) => {
+        const field = fields.find((field) => {
+          const { key } = field;
+          return key === parsedKey;
+        });
 
-      if (row.labels[parsedKey] !== undefined && row.labels[parsedKey] !== null) {
-        return `${parsedKey}=${row.labels[parsedKey]}`;
-      }
+        if (field !== undefined && field !== null) {
+          return `${parsedKey}=${field.value}`;
+        }
 
-      return null;
-    })
-    .filter((s) => s !== null)
-    .join(' ');
+        if (row.labels[parsedKey] !== undefined && row.labels[parsedKey] !== null) {
+          return `${parsedKey}=${row.labels[parsedKey]}`;
+        }
 
-  return (
-    <>
-      <td className={styles.logsRowMessage}>
-        <div className={wrapClassName}>{line}</div>
-      </td>
-      <td className={`log-row-menu-cell ${styles.logRowMenuCell}`}>
-        <LogRowMenuCell logText={line} row={row} styles={styles} {...rest} />
-      </td>
-    </>
-  );
-});
+        return null;
+      })
+      .filter((s) => s !== null)
+      .join(' ');
 
-const displayedFieldsStyles = {
-  noWrap: css`
-    white-space: nowrap;
-  `,
-};
+    return <td className={wrapClassName}>{line}</td>;
+  }
+}
 
+export const LogRowMessageDisplayedFields = withTheme2(UnThemedLogRowMessageDisplayedFields);
 LogRowMessageDisplayedFields.displayName = 'LogRowMessageDisplayedFields';

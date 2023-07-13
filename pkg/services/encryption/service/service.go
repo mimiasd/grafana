@@ -26,8 +26,8 @@ const (
 type Service struct {
 	log log.Logger
 
-	cfg          *setting.Cfg
-	usageMetrics usagestats.Service
+	settingsProvider setting.Provider
+	usageMetrics     usagestats.Service
 
 	ciphers   map[string]encryption.Cipher
 	deciphers map[string]encryption.Decipher
@@ -36,7 +36,7 @@ type Service struct {
 func ProvideEncryptionService(
 	provider encryption.Provider,
 	usageMetrics usagestats.Service,
-	cfg *setting.Cfg,
+	settingsProvider setting.Provider,
 ) (*Service, error) {
 	s := &Service{
 		log: log.New("encryption"),
@@ -44,16 +44,19 @@ func ProvideEncryptionService(
 		ciphers:   provider.ProvideCiphers(),
 		deciphers: provider.ProvideDeciphers(),
 
-		usageMetrics: usageMetrics,
-		cfg:          cfg,
+		usageMetrics:     usageMetrics,
+		settingsProvider: settingsProvider,
 	}
 
-	algorithm := s.cfg.SectionWithEnvOverrides(securitySection).Key(encryptionAlgorithmKey).
+	algorithm := s.settingsProvider.
+		KeyValue(securitySection, encryptionAlgorithmKey).
 		MustString(defaultEncryptionAlgorithm)
 
 	if err := s.checkEncryptionAlgorithm(algorithm); err != nil {
 		return nil, err
 	}
+
+	settingsProvider.RegisterReloadHandler(securitySection, s)
 
 	s.registerUsageMetrics()
 
@@ -83,7 +86,8 @@ func (s *Service) checkEncryptionAlgorithm(algorithm string) error {
 
 func (s *Service) registerUsageMetrics() {
 	s.usageMetrics.RegisterMetricsFunc(func(context.Context) (map[string]interface{}, error) {
-		algorithm := s.cfg.SectionWithEnvOverrides(securitySection).Key(encryptionAlgorithmKey).
+		algorithm := s.settingsProvider.
+			KeyValue(securitySection, encryptionAlgorithmKey).
 			MustString(defaultEncryptionAlgorithm)
 
 		return map[string]interface{}{
@@ -170,7 +174,8 @@ func (s *Service) Encrypt(ctx context.Context, payload []byte, secret string) ([
 		}
 	}()
 
-	algorithm := s.cfg.SectionWithEnvOverrides(securitySection).Key(encryptionAlgorithmKey).
+	algorithm := s.settingsProvider.
+		KeyValue(securitySection, encryptionAlgorithmKey).
 		MustString(defaultEncryptionAlgorithm)
 
 	cipher, ok := s.ciphers[algorithm]
@@ -231,4 +236,21 @@ func (s *Service) GetDecryptedValue(ctx context.Context, sjd map[string][]byte, 
 	}
 
 	return fallback
+}
+
+func (s *Service) Validate(section setting.Section) error {
+	s.log.Debug("Validating encryption config")
+
+	algorithm := section.KeyValue(encryptionAlgorithmKey).
+		MustString(defaultEncryptionAlgorithm)
+
+	if err := s.checkEncryptionAlgorithm(algorithm); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) Reload(_ setting.Section) error {
+	return nil
 }

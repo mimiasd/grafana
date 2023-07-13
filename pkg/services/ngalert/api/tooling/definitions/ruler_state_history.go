@@ -12,8 +12,6 @@ import "github.com/grafana/grafana-plugin-sdk-go/data"
 //     Responses:
 //       200: StateHistory
 
-// swagger:response StateHistory
 type StateHistory struct {
-	// in:body
 	Results *data.Frame `json:"results"`
 }

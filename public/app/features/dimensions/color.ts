@@ -6,9 +6,8 @@ import {
   GrafanaTheme2,
   getFieldConfigWithMinMax,
 } from '@grafana/data';
-import { ColorDimensionConfig } from '@grafana/schema';
 
-import { DimensionSupplier } from './types';
+import { ColorDimensionConfig, DimensionSupplier } from './types';
 import { findField, getLastNotNullFieldValue } from './utils';
 
 //---------------------------------------------------------
@@ -49,13 +48,13 @@ export function getColorDimensionForField(
     }
 
     const disp = getDisplayProcessor({ field, theme });
-    const getColor = (value: unknown): string => {
+    const getColor = (value: any): string => {
       return disp(value).color ?? '#ccc';
     };
 
     return {
       field,
-      get: (index: number): string => getColor(field!.values[index]),
+      get: (index: number): string => getColor(field!.values.get(index)),
       value: () => getColor(getLastNotNullFieldValue(field!)),
     };
   }

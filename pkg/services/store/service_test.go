@@ -59,6 +59,7 @@ var (
 			Disk: &StorageLocalDiskConfig{
 				Path: publicRoot,
 				Roots: []string{
+					"/testdata/",
 					"/img/icons/",
 					"/img/bg/",
 					"/gazetteer/",
@@ -74,12 +75,12 @@ func TestListFiles(t *testing.T) {
 	store := newStandardStorageService(db.InitTestDB(t), roots, func(orgId int64) []storageRuntime {
 		return make([]storageRuntime, 0)
 	}, allowAllAuthService, cfg, nil)
-	frame, err := store.List(context.Background(), dummyUser, "public/maps")
+	frame, err := store.List(context.Background(), dummyUser, "public/testdata")
 	require.NoError(t, err)
 
 	experimental.CheckGoldenJSONFrame(t, "testdata", "public_testdata.golden", frame.Frame, true)
 
-	file, err := store.Read(context.Background(), dummyUser, "public/maps/countries.geojson")
+	file, err := store.Read(context.Background(), dummyUser, "public/testdata/js_libraries.csv")
 	require.NoError(t, err)
 	require.NotNil(t, file)
 
@@ -95,7 +96,7 @@ func TestListFilesWithoutPermissions(t *testing.T) {
 	store := newStandardStorageService(db.InitTestDB(t), roots, func(orgId int64) []storageRuntime {
 		return make([]storageRuntime, 0)
 	}, denyAllAuthService, cfg, nil)
-	frame, err := store.List(context.Background(), dummyUser, "public/maps")
+	frame, err := store.List(context.Background(), dummyUser, "public/testdata")
 	require.NoError(t, err)
 	rowLen, err := frame.RowLen()
 	require.NoError(t, err)

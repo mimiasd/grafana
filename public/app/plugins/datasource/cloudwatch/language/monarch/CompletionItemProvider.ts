@@ -40,8 +40,6 @@ export class CompletionItemProvider implements Completeable {
       Number: 'number',
       String: 'string',
       Variable: 'variable',
-      Comment: 'comment',
-      Regexp: 'regexp',
     };
   }
 

@@ -8,10 +8,16 @@
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
-export interface Options {
+export const PanelCfgModelVersion = Object.freeze([0, 0]);
+
+export enum PanelLayout {
+  List = 'list',
+  Previews = 'previews',
+}
+
+export interface PanelOptions {
   folderId?: number;
-  includeVars: boolean;
-  keepTime: boolean;
+  layout?: PanelLayout;
   maxItems: number;
   query: string;
   showHeadings: boolean;
@@ -21,9 +27,8 @@ export interface Options {
   tags: Array<string>;
 }
 
-export const defaultOptions: Partial<Options> = {
-  includeVars: false,
-  keepTime: false,
+export const defaultPanelOptions: Partial<PanelOptions> = {
+  layout: PanelLayout.List,
   maxItems: 10,
   query: '',
   showHeadings: true,

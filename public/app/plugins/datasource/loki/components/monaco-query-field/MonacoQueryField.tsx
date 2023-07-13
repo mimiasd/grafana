@@ -1,5 +1,4 @@
 import { css } from '@emotion/css';
-import { debounce } from 'lodash';
 import React, { useRef, useEffect } from 'react';
 import { useLatest } from 'react-use';
 import { v4 as uuidv4 } from 'uuid';
@@ -77,9 +76,6 @@ const getStyles = (theme: GrafanaTheme2, placeholder: string) => {
       border-radius: ${theme.shape.borderRadius()};
       border: 1px solid ${theme.components.input.borderColor};
       width: 100%;
-      .monaco-editor .suggest-widget {
-        min-width: 50%;
-      }
     `,
     placeholder: css`
       ::after {
@@ -91,15 +87,7 @@ const getStyles = (theme: GrafanaTheme2, placeholder: string) => {
   };
 };
 
-const MonacoQueryField = ({
-  history,
-  onBlur,
-  onRunQuery,
-  initialValue,
-  datasource,
-  placeholder,
-  onQueryType,
-}: Props) => {
+const MonacoQueryField = ({ history, onBlur, onRunQuery, initialValue, datasource, placeholder }: Props) => {
   const id = uuidv4();
   // we need only one instance of `overrideServices` during the lifetime of the react component
   const overrideServicesRef = useRef(getOverrideServices());
@@ -150,14 +138,6 @@ const MonacoQueryField = ({
     editor.onDidChangeModelContent(checkDecorators);
   };
 
-  const onTypeDebounced = debounce(async (query: string) => {
-    if (!onQueryType) {
-      return;
-    }
-
-    onQueryType(query);
-  }, 1000);
-
   return (
     <div
       aria-label={selectors.components.QueryField.container}
@@ -201,8 +181,6 @@ const MonacoQueryField = ({
               severity: monaco.MarkerSeverity.Error,
               ...boundary,
             }));
-
-            onTypeDebounced(query);
             monaco.editor.setModelMarkers(model, 'owner', markers);
           });
           const dataProvider = new CompletionDataProvider(langProviderRef.current, historyRef);

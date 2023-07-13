@@ -1,5 +1,5 @@
 import { css, cx } from '@emotion/css';
-import React, { ReactNode } from 'react';
+import React, { FC, ReactNode } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
@@ -25,15 +25,10 @@ export interface Props {
   isFullscreen?: boolean;
   'aria-label'?: string;
   buttonOverflowAlignment?: 'left' | 'right';
-  /**
-   * Forces left items to be visible on small screens.
-   * By default left items are hidden on small screens.
-   */
-  forceShowLeftItems?: boolean;
 }
 
 /** @alpha */
-export const PageToolbar = React.memo(
+export const PageToolbar: FC<Props> = React.memo(
   ({
     title,
     section,
@@ -49,14 +44,13 @@ export const PageToolbar = React.memo(
     /** main nav-container aria-label **/
     'aria-label': ariaLabel,
     buttonOverflowAlignment = 'right',
-    forceShowLeftItems = false,
-  }: Props) => {
+  }) => {
     const styles = useStyles2(getStyles);
 
     /**
      * .page-toolbar css class is used for some legacy css view modes (TV/Kiosk) and
      * media queries for mobile view when toolbar needs left padding to make room
-     * for mobile menu icon. This logic hopefully can be changed when we move to a full react
+     * for mobile menu icon. This logic hopefylly can be changed when we move to a full react
      * app and change how the app side menu & mobile menu is rendered.
      */
     const mainStyle = cx(
@@ -133,10 +127,7 @@ export const PageToolbar = React.memo(
                 )}
 
                 {leftItems?.map((child, index) => (
-                  <div
-                    className={cx(styles.leftActionItem, { [styles.forceShowLeftActionItems]: forceShowLeftItems })}
-                    key={index}
-                  >
+                  <div className={styles.leftActionItem} key={index}>
                     {child}
                   </div>
                 ))}
@@ -222,7 +213,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       font-size: ${typography.size.lg};
       margin: 0;
       max-width: 300px;
-      border-radius: ${theme.shape.radius.default};
+      border-radius: 2px;
     `,
     titleLink: css`
       &:focus-visible {
@@ -245,14 +236,11 @@ const getStyles = (theme: GrafanaTheme2) => {
     `,
     leftActionItem: css`
       display: none;
-      align-items: center;
-      padding-right: ${spacing(0.5)};
       ${theme.breakpoints.up('md')} {
+        align-items: center;
         display: flex;
+        padding-right: ${spacing(0.5)};
       }
-    `,
-    forceShowLeftActionItems: css`
-      display: flex;
     `,
   };
 };

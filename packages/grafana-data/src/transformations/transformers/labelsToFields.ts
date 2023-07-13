@@ -2,6 +2,7 @@ import { map } from 'rxjs/operators';
 
 import { getFieldDisplayName } from '../..';
 import { DataFrame, Field, FieldType, SynchronousDataTransformerInfo } from '../../types';
+import { ArrayVector } from '../../vector';
 
 import { DataTransformerID } from './ids';
 
@@ -9,11 +10,10 @@ export enum LabelsToFieldsMode {
   Columns = 'columns', // default mode
   Rows = 'rows',
 }
-
 export interface LabelsToFieldsOptions {
   mode?: LabelsToFieldsMode;
 
-  /** When empty, this will keep all labels, otherwise it will keep only labels matching the value */
+  /** When empty, this will keep all labels, otherise it will keep only labels matching the value */
   keepLabels?: string[];
 
   /**
@@ -53,7 +53,7 @@ export const labelsToFieldsTransformer: SynchronousDataTransformerInfo<LabelsToF
           ...field,
           config: {
             ...field.config,
-            // we need to clear these for this transform as these can contain label names that we no longer want
+            // we need to clear thes for this transform as these can contain label names that we no longer want
             displayName: undefined,
             displayNameFromDS: undefined,
           },
@@ -83,7 +83,7 @@ export const labelsToFieldsTransformer: SynchronousDataTransformerInfo<LabelsToF
           newFields.push({
             name: name,
             type: FieldType.string,
-            values: values,
+            values: new ArrayVector(values),
             config: {},
           });
         }
@@ -123,8 +123,8 @@ function convertLabelsToRows(data: DataFrame[], keepLabels?: string[]): DataFram
             ...frame,
             name: getFieldDisplayName(field, frame, data),
             fields: [
-              { name: 'label', type: FieldType.string, config: {}, values: keys },
-              { name: 'value', type: FieldType.string, config: {}, values: vals },
+              { name: 'label', type: FieldType.string, config: {}, values: new ArrayVector(keys) },
+              { name: 'value', type: FieldType.string, config: {}, values: new ArrayVector(vals) },
             ],
             length: vals.length,
           });

@@ -1,82 +1,16 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render } from '@testing-library/react';
 import React from 'react';
 import { Provider } from 'react-redux';
-import { act } from 'react-test-renderer';
-import { byRole, byText } from 'testing-library-selector';
 
-import { FieldConfigSource, getDefaultTimeRange, LoadingState, PanelProps } from '@grafana/data';
+import { getDefaultTimeRange, LoadingState, PanelProps, FieldConfigSource } from '@grafana/data';
 import { TimeRangeUpdatedEvent } from '@grafana/runtime';
-import { setupMswServer } from 'app/features/alerting/unified/mockApi';
-import { mockPromRulesApiResponse } from 'app/features/alerting/unified/mocks/alertRuleApi';
-import { mockRulerRulesApiResponse } from 'app/features/alerting/unified/mocks/rulerApi';
-import { Annotation } from 'app/features/alerting/unified/utils/constants';
 import { DashboardSrv, setDashboardSrv } from 'app/features/dashboard/services/DashboardSrv';
-import { PromRuleGroupDTO, PromRulesResponse, RulerGrafanaRuleDTO } from 'app/types/unified-alerting-dto';
-
-import { contextSrv } from '../../../core/services/context_srv';
-import {
-  mockPromAlert,
-  mockPromAlertingRule,
-  mockPromRuleGroup,
-  mockPromRuleNamespace,
-  mockRulerGrafanaRule,
-  mockUnifiedAlertingStore,
-} from '../../../features/alerting/unified/mocks';
-import { GRAFANA_RULES_SOURCE_NAME } from '../../../features/alerting/unified/utils/datasource';
+import { configureStore } from 'app/store/configureStore';
 
 import { UnifiedAlertList } from './UnifiedAlertList';
-import { GroupMode, SortOrder, UnifiedAlertListOptions, ViewMode } from './types';
-import * as utils from './util';
-
-const grafanaRuleMock = {
-  promRules: {
-    grafana: {
-      loading: false,
-      dispatched: true,
-      result: [
-        mockPromRuleNamespace({
-          name: 'ns1',
-          groups: [
-            mockPromRuleGroup({
-              name: 'group1',
-              rules: [
-                mockPromAlertingRule({
-                  name: 'rule1',
-                  alerts: [mockPromAlert({ labels: { severity: 'critical' } })],
-                  totals: { alerting: 1 },
-                  totalsFiltered: { alerting: 1 },
-                }),
-              ],
-            }),
-          ],
-        }),
-      ],
-    },
-  },
-};
+import { UnifiedAlertListOptions, SortOrder, GroupMode, ViewMode } from './types';
 
 jest.mock('app/features/alerting/unified/api/alertmanager');
-
-const fakeResponse: PromRulesResponse = {
-  data: { groups: grafanaRuleMock.promRules.grafana.result[0].groups as PromRuleGroupDTO[] },
-  status: 'success',
-};
-
-const server = setupMswServer();
-
-mockPromRulesApiResponse(server, fakeResponse);
-const originRule: RulerGrafanaRuleDTO = mockRulerGrafanaRule(
-  {
-    for: '1m',
-    labels: { severity: 'critical', region: 'nasa' },
-    annotations: { [Annotation.summary]: 'This is a very important alert rule' },
-  },
-  { uid: 'grafana-rule-1', title: 'First Grafana Rule', data: [] }
-);
-mockRulerRulesApiResponse(server, 'grafana', {
-  'folder-one': [{ name: 'group1', interval: '20s', rules: [originRule] }],
-});
 
 const defaultOptions: UnifiedAlertListOptions = {
   maxItems: 2,
@@ -89,7 +23,7 @@ const defaultOptions: UnifiedAlertListOptions = {
   folder: { id: 1, title: 'test folder' },
   stateFilter: { firing: true, pending: false, noData: false, normal: true, error: false },
   alertInstanceLabelFilter: '',
-  datasource: 'grafana',
+  datasource: 'Alertmanager',
   viewMode: ViewMode.List,
 };
 
@@ -126,13 +60,14 @@ const dashboard = {
   },
 };
 
-const renderPanel = (options: Partial<UnifiedAlertListOptions> = defaultOptions) => {
-  const store = mockUnifiedAlertingStore(grafanaRuleMock);
+const renderPanel = (options: UnifiedAlertListOptions = defaultOptions) => {
+  const store = configureStore();
 
   const dashSrv: unknown = { getCurrent: () => dashboard };
   setDashboardSrv(dashSrv as DashboardSrv);
 
-  const props = { ...defaultProps, options: { ...defaultOptions, ...options } };
+  defaultProps.options = options;
+  const props = { ...defaultProps };
 
   return render(
     <Provider store={store}>
@@ -143,60 +78,8 @@ const renderPanel = (options: Partial<UnifiedAlertListOptions> = defaultOptions)
 
 describe('UnifiedAlertList', () => {
   it('subscribes to the dashboard refresh interval', async () => {
-    jest.spyOn(defaultProps, 'replaceVariables').mockReturnValue('severity=critical');
-
-    await act(async () => {
-      renderPanel();
-    });
-
+    await renderPanel();
     expect(dashboard.events.subscribe).toHaveBeenCalledTimes(1);
     expect(dashboard.events.subscribe.mock.calls[0][0]).toEqual(TimeRangeUpdatedEvent);
-  });
-
-  it('should replace option variables before filtering', async () => {
-    await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
-    });
-    jest.spyOn(contextSrv, 'hasPermission').mockReturnValue(true);
-    const filterAlertsSpy = jest.spyOn(utils, 'filterAlerts');
-
-    const replaceVarsSpy = jest.spyOn(defaultProps, 'replaceVariables').mockReturnValue('severity=critical');
-
-    const user = userEvent.setup();
-
-    await act(async () => {
-      renderPanel({
-        alertInstanceLabelFilter: '$label',
-        dashboardAlerts: false,
-        alertName: '',
-        datasource: GRAFANA_RULES_SOURCE_NAME,
-        folder: undefined,
-      });
-    });
-
-    await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
-    });
-
-    expect(byText('rule1').get()).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(screen.getByText('1 instance')).toBeInTheDocument();
-    });
-
-    const expandElement = byText('1 instance').get();
-
-    await user.click(expandElement);
-
-    const labelsElement = await byRole('list', { name: 'Labels' }).find();
-    expect(await byRole('listitem').find(labelsElement)).toHaveTextContent('severitycritical');
-
-    expect(replaceVarsSpy).toHaveBeenLastCalledWith('$label');
-    expect(filterAlertsSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        alertInstanceLabelFilter: 'severity=critical',
-      }),
-      expect.anything()
-    );
   });
 });

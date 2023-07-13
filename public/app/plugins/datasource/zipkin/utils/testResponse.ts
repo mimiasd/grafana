@@ -1,4 +1,4 @@
-import { FieldDTO } from '@grafana/data';
+import { ArrayVector, FieldDTO } from '@grafana/data';
 
 import { ZipkinSpan } from '../types';
 
@@ -35,7 +35,7 @@ export const testResponse: ZipkinSpan[] = [
 ];
 
 function toVectors(fields: FieldDTO[]) {
-  return fields.map((f) => ({ ...f, values: f.values }));
+  return fields.map((f) => ({ ...f, values: new ArrayVector<any>(f.values as any[]) }));
 }
 
 export const testResponseDataFrameFields = toVectors([

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/grafana/grafana/pkg/expr/mathexp"
-	"github.com/grafana/grafana/pkg/infra/tracing"
 )
 
 type ThresholdCommand struct {
@@ -30,17 +29,6 @@ var (
 )
 
 func NewThresholdCommand(refID, referenceVar, thresholdFunc string, conditions []float64) (*ThresholdCommand, error) {
-	switch thresholdFunc {
-	case ThresholdIsOutsideRange, ThresholdIsWithinRange:
-		if len(conditions) < 2 {
-			return nil, fmt.Errorf("incorrect number of arguments: got %d but need 2", len(conditions))
-		}
-	case ThresholdIsAbove, ThresholdIsBelow:
-		if len(conditions) < 1 {
-			return nil, fmt.Errorf("incorrect number of arguments: got %d but need 1", len(conditions))
-		}
-	}
-
 	return &ThresholdCommand{
 		RefID:         refID,
 		ReferenceVar:  referenceVar,
@@ -101,7 +89,7 @@ func (tc *ThresholdCommand) NeedsVars() []string {
 	return []string{tc.ReferenceVar}
 }
 
-func (tc *ThresholdCommand) Execute(ctx context.Context, now time.Time, vars mathexp.Vars, tracer tracing.Tracer) (mathexp.Results, error) {
+func (tc *ThresholdCommand) Execute(ctx context.Context, now time.Time, vars mathexp.Vars) (mathexp.Results, error) {
 	mathExpression, err := createMathExpression(tc.ReferenceVar, tc.ThresholdFunc, tc.Conditions)
 	if err != nil {
 		return mathexp.Results{}, err
@@ -112,7 +100,7 @@ func (tc *ThresholdCommand) Execute(ctx context.Context, now time.Time, vars mat
 		return mathexp.Results{}, err
 	}
 
-	return mathCommand.Execute(ctx, now, vars, tracer)
+	return mathCommand.Execute(ctx, now, vars)
 }
 
 // createMathExpression converts all the info we have about a "threshold" expression in to a Math expression

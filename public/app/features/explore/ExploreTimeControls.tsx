@@ -4,11 +4,12 @@ import { TimeRange, TimeZone, RawTimeRange, dateTimeForTimeZone, dateMath } from
 import { reportInteraction } from '@grafana/runtime';
 import { TimePickerWithHistory } from 'app/core/components/TimePicker/TimePickerWithHistory';
 import { getShiftedTimeRange, getZoomedTimeRange } from 'app/core/utils/timePicker';
+import { ExploreId } from 'app/types';
 
 import { TimeSyncButton } from './TimeSyncButton';
 
 export interface Props {
-  exploreId: string;
+  exploreId: ExploreId;
   hideText?: boolean;
   range: TimeRange;
   timeZone: TimeZone;

@@ -16,14 +16,14 @@ const mutableKeys = new Set<keyof PanelModel>(['gridPos', 'title', 'description'
 
 export function mergePanels(current: PanelModel[], data: IPanelModel[]): PanelMergeInfo {
   const panels: PanelModel[] = [];
-  const info: PanelMergeInfo = {
+  const info = {
     changed: false,
     actions: {
-      add: [],
-      remove: [],
-      replace: [],
-      update: [],
-      noop: [],
+      add: [] as number[],
+      remove: [] as number[],
+      replace: [] as number[],
+      update: [] as number[],
+      noop: [] as number[],
     },
     panels,
   };
@@ -110,7 +110,7 @@ export function mergePanels(current: PanelModel[], data: IPanelModel[]): PanelMe
 }
 
 // Since +- Infinity are saved as null in JSON, we need to make them equal here also
-function infinityEqualsNull(a: unknown, b: unknown) {
+function infinityEqualsNull(a: any, b: any) {
   if (a == null && (b === Infinity || b === -Infinity || b == null)) {
     return true;
   }

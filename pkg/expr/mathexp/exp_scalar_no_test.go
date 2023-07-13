@@ -4,7 +4,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -79,7 +78,7 @@ func TestScalarExpr(t *testing.T) {
 			e, err := New(tt.expr)
 			tt.newErrIs(t, err)
 			if e != nil {
-				res, err := e.Execute("", tt.vars, tracing.NewFakeTracer())
+				res, err := e.Execute("", tt.vars)
 				tt.execErrIs(t, err)
 				tt.resultIs(t, tt.Results, res)
 			}
@@ -132,7 +131,7 @@ func TestNumberExpr(t *testing.T) {
 			e, err := New(tt.expr)
 			tt.newErrIs(t, err)
 			if e != nil {
-				res, err := e.Execute("", tt.vars, tracing.NewFakeTracer())
+				res, err := e.Execute("", tt.vars)
 				tt.execErrIs(t, err)
 				tt.resultIs(t, tt.results, res)
 			}

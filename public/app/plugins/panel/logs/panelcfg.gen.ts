@@ -10,7 +10,9 @@
 
 import * as common from '@grafana/schema';
 
-export interface Options {
+export const PanelCfgModelVersion = Object.freeze([0, 0]);
+
+export interface PanelOptions {
   dedupStrategy: common.LogsDedupStrategy;
   enableLogDetails: boolean;
   prettifyLogMessage: boolean;

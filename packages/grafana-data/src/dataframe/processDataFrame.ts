@@ -22,11 +22,14 @@ import {
   DataQueryResponseData,
   PanelData,
   LoadingState,
-  GraphSeriesValue,
 } from '../types/index';
+import { ArrayVector } from '../vector/ArrayVector';
+import { SortedVector } from '../vector/SortedVector';
+import { vectorToArray } from '../vector/vectorToArray';
 
-import { arrayToDataFrame } from './ArrayDataFrame';
+import { ArrayDataFrame } from './ArrayDataFrame';
 import { dataFrameFromJSON } from './DataFrameJSON';
+import { MutableDataFrame } from './MutableDataFrame';
 
 function convertTableToDataFrame(table: TableData): DataFrame {
   const fields = table.columns.map((c) => {
@@ -35,7 +38,7 @@ function convertTableToDataFrame(table: TableData): DataFrame {
     return {
       name: text?.length ? text : c, // rename 'text' to the 'name' field
       config: (disp || {}) as FieldConfig,
-      values: [] as unknown[],
+      values: new ArrayVector(),
       type: type && Object.values(FieldType).includes(type as FieldType) ? (type as FieldType) : FieldType.other,
     };
   });
@@ -46,7 +49,7 @@ function convertTableToDataFrame(table: TableData): DataFrame {
 
   for (const row of table.rows) {
     for (let i = 0; i < fields.length; i++) {
-      fields[i].values.push(row[i]);
+      fields[i].values.buffer.push(row[i]);
     }
   }
 
@@ -84,7 +87,7 @@ function convertTimeSeriesToDataFrame(timeSeries: TimeSeries): DataFrame {
       name: TIME_SERIES_TIME_FIELD_NAME,
       type: FieldType.time,
       config: {},
-      values: times,
+      values: new ArrayVector<number>(times),
     },
     {
       name: TIME_SERIES_VALUE_FIELD_NAME,
@@ -92,7 +95,7 @@ function convertTimeSeriesToDataFrame(timeSeries: TimeSeries): DataFrame {
       config: {
         unit: timeSeries.unit,
       },
-      values: values,
+      values: new ArrayVector<TimeSeriesValue>(values),
       labels: timeSeries.tags,
     },
   ];
@@ -115,13 +118,13 @@ function convertTimeSeriesToDataFrame(timeSeries: TimeSeries): DataFrame {
  * to DataFrame.  See: https://github.com/grafana/grafana/issues/18528
  */
 function convertGraphSeriesToDataFrame(graphSeries: GraphSeriesXY): DataFrame {
-  const x: GraphSeriesValue[] = [];
-  const y: GraphSeriesValue[] = [];
+  const x = new ArrayVector();
+  const y = new ArrayVector();
 
   for (let i = 0; i < graphSeries.data.length; i++) {
     const row = graphSeries.data[i];
-    x.push(row[1]);
-    y.push(row[0]);
+    x.buffer.push(row[1]);
+    y.buffer.push(row[0]);
   }
 
   return {
@@ -142,7 +145,7 @@ function convertGraphSeriesToDataFrame(graphSeries: GraphSeriesXY): DataFrame {
         values: y,
       },
     ],
-    length: x.length,
+    length: x.buffer.length,
   };
 }
 
@@ -156,12 +159,12 @@ function convertJSONDocumentDataToDataFrame(timeSeries: TimeSeries): DataFrame {
         unit: timeSeries.unit,
         filterable: (timeSeries as any).filterable,
       },
-      values: [] as TimeSeriesValue[][],
+      values: new ArrayVector(),
     },
   ];
 
   for (const point of timeSeries.datapoints) {
-    fields[0].values.push(point);
+    fields[0].values.buffer.push(point);
   }
 
   return {
@@ -260,7 +263,7 @@ export function guessFieldTypeForField(field: Field): FieldType | undefined {
 
   // 2. Check the first non-null value
   for (let i = 0; i < field.values.length; i++) {
-    const v = field.values[i];
+    const v = field.values.get(i);
     if (v != null) {
       return guessFieldTypeFromValue(v);
     }
@@ -314,7 +317,7 @@ export function toDataFrame(data: any): DataFrame {
     }
 
     // This will convert the array values into Vectors
-    return createDataFrame(data as DataFrameDTO);
+    return new MutableDataFrame(data as DataFrameDTO);
   }
 
   // Handle legacy docs/json type
@@ -338,7 +341,7 @@ export function toDataFrame(data: any): DataFrame {
   }
 
   if (Array.isArray(data)) {
-    return arrayToDataFrame(data);
+    return new ArrayDataFrame(data);
   }
 
   console.warn('Can not convert', data);
@@ -349,7 +352,7 @@ export const toLegacyResponseData = (frame: DataFrame): TimeSeries | TableData =
   const { fields } = frame;
 
   const rowCount = frame.length;
-  const rows: unknown[][] = [];
+  const rows: any[][] = [];
 
   if (fields.length === 2) {
     const { timeField, timeIndex } = getTimeField(frame);
@@ -361,8 +364,8 @@ export const toLegacyResponseData = (frame: DataFrame): TimeSeries | TableData =
       // Make sure it is [value,time]
       for (let i = 0; i < rowCount; i++) {
         rows.push([
-          valueField.values[i], // value
-          timeField.values[i], // time
+          valueField.values.get(i), // value
+          timeField.values.get(i), // time
         ]);
       }
 
@@ -378,9 +381,9 @@ export const toLegacyResponseData = (frame: DataFrame): TimeSeries | TableData =
   }
 
   for (let i = 0; i < rowCount; i++) {
-    const row: unknown[] = [];
+    const row: any[] = [];
     for (let j = 0; j < fields.length; j++) {
-      row.push(fields[j].values[i]);
+      row.push(fields[j].values.get(i));
     }
     rows.push(row);
   }
@@ -389,7 +392,7 @@ export const toLegacyResponseData = (frame: DataFrame): TimeSeries | TableData =
     return {
       alias: fields[0].name || frame.name,
       target: fields[0].name || frame.name,
-      datapoints: fields[0].values,
+      datapoints: fields[0].values.toArray(),
       filterable: fields[0].config ? fields[0].config.filterable : undefined,
       type: 'docs',
     } as TimeSeries;
@@ -433,7 +436,7 @@ export function sortDataFrame(data: DataFrame, sortIndex?: number, reverse = fal
     fields: data.fields.map((f) => {
       return {
         ...f,
-        values: f.values.map((v, i) => f.values[index[i]]),
+        values: new SortedVector(f.values, index),
       };
     }),
   };
@@ -446,11 +449,11 @@ export function reverseDataFrame(data: DataFrame): DataFrame {
   return {
     ...data,
     fields: data.fields.map((f) => {
-      const values = [...f.values];
-      values.reverse();
+      const copy = [...f.values.toArray()];
+      copy.reverse();
       return {
         ...f,
-        values,
+        values: new ArrayVector(copy),
       };
     }),
   };
@@ -459,10 +462,10 @@ export function reverseDataFrame(data: DataFrame): DataFrame {
 /**
  * Wrapper to get an array from each field value
  */
-export function getDataFrameRow(data: DataFrame, row: number): unknown[] {
-  const values: unknown[] = [];
+export function getDataFrameRow(data: DataFrame, row: number): any[] {
+  const values: any[] = [];
   for (const field of data.fields) {
-    values.push(field.values[row]);
+    values.push(field.values.get(row));
   }
   return values;
 }
@@ -477,7 +480,11 @@ export function toDataFrameDTO(data: DataFrame): DataFrameDTO {
 export function toFilteredDataFrameDTO(data: DataFrame, fieldPredicate?: (f: Field) => boolean): DataFrameDTO {
   const filteredFields = fieldPredicate ? data.fields.filter(fieldPredicate) : data.fields;
   const fields: FieldDTO[] = filteredFields.map((f) => {
-    let values = f.values;
+    let values = f.values.toArray();
+    // The byte buffers serialize like objects
+    if (values instanceof Float64Array) {
+      values = vectorToArray(f.values);
+    }
     return {
       name: f.name,
       type: f.type,
@@ -564,37 +571,5 @@ export function preProcessPanelData(data: PanelData, lastResult?: PanelData): Pa
     series: processedDataFrames,
     annotations: annotationsProcessed,
     timings: { dataProcessingTime: STOPTIME - STARTTIME },
-  };
-}
-
-export interface PartialDataFrame extends Omit<DataFrame, 'fields' | 'length'> {
-  fields: Array<Partial<Field>>;
-}
-
-export function createDataFrame(input: PartialDataFrame): DataFrame {
-  let length = 0;
-  const fields = input.fields.map((p, idx) => {
-    const { state, ...field } = p;
-    if (!field.name) {
-      field.name = `Field ${idx + 1}`;
-    }
-    if (!field.config) {
-      field.config = {};
-    }
-    if (!field.values) {
-      field.values = new Array(length);
-    } else if (field.values.length > length) {
-      length = field.values.length;
-    }
-    if (!field.type) {
-      field.type = guessFieldTypeForField(field as Field) ?? FieldType.other;
-    }
-    return field as Field;
-  });
-
-  return {
-    ...input,
-    fields,
-    length,
   };
 }

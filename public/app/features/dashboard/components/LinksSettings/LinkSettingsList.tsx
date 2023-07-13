@@ -13,7 +13,7 @@ type LinkSettingsListProps = {
   onEdit: (idx: number) => void;
 };
 
-export const LinkSettingsList = ({ dashboard, onNew, onEdit }: LinkSettingsListProps) => {
+export const LinkSettingsList: React.FC<LinkSettingsListProps> = ({ dashboard, onNew, onEdit }) => {
   const [links, setLinks] = useState(dashboard.links);
 
   const moveLink = (idx: number, direction: number) => {
@@ -75,15 +75,15 @@ export const LinkSettingsList = ({ dashboard, onNew, onEdit }: LinkSettingsListP
                 </HorizontalGroup>
               </td>
               <td style={{ width: '1%' }} role="gridcell">
-                {idx !== 0 && <IconButton name="arrow-up" onClick={() => moveLink(idx, -1)} tooltip="Move link up" />}
+                {idx !== 0 && <IconButton name="arrow-up" aria-label="arrow-up" onClick={() => moveLink(idx, -1)} />}
               </td>
               <td style={{ width: '1%' }} role="gridcell">
                 {links.length > 1 && idx !== links.length - 1 ? (
-                  <IconButton name="arrow-down" onClick={() => moveLink(idx, 1)} tooltip="Move link down" />
+                  <IconButton name="arrow-down" aria-label="arrow-down" onClick={() => moveLink(idx, 1)} />
                 ) : null}
               </td>
               <td style={{ width: '1%' }} role="gridcell">
-                <IconButton name="copy" onClick={() => duplicateLink(link, idx)} tooltip="Copy link" />
+                <IconButton aria-label="copy" name="copy" onClick={() => duplicateLink(link, idx)} />
               </td>
               <td style={{ width: '1%' }} role="gridcell">
                 <DeleteButton

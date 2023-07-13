@@ -1,6 +1,6 @@
 import { css } from '@emotion/css';
 import { fromPairs } from 'lodash';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useAsyncFn, useMount, useMountedState } from 'react-use';
 import { AsyncState } from 'react-use/lib/useAsyncFn';
 
@@ -15,9 +15,6 @@ import {
   useTheme2,
   QueryField,
   useStyles2,
-  Modal,
-  HorizontalGroup,
-  Button,
 } from '@grafana/ui';
 import { notifyApp } from 'app/core/actions';
 import { createErrorNotification } from 'app/core/copy/appNotification';
@@ -39,7 +36,6 @@ const getStyles = (theme: GrafanaTheme2) => {
 };
 
 export const ZipkinQueryField = ({ query, onChange, onRunQuery, datasource }: Props) => {
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const serviceOptions = useServices(datasource);
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
@@ -56,15 +52,6 @@ export const ZipkinQueryField = ({ query, onChange, onRunQuery, datasource }: Pr
     [onChange, onRunQuery, query]
   );
 
-  useEffect(() => {
-    if (!query.queryType) {
-      onChange({
-        ...query,
-        queryType: 'traceID',
-      });
-    }
-  }, [query, onChange]);
-
   const onChangeQuery = (value: string) => {
     const nextQuery = { ...query, query: value };
     onChange(nextQuery);
@@ -74,49 +61,35 @@ export const ZipkinQueryField = ({ query, onChange, onRunQuery, datasource }: Pr
 
   return (
     <>
-      <Modal title={'Upload trace'} isOpen={uploadModalOpen} onDismiss={() => setUploadModalOpen(false)}>
+      <InlineFieldRow>
+        <InlineField label="Query type">
+          <RadioButtonGroup<ZipkinQueryType>
+            options={[
+              { value: 'traceID', label: 'TraceID' },
+              { value: 'upload', label: 'JSON File' },
+            ]}
+            value={query.queryType || 'traceID'}
+            onChange={(v) =>
+              onChange({
+                ...query,
+                queryType: v,
+              })
+            }
+            size="md"
+          />
+        </InlineField>
+      </InlineFieldRow>
+      {query.queryType === 'upload' ? (
         <div className={css({ padding: theme.spacing(2) })}>
           <FileDropzone
             options={{ multiple: false }}
             onLoad={(result) => {
               datasource.uploadedJson = result;
-              onChange({
-                ...query,
-                queryType: 'upload',
-              });
-              setUploadModalOpen(false);
               onRunQuery();
             }}
           />
         </div>
-      </Modal>
-      <InlineFieldRow>
-        <InlineField label="Query type" grow={true}>
-          <HorizontalGroup spacing={'sm'} align={'center'} justify={'space-between'}>
-            <RadioButtonGroup<ZipkinQueryType>
-              options={[{ value: 'traceID', label: 'TraceID' }]}
-              value={query.queryType || 'traceID'}
-              onChange={(v) =>
-                onChange({
-                  ...query,
-                  queryType: v,
-                })
-              }
-              size="md"
-            />
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setUploadModalOpen(true);
-              }}
-            >
-              Import trace
-            </Button>
-          </HorizontalGroup>
-        </InlineField>
-      </InlineFieldRow>
-      {query.queryType === 'traceID' && (
+      ) : (
         <InlineFieldRow>
           <ButtonCascader
             options={cascaderOptions}

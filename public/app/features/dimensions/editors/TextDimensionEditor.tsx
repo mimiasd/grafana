@@ -6,12 +6,11 @@ import {
   StandardEditorsRegistryItem,
   StringFieldConfigSettings,
 } from '@grafana/data';
-import { TextDimensionConfig, TextDimensionMode } from '@grafana/schema';
 import { Button, InlineField, InlineFieldRow, RadioButtonGroup } from '@grafana/ui';
 import { FieldNamePicker } from '@grafana/ui/src/components/MatchersUI/FieldNamePicker';
 import { StringValueEditor } from 'app/core/components/OptionsUI/string';
 
-import { TextDimensionOptions } from '../types';
+import { TextDimensionConfig, TextDimensionMode, TextDimensionOptions } from '../types';
 
 const textOptions = [
   { label: 'Fixed', value: TextDimensionMode.Fixed, description: 'Fixed value' },
@@ -27,7 +26,7 @@ const dummyStringSettings: StandardEditorsRegistryItem<string, StringFieldConfig
   settings: {},
 } as any;
 
-type Props = StandardEditorProps<TextDimensionConfig, TextDimensionOptions>;
+type Props = StandardEditorProps<TextDimensionConfig, TextDimensionOptions, any>;
 
 export const TextDimensionEditor = ({ value, context, onChange }: Props) => {
   const labelWidth = 9;
